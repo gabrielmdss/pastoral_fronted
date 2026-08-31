@@ -1,0 +1,14 @@
+<div class="app-shell">
+  <aside class="sidebar" [class.open]="menuOpen()">
+    <div class="brand"><span>PC</span><div><strong>Entrega Certa</strong><small>Pastoral Social</small></div></div>
+    <nav aria-label="Menu principal">
+      @for (item of menuItems(); track item.label) { <a [routerLink]="item.route" routerLinkActive="active" (click)="menuOpen.set(false)">{{ item.label }}</a> }
+    </nav>
+    <div class="sidebar-foot"><span>{{ session.currentUser()?.login }}</span><button type="button" class="secondary" (click)="logout()">Sair</button></div>
+  </aside>
+  @if (menuOpen()) { <button class="backdrop" aria-label="Fechar menu" (click)="menuOpen.set(false)"></button> }
+  <div class="content">
+    <header class="topbar"><button type="button" class="menu-button" aria-label="Abrir menu" (click)="menuOpen.set(!menuOpen())">☰</button><span>Pastoral de Distribuição de Cestas</span><div class="user-dot" aria-hidden="true">{{ session.currentUser()?.login?.charAt(0)?.toUpperCase() }}</div></header>
+    <main class="page"><router-outlet /></main>
+  </div>
+</div>

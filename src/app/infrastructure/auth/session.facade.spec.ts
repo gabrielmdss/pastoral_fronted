@@ -1,0 +1,5 @@
+import { of,throwError } from 'rxjs';
+import { describe,expect,it,vi } from 'vitest';
+import { SessionFacade } from './session.facade';
+import { SessionStateService } from './session-state.service';
+describe('SessionFacade',()=>{it('restaura sessão e verifica permissão',async()=>{const user={id:'1',login:'u',ativo:true,perfis:[],permissoes:['DASH']};const facade=new SessionFacade({execute:vi.fn(()=>of(user))} as never,{execute:vi.fn(()=>of(user))} as never,{execute:vi.fn()} as never,{getAccessToken:()=> 'jwt',setAccessToken:vi.fn(),clear:vi.fn()},new SessionStateService());await facade.restore();expect(facade.isAuthenticated()).toBe(true);expect(facade.hasPermission('DASH')).toBe(true);});it('limpa token inválido no restore',async()=>{const clear=vi.fn();const facade=new SessionFacade({} as never,{execute:()=>throwError(()=>new Error())} as never,{execute:clear} as never,{getAccessToken:()=> 'jwt',setAccessToken:vi.fn(),clear},new SessionStateService());await facade.restore();expect(facade.isAuthenticated()).toBe(false);expect(clear).toHaveBeenCalled();});});
