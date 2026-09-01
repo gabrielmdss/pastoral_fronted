@@ -1,0 +1,89 @@
+<div class="person-picker">
+  @if (selected(); as pessoa) {
+    <div class="selected">
+      <div>
+        <strong>{{ pessoa.nomeCompleto }}</strong
+        ><small>{{ pessoa.documentos[0]?.tipo }} {{ pessoa.documentos[0]?.numeroMascarado }}</small>
+        @if (pessoa.beneficiario) {
+          <span
+            >Beneficiária {{ pessoa.beneficiario.status === 'ATIVO' ? 'ativa' : 'desligada' }}</span
+          >
+        }
+      </div>
+      <button type="button" class="secondary" (click)="clear()">Trocar pessoa</button>
+    </div>
+  } @else {
+    <label
+      >Buscar pessoa por nome ou documento<input
+        type="search"
+        [formControl]="search"
+        placeholder="Digite ao menos 2 caracteres"
+        autocomplete="off"
+    /></label>
+    @if (loading()) {
+      <p role="status">Buscando…</p>
+    }
+    @if (error()) {
+      <p class="picker-error" role="alert">{{ error() }}</p>
+    }
+    @if (results().length) {
+      <ul class="results">
+        @for (p of results(); track p.id) {
+          <li>
+            <button
+              type="button"
+              (click)="select(p)"
+              [disabled]="blockExistingBeneficiary() && !!p.beneficiario"
+            >
+              <strong>{{ p.nomeCompleto }}</strong
+              ><small>
+                @for (d of p.documentos; track d.tipo) {
+                  <span>{{ d.tipo }} {{ d.numeroMascarado }}</span>
+                }
+              </small>
+              @if (p.dataNascimento) {
+                <small>Nascimento: {{ p.dataNascimento }}</small>
+              }
+              @if (p.beneficiario) {
+                <em
+                  >Beneficiária {{ p.beneficiario.status === 'ATIVO' ? 'ativa' : 'desligada' }}</em
+                >
+              }
+            </button>
+          </li>
+        }
+      </ul>
+    } @else if (search.value.length >= 2 && !loading()) {
+      <p>Nenhuma pessoa encontrada.</p>
+      @if (canCreate()) {
+        <button type="button" class="secondary" (click)="createMode.set(true)">
+          Cadastrar nova pessoa
+        </button>
+      }
+    }
+  }
+  @if (createMode()) {
+    <section class="quick-create">
+      <h3>Cadastrar nova pessoa</h3>
+      <form [formGroup]="form" (ngSubmit)="create()">
+        <label>Nome completo<input formControlName="nomeCompleto" /></label
+        ><label>Data de nascimento<input type="date" formControlName="dataNascimento" /></label
+        ><label>Telefone<input formControlName="telefone" /></label>
+        <div class="document-row">
+          <label
+            >Documento<select formControlName="tipo">
+              <option value="CPF">CPF</option>
+              <option value="RG">RG</option>
+            </select></label
+          ><label>Número<input formControlName="numero" /></label>
+        </div>
+        <div class="picker-actions">
+          <button type="button" class="secondary" (click)="createMode.set(false)">Cancelar</button
+          ><button [disabled]="form.invalid || saving()">
+            {{ saving() ? 'Cadastrando…' : 'Cadastrar e selecionar' }}
+          </button>
+        </div>
+      </form>
+    </section>
+  }
+</div>

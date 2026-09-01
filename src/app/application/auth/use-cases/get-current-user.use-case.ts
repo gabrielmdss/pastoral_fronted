@@ -6,5 +6,7 @@ import { AUTH_API, type AuthApiPort } from '../ports/auth-api.port';
 @Injectable()
 export class GetCurrentUserUseCase {
   constructor(@Inject(AUTH_API) private readonly api: AuthApiPort) {}
-  execute(): Observable<AuthenticatedUser> { return this.api.me(); }
+  execute(): Observable<AuthenticatedUser> {
+    return this.api.me();
+  }
 }

@@ -7,7 +7,10 @@ import { SESSION_STORAGE, type SessionStoragePort } from '../ports/session-stora
 
 @Injectable()
 export class LoginUseCase {
-  constructor(@Inject(AUTH_API) private readonly api: AuthApiPort, @Inject(SESSION_STORAGE) private readonly storage: SessionStoragePort) {}
+  constructor(
+    @Inject(AUTH_API) private readonly api: AuthApiPort,
+    @Inject(SESSION_STORAGE) private readonly storage: SessionStoragePort,
+  ) {}
   execute(input: LoginInput): Observable<AuthenticatedUser> {
     return this.api.login(input).pipe(
       tap(({ accessToken }) => this.storage.setAccessToken(accessToken)),

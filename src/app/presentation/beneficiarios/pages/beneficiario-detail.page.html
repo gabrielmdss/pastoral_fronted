@@ -1,0 +1,175 @@
+<a routerLink="/beneficiarios" class="back-link">← Voltar para beneficiários</a>
+<header class="feature-header">
+  <div>
+    <p class="eyebrow">Assistência</p>
+    <h1>Detalhe do beneficiário</h1>
+    <p>Visão operacional da situação assistencial.</p>
+  </div>
+</header>
+@if (feedback()) {
+  <p class="notice" role="status">{{ feedback() }}</p>
+}
+@if (loading()) {
+  <app-loading-state />
+} @else if (error()) {
+  <app-error-state [message]="error()" (retry)="load()" />
+} @else if (item(); as b) {
+  <section class="detail-card profile">
+    <div class="avatar large">{{ b.pessoa.nomeCompleto.charAt(0) }}</div>
+    <div>
+      <h2>{{ b.pessoa.nomeCompleto }}</h2>
+      <app-status-badge [status]="b.status" />
+      <p>{{ b.grupo?.nome || 'Sem grupo' }} · Admissão {{ b.dataAdmissao }}</p>
+    </div>
+    <div class="actions">
+      @if (b.status === 'ATIVO' && session.hasPermission('BENEFICIARIO_EDITAR')) {
+        <button class="secondary" (click)="mode.set('grupo')">Alterar grupo</button>
+      }
+      @if (b.status === 'ATIVO' && session.hasPermission('BENEFICIARIO_DESLIGAR')) {
+        <button class="danger" (click)="mode.set('desligar')">Desligar</button>
+      }
+      @if (b.status === 'DESLIGADO' && session.hasPermission('BENEFICIARIO_REATIVAR')) {
+        <button (click)="mode.set('reativar')">Reativar</button>
+      }
+    </div>
+  </section>
+  <section class="detail-sections">
+    <article class="content-card">
+      <h2>Identificação</h2>
+      <dl>
+        <div>
+          <dt>Nascimento</dt>
+          <dd>{{ b.pessoa.dataNascimento || 'Não informado' }}</dd>
+        </div>
+        <div>
+          <dt>Telefone</dt>
+          <dd>{{ b.pessoa.telefone || 'Não informado' }}</dd>
+        </div>
+        @for (d of b.pessoa.documentos; track d.tipo) {
+          <div>
+            <dt>{{ d.tipo }}</dt>
+            <dd>{{ d.numeroMascarado }}</dd>
+          </div>
+        }
+      </dl>
+      @if (b.pessoa.enderecoPrincipal; as e) {
+        <p>
+          {{ e.logradouro }}, {{ e.numero }} {{ e.complemento }} — {{ e.bairro }}, {{ e.cidade }}/{{
+            e.uf
+          }}
+          · {{ e.cep }}
+        </p>
+      }
+      @if (b.pessoa.fotoPrincipal) {
+        <p class="hint">Foto cadastrada, aguardando endpoint seguro de mídia.</p>
+      }
+    </article>
+    <article class="content-card">
+      <h2>Direitos</h2>
+      @if (b.direitoAtual; as d) {
+        <p>
+          <strong>Atual:</strong> {{ d.competencia }} · {{ d.status }}
+          @if (d.dataPrevista) {
+            · {{ d.dataPrevista }}
+          }
+        </p>
+      } @else {
+        <p class="hint">Sem direito atual.</p>
+      }
+      @if (b.proximoDireito; as d) {
+        <p>
+          <strong>Próximo:</strong> {{ d.competencia }} · {{ d.status }}
+          @if (d.dataPrevista) {
+            · {{ d.dataPrevista }}
+          }
+        </p>
+      }
+    </article>
+    <article class="content-card">
+      <h2>Última retirada</h2>
+      @if (b.ultimaRetirada; as r) {
+        <p>{{ r.ocorridoEm.slice(0, 10) }} · {{ r.tipo }}</p>
+      } @else {
+        <p class="hint">Nenhuma retirada registrada.</p>
+      }
+    </article>
+    <article class="content-card">
+      <h2>Pendências</h2>
+      @if (b.pendenciasAtuais.length) {
+        <ul>
+          @for (p of b.pendenciasAtuais; track p.codigo + p.competencia) {
+            <li>{{ p.codigo.replaceAll('_', ' ') }} — {{ p.competencia }}</li>
+          }
+        </ul>
+      } @else {
+        <p class="hint">Nenhuma pendência atual.</p>
+      }
+    </article>
+  </section>
+}
+@if (mode()) {
+  <div class="dialog-backdrop">
+    <section class="dialog" role="dialog" aria-modal="true" aria-labelledby="action-title">
+      <h2 id="action-title">
+        {{
+          mode() === 'grupo'
+            ? 'Alterar grupo'
+            : mode() === 'desligar'
+              ? 'Desligar beneficiário'
+              : 'Confirmar reativação'
+        }}
+      </h2>
+      @if (mode() === 'grupo') {
+        <p>
+          Grupo atual: <strong>{{ item()?.grupo?.nome || 'Sem grupo' }}</strong>
+        </p>
+        <form [formGroup]="grupo" (ngSubmit)="submit()">
+          <label
+            >Grupo destino<select formControlName="grupoDestinoId">
+              <option value="">Selecione</option>
+              @for (g of grupos(); track g.id) {
+                @if (g.id !== item()?.grupo?.id) {
+                  <option [value]="g.id">{{ g.nome }}</option>
+                }
+              }
+            </select></label
+          ><label>Motivo<textarea formControlName="motivo"></textarea></label
+          ><label class="check"
+            ><input type="checkbox" formControlName="vigenciaCompetenciaAtual" />Aplicar à
+            competência atual</label
+          >
+          <div class="dialog-actions">
+            <button type="button" class="secondary" (click)="mode.set(null)">Cancelar</button
+            ><button [disabled]="grupo.invalid || mutation()">Salvar</button>
+          </div>
+        </form>
+      } @else if (mode() === 'desligar') {
+        <p>
+          Beneficiário: <strong>{{ item()?.pessoa?.nomeCompleto }}</strong>
+        </p>
+        <form [formGroup]="desligarForm" (ngSubmit)="submit()">
+          <label
+            >Motivo<select formControlName="motivoId">
+              <option value="">Selecione</option>
+              @for (m of motivos(); track m.id) {
+                <option [value]="m.id">{{ m.descricao }}</option>
+              }
+            </select></label
+          ><label>Observação<textarea formControlName="observacao"></textarea></label>
+          <div class="dialog-actions">
+            <button type="button" class="secondary" (click)="mode.set(null)">Cancelar</button
+            ><button class="danger" [disabled]="desligarForm.invalid || mutation()">
+              Confirmar desligamento
+            </button>
+          </div>
+        </form>
+      } @else {
+        <p>Confirma a reativação de {{ item()?.pessoa?.nomeCompleto }}?</p>
+        <div class="dialog-actions">
+          <button class="secondary" (click)="mode.set(null)">Cancelar</button
+          ><button (click)="submit()" [disabled]="mutation()">Confirmar</button>
+        </div>
+      }
+    </section>
+  </div>
+}

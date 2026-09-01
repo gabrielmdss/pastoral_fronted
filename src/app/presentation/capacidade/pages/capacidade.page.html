@@ -1,0 +1,64 @@
+<header class="feature-header">
+  <div>
+    <p class="eyebrow">Assistência</p>
+    <h1>Capacidade</h1>
+    <p>Visão atual da capacidade assistencial definida pela coordenação.</p>
+  </div>
+  @if (session.hasPermission('CAPACIDADE_ALTERAR') && data()) {
+    <button (click)="open()">Alterar capacidade</button>
+  }
+</header>
+@if (feedback()) {
+  <p class="notice" role="status">{{ feedback() }}</p>
+}
+@if (loading()) {
+  <app-loading-state />
+} @else if (error()) {
+  <app-error-state [message]="error()" (retry)="load()" />
+} @else if (data(); as cap) {
+  <section class="capacity-grid">
+    <article>
+      <span>Capacidade</span><strong>{{ cap.capacidade }}</strong>
+    </article>
+    <article>
+      <span>Beneficiários ativos</span><strong>{{ cap.ativos }}</strong>
+    </article>
+    <article>
+      <span>Vagas</span><strong>{{ cap.vagas }}</strong>
+    </article>
+    <article>
+      <span>Excedente</span><strong>{{ cap.excedente }}</strong>
+    </article>
+  </section>
+}
+@if (dialog()) {
+  <div class="dialog-backdrop">
+    <section class="dialog" role="dialog" aria-modal="true" aria-labelledby="capacity-title">
+      <h2 id="capacity-title">Alterar capacidade</h2>
+      <form [formGroup]="form" (ngSubmit)="submit()">
+        <label>Nova capacidade<input type="number" min="1" formControlName="capacidade" /></label>
+        @if (
+          form.controls.capacidade.value !== null &&
+          data() &&
+          form.controls.capacidade.value < data()!.ativos
+        ) {
+          <p class="warning">
+            A nova capacidade ficará abaixo do número atual de beneficiários ativos. Nenhum
+            beneficiário será desligado automaticamente.
+          </p>
+        }
+        <label>Justificativa<textarea formControlName="justificativa"></textarea></label>
+        <p>
+          Confirme a alteração. A API registrará a justificativa e continuará sendo a autoridade da
+          regra.
+        </p>
+        <div class="dialog-actions">
+          <button type="button" class="secondary" (click)="dialog.set(false)">Cancelar</button
+          ><button [disabled]="form.invalid || mutation()">
+            {{ mutation() ? 'Salvando…' : 'Confirmar alteração' }}
+          </button>
+        </div>
+      </form>
+    </section>
+  </div>
+}

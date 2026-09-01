@@ -1,3 +1,5 @@
 # Diretrizes de interface
 
-A interface usa tokens globais de cor, espaçamento, raio e sombra. Prioriza contraste, foco visível, labels, botões semânticos e estados loading/error/empty. O layout muda para menu lateral sobreposto abaixo de 800 px; login e cards do dashboard se reorganizam no mobile. Menus futuros não são exibidos até suas rotas existirem.
+A interface usa tokens globais, contraste, foco visível, labels e estados loading/error/empty. O layout é responsivo; tabelas viram cards no mobile.
+
+Documentos ficam mascarados. Status e prioridade usam texto além da cor. Dialogs possuem `role=dialog`, título e ações claras. Formulários preservam dados após erro, bloqueiam submit duplicado e exibem loading local.

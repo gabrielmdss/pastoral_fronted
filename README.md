@@ -1,6 +1,6 @@
 # Entrega Certa — frontend
 
-Frontend Angular standalone da Pastoral de Distribuição de Cestas. O primeiro slice funcional cobre login, restauração de sessão, área autenticada e dashboard.
+Frontend Angular standalone da Pastoral de Distribuição de Cestas. Os slices funcionais cobrem autenticação, dashboard e Assistência: pessoas, beneficiários, capacidade, catálogos e lista de espera.
 
 ## Executar
 
@@ -11,7 +11,7 @@ npm install
 npm start
 ```
 
-Antes de iniciar, ajuste `public/config.json`. `apiBaseUrl` deve apontar para a API incluindo `/api/v1`, por exemplo `http://localhost:3000/api/v1`. Essa configuração é carregada antes do bootstrap e não é compilada no bundle.
+Configure `public/config.json`. `apiBaseUrl` deve incluir `/api/v1`; no ambiente atual, `http://localhost:3101/api/v1`. A configuração é carregada antes do bootstrap e não é compilada no bundle.
 
 ## Qualidade
 
@@ -22,4 +22,4 @@ npm test -- --watch=false
 npm run build
 ```
 
-O código segue camadas no topo de `src/app`: `domain`, `application`, `infrastructure`, `presentation`, `main` e `shared`. Consulte `docs/` para decisões e contratos.
+O código segue camadas no topo de `src/app`: `domain`, `application`, `infrastructure`, `presentation`, `main` e `shared`. Consulte `docs/` para contratos e limitações.

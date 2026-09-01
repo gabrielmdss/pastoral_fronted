@@ -7,5 +7,11 @@ export async function loadAppConfig(): Promise<AppConfig> {
   return { apiBaseUrl: value.apiBaseUrl.replace(/\/$/, '') };
 }
 function isAppConfig(value: unknown): value is AppConfig {
-  return typeof value === 'object' && value !== null && 'apiBaseUrl' in value && typeof value.apiBaseUrl === 'string' && /^https?:\/\//.test(value.apiBaseUrl);
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    'apiBaseUrl' in value &&
+    typeof value.apiBaseUrl === 'string' &&
+    /^https?:\/\//.test(value.apiBaseUrl)
+  );
 }

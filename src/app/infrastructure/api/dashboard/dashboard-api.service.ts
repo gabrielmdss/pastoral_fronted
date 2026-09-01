@@ -8,6 +8,13 @@ import type { DashboardResponseDto } from './dashboard-api.contracts';
 import { mapDashboard } from './dashboard-api.mapper';
 @Injectable()
 export class DashboardApiService implements DashboardApiPort {
-  constructor(private readonly http: HttpClient, @Inject(APP_CONFIG) private readonly config: AppConfig) {}
-  get(): Observable<Dashboard> { return this.http.get<DashboardResponseDto>(`${this.config.apiBaseUrl}/dashboard`).pipe(map(mapDashboard)); }
+  constructor(
+    private readonly http: HttpClient,
+    @Inject(APP_CONFIG) private readonly config: AppConfig,
+  ) {}
+  get(): Observable<Dashboard> {
+    return this.http
+      .get<DashboardResponseDto>(`${this.config.apiBaseUrl}/dashboard`)
+      .pipe(map(mapDashboard));
+  }
 }

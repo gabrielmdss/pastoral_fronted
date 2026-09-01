@@ -5,5 +5,7 @@ import type { Dashboard } from './dashboard.model';
 @Injectable()
 export class GetDashboardUseCase {
   constructor(@Inject(DASHBOARD_API) private readonly api: DashboardApiPort) {}
-  execute(): Observable<Dashboard> { return this.api.get(); }
+  execute(): Observable<Dashboard> {
+    return this.api.get();
+  }
 }

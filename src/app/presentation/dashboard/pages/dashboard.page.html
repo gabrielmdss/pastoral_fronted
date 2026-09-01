@@ -1,16 +1,105 @@
-<header class="page-header"><div><p class="eyebrow">Visão geral</p><h1>Dashboard</h1><p>Acompanhe a capacidade de atendimento e a preparação das próximas cestas.</p></div><button type="button" class="secondary" (click)="load()" [disabled]="loading()">Atualizar</button></header>
-@if(loading()){<app-loading-state label="Carregando indicadores…"/>}
-@else if(error()){<app-error-state [message]="error()" (retry)="load()"/>}
-@else if(data();as dashboard){
+<header class="page-header">
+  <div>
+    <p class="eyebrow">Visão geral</p>
+    <h1>Dashboard</h1>
+    <p>Acompanhe a capacidade de atendimento e a preparação das próximas cestas.</p>
+  </div>
+  <button type="button" class="secondary" (click)="load()" [disabled]="loading()">Atualizar</button>
+</header>
+@if (loading()) {
+  <app-loading-state label="Carregando indicadores…" />
+} @else if (error()) {
+  <app-error-state [message]="error()" (retry)="load()" />
+} @else if (data(); as dashboard) {
   <section class="metric-grid" aria-label="Indicadores de beneficiários">
-    <article><span>Capacidade</span><strong>{{dashboard.beneficiarios.capacidade}}</strong></article><article><span>Beneficiários ativos</span><strong>{{dashboard.beneficiarios.ativos}}</strong></article><article><span>Vagas</span><strong>{{dashboard.beneficiarios.vagas}}</strong></article><article><span>Lista de espera</span><strong>{{dashboard.beneficiarios.listaEspera}}</strong></article>
+    <article>
+      <span>Capacidade</span><strong>{{ dashboard.beneficiarios.capacidade }}</strong>
+    </article>
+    <article>
+      <span>Beneficiários ativos</span><strong>{{ dashboard.beneficiarios.ativos }}</strong>
+    </article>
+    <article>
+      <span>Vagas</span><strong>{{ dashboard.beneficiarios.vagas }}</strong>
+    </article>
+    <article>
+      <span>Lista de espera</span><strong>{{ dashboard.beneficiarios.listaEspera }}</strong>
+    </article>
   </section>
   <section class="detail-grid">
-    <article class="panel"><div class="panel-title"><h2>Próxima distribuição</h2>@if(dashboard.proximaDistribuicao){<span class="badge">{{dashboard.proximaDistribuicao.status}}</span>}</div>
-      @if(dashboard.proximaDistribuicao;as next){<dl><div><dt>Data</dt><dd>{{next.data}}</dd></div><div><dt>Grupo</dt><dd>{{next.grupo}}</dd></div><div><dt>Previstos</dt><dd>{{next.previstos}}</dd></div><div><dt>Cestas montadas</dt><dd>{{next.cestasMontadasCompativeis}}</dd></div></dl>}@else{<p class="empty">Nenhuma distribuição futura encontrada.</p>}
+    <article class="panel">
+      <div class="panel-title">
+        <h2>Próxima distribuição</h2>
+        @if (dashboard.proximaDistribuicao) {
+          <span class="badge">{{ dashboard.proximaDistribuicao.status }}</span>
+        }
+      </div>
+      @if (dashboard.proximaDistribuicao; as next) {
+        <dl>
+          <div>
+            <dt>Data</dt>
+            <dd>{{ next.data }}</dd>
+          </div>
+          <div>
+            <dt>Grupo</dt>
+            <dd>{{ next.grupo }}</dd>
+          </div>
+          <div>
+            <dt>Previstos</dt>
+            <dd>{{ next.previstos }}</dd>
+          </div>
+          <div>
+            <dt>Cestas montadas</dt>
+            <dd>{{ next.cestasMontadasCompativeis }}</dd>
+          </div>
+        </dl>
+      } @else {
+        <p class="empty">Nenhuma distribuição futura encontrada.</p>
+      }
     </article>
-    <article class="panel"><h2>Saúde da cobertura</h2><div class="coverage"><span class="status" [attr.data-status]="dashboard.saude.proximaDistribuicao.status">{{dashboard.saude.proximaDistribuicao.status.replace('_',' ')}}</span><strong>{{dashboard.saude.proximaDistribuicao.coberturaPercentual}}%</strong><small>{{dashboard.saude.proximaDistribuicao.capacidadeGarantida}} de {{dashboard.saude.proximaDistribuicao.demanda}} cestas garantidas</small></div></article>
-    <article class="panel"><h2>Estoque</h2><dl><div><dt>Cestas montadas</dt><dd>{{dashboard.estoque.cestasMontadas}}</dd></div><div><dt>Insumos ativos</dt><dd>{{dashboard.estoque.insumosAtivos}}</dd></div><div><dt>Itens críticos</dt><dd>{{dashboard.estoque.itensCriticos}}</dd></div></dl></article>
-    <article class="panel"><h2>Insumos críticos</h2>@if(dashboard.insumosCriticos.length){<ul>@for(item of dashboard.insumosCriticos.slice(0,5);track item.apresentacaoInsumoId){<li><span>{{item.nome}} — {{item.apresentacao}}</span><strong>Déficit {{item.deficit}}</strong></li>}</ul>}@else{<p class="empty">Nenhum insumo crítico para a próxima distribuição.</p>}</article>
+    <article class="panel">
+      <h2>Saúde da cobertura</h2>
+      <div class="coverage">
+        <span class="status" [attr.data-status]="dashboard.saude.proximaDistribuicao.status">{{
+          dashboard.saude.proximaDistribuicao.status.replace('_', ' ')
+        }}</span
+        ><strong>{{ dashboard.saude.proximaDistribuicao.coberturaPercentual }}%</strong
+        ><small
+          >{{ dashboard.saude.proximaDistribuicao.capacidadeGarantida }} de
+          {{ dashboard.saude.proximaDistribuicao.demanda }} cestas garantidas</small
+        >
+      </div>
+    </article>
+    <article class="panel">
+      <h2>Estoque</h2>
+      <dl>
+        <div>
+          <dt>Cestas montadas</dt>
+          <dd>{{ dashboard.estoque.cestasMontadas }}</dd>
+        </div>
+        <div>
+          <dt>Insumos ativos</dt>
+          <dd>{{ dashboard.estoque.insumosAtivos }}</dd>
+        </div>
+        <div>
+          <dt>Itens críticos</dt>
+          <dd>{{ dashboard.estoque.itensCriticos }}</dd>
+        </div>
+      </dl>
+    </article>
+    <article class="panel">
+      <h2>Insumos críticos</h2>
+      @if (dashboard.insumosCriticos.length) {
+        <ul>
+          @for (item of dashboard.insumosCriticos.slice(0, 5); track item.apresentacaoInsumoId) {
+            <li>
+              <span>{{ item.nome }} — {{ item.apresentacao }}</span
+              ><strong>Déficit {{ item.deficit }}</strong>
+            </li>
+          }
+        </ul>
+      } @else {
+        <p class="empty">Nenhum insumo crítico para a próxima distribuição.</p>
+      }
+    </article>
   </section>
 }

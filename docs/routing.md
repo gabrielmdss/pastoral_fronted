@@ -1,7 +1,9 @@
 # Rotas
 
-- `/login`: pública e redireciona para `/dashboard` quando a sessão já existe.
-- `/`: redireciona para `/dashboard` dentro do layout autenticado.
-- `/dashboard`: lazy loaded e protegido pelo `authGuard` no pai.
+- `/login`: pública; sessão existente redireciona ao dashboard.
+- `/dashboard`: área autenticada.
+- `/beneficiarios` e `/beneficiarios/:id`: `BENEFICIARIO_VISUALIZAR`.
+- `/capacidade`: `BENEFICIARIO_VISUALIZAR`; alteração exige `CAPACIDADE_ALTERAR`.
+- `/candidaturas`: `CANDIDATURA_VISUALIZAR`.
 
-`permissionGuard(codigo)` está disponível para rotas futuras e consulta somente permissões carregadas por `/auth/me`.
+As páginas são lazy-loaded. Botões aplicam permissões específicas; o backend permanece como segurança efetiva.

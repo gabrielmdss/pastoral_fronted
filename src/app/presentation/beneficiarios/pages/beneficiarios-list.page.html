@@ -1,0 +1,129 @@
+<header class="feature-header">
+  <div>
+    <p class="eyebrow">Assistência</p>
+    <h1>Beneficiários</h1>
+    <p>Busque por nome ou documento. A consulta é realizada diretamente na API.</p>
+  </div>
+  @if (session.hasPermission('BENEFICIARIO_ADMITIR')) {
+    <button type="button" (click)="openAdmission()">Novo beneficiário</button>
+  }
+</header>
+@if (feedback()) {
+  <p class="notice" role="status">{{ feedback() }}</p>
+}
+<section class="filters">
+  <label class="search-label"
+    >Buscar por nome ou documento<input
+      type="search"
+      [formControl]="search"
+      placeholder="Digite o nome ou documento"
+  /></label>
+  <form [formGroup]="filters" (ngSubmit)="applyFilters()">
+    <label
+      >Status<select formControlName="status">
+        <option value="">Todos</option>
+        <option value="ATIVO">Ativo</option>
+        <option value="DESLIGADO">Desligado</option>
+      </select></label
+    ><label
+      >Grupo<select formControlName="grupoId">
+        <option value="">Todos</option>
+        @for (grupo of grupos(); track grupo.id) {
+          <option [value]="grupo.id">{{ grupo.nome }}</option>
+        }
+      </select></label
+    ><button class="secondary">Aplicar filtros</button>
+  </form>
+</section>
+@if (loading()) {
+  <app-loading-state label="Buscando beneficiários…" />
+} @else if (error()) {
+  <app-error-state [message]="error()" (retry)="applyFilters()" />
+} @else if (!items().length) {
+  <app-empty-state
+    title="Nenhum beneficiário encontrado"
+    message="Altere os termos ou filtros da busca."
+  />
+} @else {
+  <div class="responsive-list">
+    <table>
+      <thead>
+        <tr>
+          <th>Beneficiário</th>
+          <th>Documento</th>
+          <th>Grupo</th>
+          <th>Status</th>
+          <th><span class="sr-only">Ações</span></th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (item of items(); track item.id) {
+          <tr>
+            <td>
+              <div class="person">
+                <span class="avatar">{{ item.nomeCompleto.charAt(0) }}</span
+                ><strong>{{ item.nomeCompleto }}</strong>
+              </div>
+            </td>
+            <td>{{ item.documentos[0]?.numeroMascarado || 'Não informado' }}</td>
+            <td>{{ item.grupo?.codigo || 'Sem grupo' }}</td>
+            <td><app-status-badge [status]="item.status" /></td>
+            <td><a class="button-link" [routerLink]="['/beneficiarios', item.id]">Ver</a></td>
+          </tr>
+        }
+      </tbody>
+    </table>
+    <div class="mobile-cards">
+      @for (item of items(); track item.id) {
+        <article>
+          <div class="person">
+            <span class="avatar">{{ item.nomeCompleto.charAt(0) }}</span
+            ><strong>{{ item.nomeCompleto }}</strong>
+          </div>
+          <app-status-badge [status]="item.status" />
+          <p>{{ item.grupo?.codigo || 'Sem grupo' }}</p>
+          <a class="button-link" [routerLink]="['/beneficiarios', item.id]">Ver</a>
+        </article>
+      }
+    </div>
+  </div>
+}
+@if (dialog()) {
+  <div class="dialog-backdrop">
+    <section class="dialog" role="dialog" aria-modal="true" aria-labelledby="admission-title">
+      <h2 id="admission-title">Novo beneficiário</h2>
+      <app-pessoa-search-field
+        [canCreate]="session.hasPermission('BENEFICIARIO_CADASTRAR')"
+        [blockExistingBeneficiary]="true"
+        (pessoaSelecionada)="pessoa.set($event)"
+      />
+      <form [formGroup]="admission" (ngSubmit)="submitAdmission()">
+        <label
+          >Grupo<select formControlName="grupoId">
+            <option value="">Selecione</option>
+            @for (grupo of grupos(); track grupo.id) {
+              <option [value]="grupo.id">{{ grupo.nome }}</option>
+            }
+          </select></label
+        >
+        @if (session.hasPermission('CAPACIDADE_ALTERAR')) {
+          <label class="check"
+            ><input type="checkbox" formControlName="autorizarAcimaCapacidade" />Autorizar acima da
+            capacidade</label
+          >
+        }
+        @if (admission.controls.autorizarAcimaCapacidade.value) {
+          <label
+            >Justificativa da exceção<textarea formControlName="justificativaExcecao"></textarea>
+          </label>
+        }
+        <div class="dialog-actions">
+          <button type="button" class="secondary" (click)="closeAdmission()">Cancelar</button
+          ><button [disabled]="admission.invalid || mutation() || !pessoa()">
+            {{ mutation() ? 'Admitindo…' : 'Admitir' }}
+          </button>
+        </div>
+      </form>
+    </section>
+  </div>
+}

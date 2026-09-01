@@ -6,16 +6,40 @@
     <p>Gestão acolhedora e responsável da distribuição de cestas.</p>
   </section>
   <section class="login-card">
-    <div><p class="eyebrow">Acesso restrito</p><h2>Entre no sistema</h2><p class="hint">Use as credenciais fornecidas pela coordenação.</p></div>
+    <div>
+      <p class="eyebrow">Acesso restrito</p>
+      <h2>Entre no sistema</h2>
+      <p class="hint">Use as credenciais fornecidas pela coordenação.</p>
+    </div>
     <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
       <label for="login">Login</label>
-      <input id="login" type="text" formControlName="login" autocomplete="username" [attr.aria-invalid]="form.controls.login.invalid && form.controls.login.touched" />
-      @if (form.controls.login.invalid && form.controls.login.touched) { <small class="field-error">Informe o login.</small> }
+      <input
+        id="login"
+        type="text"
+        formControlName="login"
+        autocomplete="username"
+        [attr.aria-invalid]="form.controls.login.invalid && form.controls.login.touched"
+      />
+      @if (form.controls.login.invalid && form.controls.login.touched) {
+        <small class="field-error">Informe o login.</small>
+      }
       <label for="senha">Senha</label>
-      <input id="senha" type="password" formControlName="senha" autocomplete="current-password" [attr.aria-invalid]="form.controls.senha.invalid && form.controls.senha.touched" />
-      @if (form.controls.senha.invalid && form.controls.senha.touched) { <small class="field-error">Informe a senha.</small> }
-      @if (errorMessage()) { <p class="form-error" role="alert">{{ errorMessage() }}</p> }
-      <button type="submit" [disabled]="session.loading()">{{ session.loading() ? 'Entrando…' : 'Entrar' }}</button>
+      <input
+        id="senha"
+        type="password"
+        formControlName="senha"
+        autocomplete="current-password"
+        [attr.aria-invalid]="form.controls.senha.invalid && form.controls.senha.touched"
+      />
+      @if (form.controls.senha.invalid && form.controls.senha.touched) {
+        <small class="field-error">Informe a senha.</small>
+      }
+      @if (errorMessage()) {
+        <p class="form-error" role="alert">{{ errorMessage() }}</p>
+      }
+      <button type="submit" [disabled]="session.loading()">
+        {{ session.loading() ? 'Entrando…' : 'Entrar' }}
+      </button>
     </form>
   </section>
 </main>

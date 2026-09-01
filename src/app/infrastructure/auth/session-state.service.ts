@@ -6,6 +6,10 @@ export class SessionStateService {
   readonly currentUser = this.userState.asReadonly();
   readonly isAuthenticated = computed(() => this.userState() !== null);
   readonly permissions = computed(() => this.userState()?.permissoes ?? []);
-  setUser(user: AuthenticatedUser): void { this.userState.set(user); }
-  clear(): void { this.userState.set(null); }
+  setUser(user: AuthenticatedUser): void {
+    this.userState.set(user);
+  }
+  clear(): void {
+    this.userState.set(null);
+  }
 }
