@@ -21,7 +21,7 @@ import type {
 import { RegistrarCheckInUseCase } from '../../../application/atendimento/use-cases/registrar-check-in.use-case';
 import { BuscarBeneficiariosUseCase } from '../../../application/beneficiarios/beneficiarios.use-cases';
 import { BeneficiarioResumo } from '../../../domain/beneficiarios/beneficiario.model';
-import { catchError, debounceTime, distinctUntilChanged, of, Subject, switchMap } from 'rxjs';
+import { catchError, distinctUntilChanged, finalize, forkJoin, map, of, Subject, switchMap, takeUntil, timer } from 'rxjs';
 import { CheckInFeedbackComponent } from '../components/check-in-feedback.component';
 import { ListarRetiradasUseCase } from '../../../application/atendimento/use-cases/listar-retiradas.use-case';
 import { RegistrarRetiradaUseCase } from '../../../application/atendimento/use-cases/registrar-retirada.use-case';
@@ -102,56 +102,93 @@ export default class AtendimentoDistribuicaoPage {
     readonly loading = signal(true);
     readonly error = signal<string | null>(null);
 
-    private filasPendentes = 0;
+    private readonly distribuicaoAlterada = new Subject<void>();
+    private readonly consultas = new Map<string, Subject<void>>();
+    private distribuicaoId: string | null = null;
+
+    // Each key owns one current read; a refresh cancels only the read it replaces.
+    private iniciarConsulta(chave: 'resumo' | 'filas' | 'retiradas' | 'historico' | 'ausencias'): Subject<void> {
+        let cancelar = this.consultas.get(chave);
+        if (!cancelar) {
+            cancelar = new Subject<void>();
+            this.consultas.set(chave, cancelar);
+        }
+        cancelar.next();
+        return cancelar;
+    }
+
+    private limparContexto(): void {
+        this.distribuicaoAlterada.next();
+        for (const cancelar of this.consultas.values()) cancelar.next();
+        this.onBuscaChange('');
+        this.distribuicao.set(null);
+        this.filaRegular.set([]);
+        this.filaPendente.set([]);
+        this.retiradas.set([]);
+        this.historicoCheckIns.set([]);
+        this.ausenciasPorBeneficiario.set({});
+        this.loading.set(false);
+        this.loadingFilas.set(false);
+        this.loadingRetiradas.set(false);
+        this.loadingHistoricoCheckIns.set(false);
+        this.checkInEmAndamento.set(false);
+        this.retiradaEmAndamentoId.set(null);
+        this.estornoEmAndamentoId.set(null);
+        this.historicoAusenciaLoadingId.set(null);
+        this.justificativaLoadingId.set(null);
+        this.encerrando.set(false);
+        this.error.set(null);
+        this.filasError.set(null);
+        this.resumoError.set(null);
+        this.retiradasError.set(null);
+        this.historicoCheckInsError.set(null);
+        this.encerramentoError.set(null);
+        this.justificativaError.set(null);
+        this.retiradaFeedback.set(null);
+        this.justificativaFeedback.set(null);
+    }
 
     constructor() {
-        this.carregar();
+        this.buscaSubject.pipe(
+            map(termo => termo.trim()),
+            distinctUntilChanged(),
+            switchMap(valor => {
+                this.resultadosBusca.set([]);
+                this.buscaError.set(null);
+                this.buscando.set(!!valor);
+                if (!valor) return of([] as BeneficiarioResumo[]);
+                const filtro = /^\d/.test(valor)
+                    ? { documento: valor, status: 'ATIVO' }
+                    : { nome: valor, status: 'ATIVO' };
+                // Cancel immediately on input, debounce only the new HTTP request.
+                return timer(350).pipe(
+                    switchMap(() => this.buscarBeneficiarios.execute(filtro)),
+                    catchError(() => {
+                        this.buscaError.set('Não foi possível buscar beneficiários.');
+                        return of([] as BeneficiarioResumo[]);
+                    }),
+                    finalize(() => this.buscando.set(false)),
+                );
+            }),
+            takeUntilDestroyed(this.destroyRef),
+        ).subscribe(beneficiarios => {
+            this.resultadosBusca.set(beneficiarios);
+            this.buscando.set(false);
+        });
 
-        this.buscaSubject
-            .pipe(
-                debounceTime(350),
-                distinctUntilChanged(),
-                switchMap((termo) => {
-                    this.buscando.set(true);
-                    this.buscaError.set(null);
-
-                    const valor = termo.trim();
-
-                    if (!valor) {
-                        this.resultadosBusca.set([]);
-                        this.buscando.set(false);
-
-                        return of([]);
-                    }
-
-                    const filtro = /^\d/.test(valor)
-                        ? { documento: valor, status: 'ATIVO' }
-                        : { nome: valor, status: 'ATIVO' };
-
-                    return this.buscarBeneficiarios.execute(filtro).pipe(
-                        catchError(() => {
-                            this.resultadosBusca.set([]);
-                            this.buscando.set(false);
-                            this.buscaError.set(
-                                'Não foi possível buscar beneficiários.',
-                            );
-                            return of([] as BeneficiarioResumo[]);
-                        }),
-                    );
-                }),
-                takeUntilDestroyed(this.destroyRef),
-            )
-            .subscribe({
-                next: (beneficiarios) => {
-                    this.resultadosBusca.set(beneficiarios);
-                    this.buscando.set(false);
-                },
-
-            });
+        this.route.paramMap.pipe(
+            map(params => params.get('id')),
+            distinctUntilChanged(),
+            takeUntilDestroyed(this.destroyRef),
+        ).subscribe(id => {
+            this.limparContexto();
+            this.distribuicaoId = id;
+            this.carregar();
+        });
     }
 
     carregar(): void {
-        const id = this.route.snapshot.paramMap.get('id');
+        const id = this.distribuicaoId;
 
         if (!id) {
             this.loading.set(false);
@@ -159,12 +196,13 @@ export default class AtendimentoDistribuicaoPage {
             return;
         }
 
+        const cancelar = this.iniciarConsulta('resumo');
         this.loading.set(true);
         this.error.set(null);
 
         this.obterDistribuicao
             .execute(id)
-            .pipe(takeUntilDestroyed(this.destroyRef))
+            .pipe(takeUntil(cancelar), takeUntil(this.distribuicaoAlterada), takeUntilDestroyed(this.destroyRef))
             .subscribe({
                 next: (distribuicao) => {
                     this.distribuicao.set(distribuicao);
@@ -191,60 +229,33 @@ export default class AtendimentoDistribuicaoPage {
     }
 
     carregarFilas(distribuicaoId?: string): void {
-
         const id = distribuicaoId ?? this.distribuicao()?.id;
-
-        if (!id) {
-            return;
-        }
-
-        this.filasPendentes = 2;
+        if (!id || id !== this.distribuicaoId) return;
+        const cancelar = this.iniciarConsulta('filas');
         this.loadingFilas.set(true);
         this.filasError.set(null);
-
-        this.listarCheckIns
-            .execute(id, 'REGULAR', 'AGUARDANDO')
-            .pipe(takeUntilDestroyed(this.destroyRef))
-            .subscribe({
-                next: (checkIns) => {
-                    this.filaRegular.set(
-                        checkIns.filter(
-                            (checkIn) => checkIn.situacaoOperacional === 'AGUARDANDO',
-                        ),
-                    );
-                    this.finalizarCarregamentoFilas();
-                },
-
-                error: () => {
-                    this.filaRegular.set([]);
-                    this.filasError.set(
-                        'Não foi possível carregar a fila principal.',
-                    );
-                    this.finalizarCarregamentoFilas();
-                },
-            });
-
-        this.listarCheckIns
-            .execute(id, 'PENDENTE', 'AGUARDANDO')
-            .pipe(takeUntilDestroyed(this.destroyRef))
-            .subscribe({
-                next: (checkIns) => {
-                    this.filaPendente.set(
-                        checkIns.filter(
-                            (checkIn) => checkIn.situacaoOperacional === 'AGUARDANDO',
-                        ),
-                    );
-                    this.finalizarCarregamentoFilas();
-                },
-
-                error: () => {
-                    this.filaPendente.set([]);
-                    this.filasError.set(
-                        'Não foi possível carregar a fila secundária.',
-                    );
-                    this.finalizarCarregamentoFilas();
-                },
-            });
+        forkJoin({
+            regular: this.listarCheckIns.execute(id, 'REGULAR', 'AGUARDANDO').pipe(
+                catchError(() => {
+                    this.filasError.set('Não foi possível carregar a fila principal.');
+                    return of([] as CheckIn[]);
+                }),
+            ),
+            pendente: this.listarCheckIns.execute(id, 'PENDENTE', 'AGUARDANDO').pipe(
+                catchError(() => {
+                    this.filasError.set('Não foi possível carregar a fila secundária.');
+                    return of([] as CheckIn[]);
+                }),
+            ),
+        }).pipe(
+            takeUntil(cancelar),
+            takeUntil(this.distribuicaoAlterada),
+            takeUntilDestroyed(this.destroyRef),
+            finalize(() => this.loadingFilas.set(false)),
+        ).subscribe(({ regular, pendente }) => {
+            this.filaRegular.set(regular.filter(item => item.situacaoOperacional === 'AGUARDANDO'));
+            this.filaPendente.set(pendente.filter(item => item.situacaoOperacional === 'AGUARDANDO'));
+        });
     }
 
     registrarChegada(
@@ -263,6 +274,7 @@ export default class AtendimentoDistribuicaoPage {
             return;
         }
 
+        const termoDaChegada = this.busca();
         this.checkInEmAndamento.set(true);
         this.buscaError.set(null);
 
@@ -272,15 +284,13 @@ export default class AtendimentoDistribuicaoPage {
                 beneficiario.id,
             )
             .pipe(
-                takeUntilDestroyed(this.destroyRef),
+                takeUntil(this.distribuicaoAlterada), takeUntilDestroyed(this.destroyRef),
             )
             .subscribe({
                 next: (checkIn) => {
+                    if (this.busca() === termoDaChegada) this.onBuscaChange('');
                     this.ultimoCheckIn.set(checkIn);
-
                     this.checkInEmAndamento.set(false);
-                    this.busca.set('');
-                    this.resultadosBusca.set([]);
 
                     this.carregarFilas(distribuicao.id);
                     this.carregarResumoDistribuicao(distribuicao.id);
@@ -328,7 +338,7 @@ export default class AtendimentoDistribuicaoPage {
         this.encerramentoError.set(null);
         this.encerrarDistribuicao
             .execute(distribuicao.id)
-            .pipe(takeUntilDestroyed(this.destroyRef))
+            .pipe(takeUntil(this.distribuicaoAlterada), takeUntilDestroyed(this.destroyRef))
             .subscribe({
                 next: () => {
                     this.encerrando.set(false);
@@ -344,11 +354,13 @@ export default class AtendimentoDistribuicaoPage {
     }
 
     carregarHistoricoCheckIns(distribuicaoId: string): void {
+        if (distribuicaoId !== this.distribuicaoId) return;
+        const cancelar = this.iniciarConsulta('historico');
         this.loadingHistoricoCheckIns.set(true);
         this.historicoCheckInsError.set(null);
         this.listarCheckIns
             .execute(distribuicaoId)
-            .pipe(takeUntilDestroyed(this.destroyRef))
+            .pipe(takeUntil(cancelar), takeUntil(this.distribuicaoAlterada), takeUntilDestroyed(this.destroyRef))
             .subscribe({
                 next: (checkIns) => {
                     this.historicoCheckIns.set(checkIns);
@@ -425,7 +437,7 @@ export default class AtendimentoDistribuicaoPage {
             : this.registrarRetirada.execute(distribuicao.id, checkIn.beneficiario.id);
 
         registro$
-            .pipe(takeUntilDestroyed(this.destroyRef))
+            .pipe(takeUntil(this.distribuicaoAlterada), takeUntilDestroyed(this.destroyRef))
             .subscribe({
                 next: () => {
                     this.retiradaEmAndamentoId.set(null);
@@ -478,7 +490,7 @@ export default class AtendimentoDistribuicaoPage {
         this.retiradaFeedback.set(null);
         this.estornarRetirada
             .execute(retirada.id, motivo)
-            .pipe(takeUntilDestroyed(this.destroyRef))
+            .pipe(takeUntil(this.distribuicaoAlterada), takeUntilDestroyed(this.destroyRef))
             .subscribe({
                 next: () => {
                     this.estornoEmAndamentoId.set(null);
@@ -502,16 +514,17 @@ export default class AtendimentoDistribuicaoPage {
         if (!this.podeAcessarRetiradas) return;
         const id = distribuicaoId ?? this.distribuicao()?.id;
 
-        if (!id) {
+        if (!id || id !== this.distribuicaoId) {
             return;
         }
 
+        const cancelar = this.iniciarConsulta('retiradas');
         this.loadingRetiradas.set(true);
         this.retiradasError.set(null);
 
         this.listarRetiradas
             .execute(id)
-            .pipe(takeUntilDestroyed(this.destroyRef))
+            .pipe(takeUntil(cancelar), takeUntil(this.distribuicaoAlterada), takeUntilDestroyed(this.destroyRef))
             .subscribe({
                 next: (retiradas) => {
                     this.retiradas.set(retiradas);
@@ -526,10 +539,11 @@ export default class AtendimentoDistribuicaoPage {
     }
 
     carregarAusencias(beneficiarioId: string): void {
+        const cancelar = this.iniciarConsulta('ausencias');
         this.historicoAusenciaLoadingId.set(beneficiarioId);
         this.justificativaError.set(null);
         this.listarAusencias.execute(beneficiarioId)
-            .pipe(takeUntilDestroyed(this.destroyRef))
+            .pipe(takeUntil(cancelar), takeUntil(this.distribuicaoAlterada), takeUntilDestroyed(this.destroyRef))
             .subscribe({
                 next: (ausencias) => {
                     this.ausenciasPorBeneficiario.update((state) => ({
@@ -564,7 +578,7 @@ export default class AtendimentoDistribuicaoPage {
         this.justificativaLoadingId.set(ausencia.id);
         this.justificativaError.set(null);
         this.registrarJustificativaUseCase.execute(ausencia.id, { descricao, momento })
-            .pipe(takeUntilDestroyed(this.destroyRef))
+            .pipe(takeUntil(this.distribuicaoAlterada), takeUntilDestroyed(this.destroyRef))
             .subscribe({
                 next: () => {
                     this.justificativaLoadingId.set(null);
@@ -594,7 +608,7 @@ export default class AtendimentoDistribuicaoPage {
         this.justificativaLoadingId.set(ausencia.id);
         this.justificativaError.set(null);
         this.avaliarJustificativaUseCase.execute(justificativaId, { decisao, observacao })
-            .pipe(takeUntilDestroyed(this.destroyRef))
+            .pipe(takeUntil(this.distribuicaoAlterada), takeUntilDestroyed(this.destroyRef))
             .subscribe({
                 next: () => {
                     this.justificativaLoadingId.set(null);
@@ -637,22 +651,17 @@ export default class AtendimentoDistribuicaoPage {
         this.carregarResumoDistribuicao(distribuicaoId);
     }
 
-    private finalizarCarregamentoFilas(): void {
-        this.filasPendentes--;
-
-        if (this.filasPendentes <= 0) {
-            this.loadingFilas.set(false);
-        }
-    }
-
     private carregarResumoDistribuicao(
         id: string,
     ): void {
+        if (id !== this.distribuicaoId) return;
+        const cancelar = this.iniciarConsulta('resumo');
+        this.loading.set(false);
         this.resumoError.set(null);
         this.obterDistribuicao
             .execute(id)
             .pipe(
-                takeUntilDestroyed(this.destroyRef),
+                takeUntil(cancelar), takeUntil(this.distribuicaoAlterada), takeUntilDestroyed(this.destroyRef),
             )
             .subscribe({
                 next: (distribuicao) => {
@@ -668,6 +677,7 @@ export default class AtendimentoDistribuicaoPage {
 
     onBuscaChange(valor: string): void {
         this.busca.set(valor);
+        if (!valor.trim()) this.ultimoCheckIn.set(null);
         this.buscaSubject.next(valor);
     }
 

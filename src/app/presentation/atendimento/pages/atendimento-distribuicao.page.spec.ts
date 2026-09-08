@@ -1,7 +1,7 @@
 import { provideRouter } from '@angular/router';
 import { ActivatedRoute, convertToParamMap } from '@angular/router';
 import { TestBed } from '@angular/core/testing';
-import { of, throwError } from 'rxjs';
+import { BehaviorSubject, of, Subject, throwError } from 'rxjs';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { ListarCheckInsUseCase } from '../../../application/atendimento/use-cases/listar-check-ins.use-case';
@@ -57,6 +57,7 @@ function checkIn(overrides: Partial<CheckIn> & Pick<CheckIn, 'id'>): CheckIn {
 }
 
 function setup(options?: {
+  routeId?: BehaviorSubject<ReturnType<typeof convertToParamMap>>;
   listar?: ReturnType<typeof vi.fn>;
   buscar?: ReturnType<typeof vi.fn>;
   registrar?: ReturnType<typeof vi.fn>;
@@ -90,7 +91,7 @@ function setup(options?: {
       provideRouter([]),
       {
         provide: ActivatedRoute,
-        useValue: { snapshot: { paramMap: convertToParamMap({ id: '1' }) } },
+        useValue: { snapshot: { paramMap: convertToParamMap({ id: '1' }) }, paramMap: options?.routeId ?? of(convertToParamMap({ id: '1' })) },
       },
       { provide: ObterDistribuicaoUseCase, useValue: { execute: obter } },
       { provide: ListarCheckInsUseCase, useValue: { execute: listar } },
@@ -119,6 +120,213 @@ function setup(options?: {
 }
 
 describe('AtendimentoDistribuicaoPage', () => {
+  const pessoa: BeneficiarioResumo = { id: '8', nomeCompleto: 'Maria', status: 'ATIVO', grupo: null, fotoPrincipal: null, documentos: [] };
+
+  it('mantém a rodada mais recente das filas mesmo quando a anterior responde depois', () => {
+    const requests = Array.from({ length: 4 }, () => new Subject<CheckIn[]>());
+    const listar = vi.fn();
+    requests.forEach(request => listar.mockReturnValueOnce(request));
+    const { page } = setup({ listar });
+    page.carregarFilas();
+    requests[2]!.next([checkIn({ id: 'atual' })]); requests[2]!.complete();
+    requests[3]!.next([]); requests[3]!.complete();
+    requests[0]!.next([checkIn({ id: 'antigo' })]); requests[0]!.complete();
+    requests[1]!.next([]); requests[1]!.complete();
+    expect(page.filaRegular().map(item => item.id)).toEqual(['atual']);
+    expect(page.loadingFilas()).toBe(false);
+  });
+
+  it('cancela busca A assim que B é digitada, antes do debounce de B', async () => {
+    vi.useFakeTimers();
+    const a = new Subject<BeneficiarioResumo[]>(), b = new Subject<BeneficiarioResumo[]>();
+    const { page } = setup({ buscar: vi.fn().mockReturnValueOnce(a).mockReturnValueOnce(b) });
+    page.onBuscaChange('Maria'); await vi.advanceTimersByTimeAsync(351);
+    page.onBuscaChange('Joana');
+    a.next([pessoa]);
+    expect(page.resultadosBusca()).toEqual([]);
+    await vi.advanceTimersByTimeAsync(351);
+    b.next([{ ...pessoa, id: '9' }]); b.complete();
+    a.next([pessoa]);
+    expect(page.resultadosBusca().map(item => item.id)).toEqual(['9']);
+  });
+
+  it('clear imediato impede resposta antiga e limpa loading e seleção', async () => {
+    vi.useFakeTimers();
+    const response = new Subject<BeneficiarioResumo[]>();
+    const { page } = setup({ buscar: vi.fn().mockReturnValue(response) });
+    page.onBuscaChange('Maria'); await vi.advanceTimersByTimeAsync(351);
+    page.ultimoCheckIn.set(checkIn({ id: 'anterior' }));
+    page.onBuscaChange(''); response.next([pessoa]);
+    expect(page.resultadosBusca()).toEqual([]);
+    expect(page.buscando()).toBe(false);
+    expect(page.ultimoCheckIn()).toBeNull();
+  });
+
+  it('repete o mesmo termo após check-in sem encerrar o stream', async () => {
+    vi.useFakeTimers();
+    const buscar = vi.fn().mockReturnValue(of([pessoa]));
+    const { page } = setup({ buscar, registrar: vi.fn().mockReturnValue(of(checkIn({ id: '8' }))) });
+    page.onBuscaChange('Maria'); await vi.advanceTimersByTimeAsync(351);
+    page.registrarChegada(pessoa);
+    page.onBuscaChange('Maria'); await vi.advanceTimersByTimeAsync(351);
+    expect(buscar).toHaveBeenCalledTimes(2);
+    expect(page.resultadosBusca()).toEqual([pessoa]);
+  });
+
+  it('refresh após check-in vence resumo antigo ainda em voo sem apagar nova busca', () => {
+    const antigo = new Subject<Distribuicao>();
+    const obter = vi.fn().mockReturnValueOnce(of(distribuicao)).mockReturnValueOnce(antigo)
+      .mockReturnValueOnce(of({ ...distribuicao, checkIns: 10 }));
+    const { page } = setup({ obter, registrar: vi.fn().mockReturnValue(of(checkIn({ id: '8' }))) });
+    page.carregar();
+    page.registrarChegada(pessoa);
+    page.onBuscaChange('Joana');
+    antigo.next(distribuicao); antigo.complete();
+    expect(page.distribuicao()?.checkIns).toBe(10);
+    expect(page.busca()).toBe('Joana');
+    expect(page.loading()).toBe(false);
+  });
+
+  it('retiradas da consulta anterior não substituem a lista mais recente', () => {
+    const antiga = new Subject<never[]>(), atual = new Subject<never[]>();
+    const { page } = setup({ listarRetiradas: vi.fn().mockReturnValueOnce(antiga).mockReturnValueOnce(atual) });
+    page.carregarRetiradas();
+    atual.next([]); atual.complete();
+    antiga.error(new Error('erro antigo'));
+    expect(page.retiradasError()).toBeNull();
+    expect(page.loadingRetiradas()).toBe(false);
+  });
+
+  it('troca de distribuição cancela consultas e mutações do contexto anterior', () => {
+    const routeId = new BehaviorSubject(convertToParamMap({ id: '1' }));
+    const antiga = new Subject<Distribuicao>(), chegada = new Subject<CheckIn>();
+    const obter = vi.fn().mockReturnValueOnce(of(distribuicao)).mockReturnValueOnce(antiga)
+      .mockReturnValueOnce(of({ ...distribuicao, id: '2' }));
+    const { page, listar } = setup({ routeId, obter, registrar: vi.fn().mockReturnValue(chegada) });
+    page.registrarChegada(pessoa); page.carregar(); page.onBuscaChange('Maria');
+    routeId.next(convertToParamMap({ id: '2' }));
+    antiga.next(distribuicao); chegada.next(checkIn({ id: '8' }));
+    expect(page.distribuicao()?.id).toBe('2');
+    expect(page.busca()).toBe('');
+    expect(page.ultimoCheckIn()).toBeNull();
+    expect(page.checkInEmAndamento()).toBe(false);
+    expect(listar).toHaveBeenLastCalledWith('2', 'PENDENTE', 'AGUARDANDO');
+  });
+
+  it('busca continua após vazio, clear e repetição do mesmo termo', async () => {
+    vi.useFakeTimers();
+    const buscar = vi.fn().mockReturnValueOnce(of([])).mockReturnValue(of([pessoa]));
+    const { page } = setup({ buscar });
+    page.onBuscaChange('Nada'); await vi.advanceTimersByTimeAsync(351);
+    page.onBuscaChange(''); page.onBuscaChange('Nada'); await vi.advanceTimersByTimeAsync(351);
+    expect(buscar).toHaveBeenCalledTimes(2);
+    expect(page.resultadosBusca()).toEqual([pessoa]);
+  });
+
+  it('uma busca nova permanece quando o check-in anterior termina', async () => {
+    vi.useFakeTimers();
+    const chegada = new Subject<CheckIn>();
+    const { page } = setup({ registrar: vi.fn().mockReturnValue(chegada), buscar: vi.fn().mockReturnValue(of([pessoa])) });
+    page.onBuscaChange('Maria'); await vi.advanceTimersByTimeAsync(351);
+    page.registrarChegada(pessoa);
+    page.onBuscaChange('Joana'); await vi.advanceTimersByTimeAsync(351);
+    chegada.next(checkIn({ id: '8' }));
+    expect(page.busca()).toBe('Joana');
+    expect(page.resultadosBusca()).toEqual([pessoa]);
+  });
+
+  it('erro em uma fila permite nova rodada e preserva a outra fila', () => {
+    const listar = vi.fn().mockReturnValueOnce(throwError(() => new Error('falha')))
+      .mockReturnValueOnce(of([checkIn({ id: 'pendente' })])).mockReturnValue(of([]));
+    const { page } = setup({ listar });
+    expect(page.filasError()).toBe('Não foi possível carregar a fila principal.');
+    expect(page.filaPendente()).toHaveLength(1);
+    expect(page.loadingFilas()).toBe(false);
+    page.carregarFilas();
+    expect(page.filasError()).toBeNull();
+    expect(page.loadingFilas()).toBe(false);
+  });
+
+  it('loading da nova rodada permanece até ambas as filas concluírem', () => {
+    const requests = Array.from({ length: 4 }, () => new Subject<CheckIn[]>());
+    const listar = vi.fn(); requests.forEach(request => listar.mockReturnValueOnce(request));
+    const { page } = setup({ listar }); page.carregarFilas();
+    requests[0]!.next([]); requests[0]!.complete(); requests[1]!.next([]); requests[1]!.complete();
+    expect(page.loadingFilas()).toBe(true);
+    requests[2]!.next([]); requests[2]!.complete();
+    expect(page.loadingFilas()).toBe(true);
+    requests[3]!.next([]); requests[3]!.complete();
+    expect(page.loadingFilas()).toBe(false);
+  });
+
+  it('troca de rota limpa dados existentes e cancela busca, filas, retiradas e histórico', async () => {
+    vi.useFakeTimers();
+    const routeId = new BehaviorSubject(convertToParamMap({ id: '1' }));
+    const fila = new Subject<CheckIn[]>(), busca = new Subject<BeneficiarioResumo[]>();
+    const retirada = new Subject<never[]>(), nova = new Subject<Distribuicao>();
+    const { page } = setup({ routeId,
+      obter: vi.fn().mockReturnValueOnce(of({ ...distribuicao, status: 'ENCERRADA' })).mockReturnValueOnce(nova),
+      listar: vi.fn().mockReturnValue(fila), buscar: vi.fn().mockReturnValue(busca),
+      listarRetiradas: vi.fn().mockReturnValue(retirada),
+    });
+    page.filaRegular.set([checkIn({ id: 'antigo' })]);
+    page.onBuscaChange('Maria'); await vi.advanceTimersByTimeAsync(351);
+    routeId.next(convertToParamMap({ id: '2' }));
+    fila.next([checkIn({ id: 'antigo' })]); fila.complete(); busca.next([pessoa]); retirada.error(new Error('antigo'));
+    expect(page.distribuicao()).toBeNull();
+    expect(page.filaRegular()).toEqual([]); expect(page.filaPendente()).toEqual([]);
+    expect(page.historicoCheckIns()).toEqual([]); expect(page.retiradas()).toEqual([]);
+    expect(page.resultadosBusca()).toEqual([]); expect(page.busca()).toBe('');
+    expect(page.retiradasError()).toBeNull(); expect(page.buscando()).toBe(false);
+    nova.next({ ...distribuicao, id: '2' }); nova.complete();
+    expect(page.distribuicao()?.id).toBe('2');
+  });
+
+  it('histórico e ausências ignoram respostas anteriores e continuam após erro', () => {
+    const antigo = new Subject<CheckIn[]>(), ausencia = new Subject<never[]>();
+    const { page, listar } = setup({ listarAusencias: vi.fn().mockReturnValueOnce(ausencia).mockReturnValue(of([])) });
+    listar.mockReturnValueOnce(antigo).mockReturnValueOnce(of([checkIn({ id: 'novo' })]));
+    page.carregarHistoricoCheckIns('1'); page.carregarHistoricoCheckIns('1');
+    antigo.next([checkIn({ id: 'antigo' })]);
+    page.carregarAusencias('8'); page.carregarAusencias('8'); ausencia.error(new Error('antigo'));
+    expect(page.historicoCheckIns().map(item => item.id)).toEqual(['novo']);
+    expect(page.justificativaError()).toBeNull();
+    expect(page.historicoAusenciaLoadingId()).toBeNull();
+  });
+
+  it.each(['titular', 'representante', 'estorno', 'encerramento'] as const)(
+    'refresh de %s cancela fila e resumo anteriores', (acao) => {
+      vi.spyOn(window, 'confirm').mockReturnValue(true);
+      vi.spyOn(window, 'prompt').mockReturnValue('Motivo / representante');
+      const filaAntiga = new Subject<CheckIn[]>(), resumoAntigo = new Subject<Distribuicao>();
+      const obter = vi.fn().mockReturnValueOnce(of(distribuicao)).mockReturnValueOnce(resumoAntigo)
+        .mockReturnValue(of({ ...distribuicao, checkIns: 12, status: acao === 'encerramento' ? 'ENCERRADA' : 'ABERTA' }));
+      const listar = vi.fn().mockReturnValueOnce(filaAntiga).mockReturnValueOnce(filaAntiga).mockReturnValue(of([]));
+      const { page } = setup({ obter, listar, registrarRetirada: vi.fn().mockReturnValue(of({ id: '1' })),
+        estornarRetirada: vi.fn().mockReturnValue(of(undefined)), encerrar: vi.fn().mockReturnValue(of(undefined)),
+        permissions: ['RETIRADA_REGISTRAR', 'RETIRADA_ESTORNAR_QUALQUER', 'DISTRIBUICAO_ENCERRAR'],
+      });
+      page.carregar();
+      if (acao === 'titular') page.registrarRetiradaTitular(checkIn({ id: '8' }));
+      if (acao === 'representante') page.registrarRetiradaRepresentante(checkIn({ id: '8' }));
+      if (acao === 'encerramento') page.encerrar();
+      if (acao === 'estorno') page.solicitarEstorno({ id: '1', distribuicaoId: '1', direitoId: '1', beneficiario: { id: '8', nomeCompleto: 'Maria' }, tipo: 'TITULAR', status: 'VALIDA', formaIdentificacao: 'DOCUMENTO', representante: null, operador: { id: '4', login: 'operador' }, ocorridoEm: '2026-09-04T12:00:00Z' });
+      resumoAntigo.next(distribuicao); filaAntiga.next([checkIn({ id: 'antigo' })]); filaAntiga.complete();
+      expect(page.distribuicao()?.checkIns).toBe(12);
+      expect(page.filaRegular()).toEqual([]);
+      expect(page.loadingFilas()).toBe(false);
+    },
+  );
+
+  it('destruição encerra consultas e debounce pendentes', async () => {
+    vi.useFakeTimers();
+    const fila = new Subject<CheckIn[]>();
+    const { fixture, page, buscar } = setup({ listar: vi.fn().mockReturnValue(fila) });
+    page.onBuscaChange('Maria'); fixture.destroy();
+    fila.next([checkIn({ id: 'antigo' })]); await vi.advanceTimersByTimeAsync(351);
+    expect(buscar).not.toHaveBeenCalled(); expect(fila.observed).toBe(false);
+    expect(page.filaRegular()).toEqual([]);
+  });
   it.each([
     { permissions: ['BENEFICIARIO_VISUALIZAR', 'DISTRIBUICAO_TRIAGEM'], visible: false },
     { permissions: ['BENEFICIARIO_VISUALIZAR', 'DISTRIBUICAO_TRIAGEM', 'RETIRADA_REGISTRAR'], visible: true },
