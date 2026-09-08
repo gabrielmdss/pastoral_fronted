@@ -30,7 +30,9 @@
       <div class="panel-title">
         <h2>Próxima distribuição</h2>
         @if (dashboard.proximaDistribuicao) {
-          <span class="badge">{{ dashboard.proximaDistribuicao.status }}</span>
+          <span class="badge ui-badge" [attr.data-status]="dashboard.proximaDistribuicao.status">{{
+            dashboard.proximaDistribuicao.status
+          }}</span>
         }
       </div>
       @if (dashboard.proximaDistribuicao; as next) {
@@ -59,9 +61,10 @@
     <article class="panel">
       <h2>Saúde da cobertura</h2>
       <div class="coverage">
-        <span class="status" [attr.data-status]="dashboard.saude.proximaDistribuicao.status">{{
-          dashboard.saude.proximaDistribuicao.status.replace('_', ' ')
-        }}</span
+        <span
+          class="status ui-badge"
+          [attr.data-status]="dashboard.saude.proximaDistribuicao.status"
+          >{{ dashboard.saude.proximaDistribuicao.status.replace('_', ' ') }}</span
         ><strong>{{ dashboard.saude.proximaDistribuicao.coberturaPercentual }}%</strong
         ><small
           >{{ dashboard.saude.proximaDistribuicao.capacidadeGarantida }} de

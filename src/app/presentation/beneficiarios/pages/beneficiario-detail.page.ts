@@ -32,7 +32,7 @@ import type {
     StatusBadgeComponent,
   ],
   templateUrl: './beneficiario-detail.page.html',
-  styleUrl: '../../assistencia.scss',
+
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export default class BeneficiarioDetailPage implements OnInit {

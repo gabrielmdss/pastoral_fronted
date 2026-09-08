@@ -14,7 +14,7 @@ import { LoadingStateComponent } from '../../../shared/ui/loading-state.componen
   selector: 'app-capacidade-page',
   imports: [ReactiveFormsModule, ErrorStateComponent, LoadingStateComponent],
   templateUrl: './capacidade.page.html',
-  styleUrl: '../../assistencia.scss',
+
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export default class CapacidadePage implements OnInit {

@@ -1,14 +1,28 @@
 <div class="app-shell">
+  <a class="skip-link" href="#main-content">Ir para o conteúdo</a>
   <aside class="sidebar" [class.open]="menuOpen()">
     <div class="brand">
       <span>PC</span>
       <div><strong>Entrega Certa</strong><small>Pastoral Social</small></div>
     </div>
-    <nav aria-label="Menu principal">
+    <nav id="main-navigation" aria-label="Menu principal">
       @for (item of menuItems(); track item.label) {
-        <a [routerLink]="item.route" routerLinkActive="active" (click)="menuOpen.set(false)">{{
-          item.label
-        }}</a>
+        <a
+          [routerLink]="item.route"
+          routerLinkActive="active"
+          ariaCurrentWhenActive="page"
+          (click)="menuOpen.set(false)"
+          >{{ item.label }}</a
+        >
+      }
+      @if (podeRelatorios()) {
+        <a
+          routerLink="/relatorios"
+          routerLinkActive="active"
+          ariaCurrentWhenActive="page"
+          (click)="menuOpen.set(false)"
+          >Relatórios</a
+        >
       }
       @if (assistanceMenu().length) {
         <p class="nav-section">Assistência</p>
@@ -17,6 +31,20 @@
             class="subitem"
             [routerLink]="item.route"
             routerLinkActive="active"
+            ariaCurrentWhenActive="page"
+            (click)="menuOpen.set(false)"
+            >{{ item.label }}</a
+          >
+        }
+      }
+      @if (preparationMenu().length) {
+        <p class="nav-section">Preparação</p>
+        @for (item of preparationMenu(); track item.route) {
+          <a
+            class="subitem"
+            [routerLink]="item.route"
+            routerLinkActive="active"
+            ariaCurrentWhenActive="page"
             (click)="menuOpen.set(false)"
             >{{ item.label }}</a
           >
@@ -37,6 +65,8 @@
         type="button"
         class="menu-button"
         aria-label="Abrir menu"
+        [attr.aria-expanded]="menuOpen()"
+        aria-controls="main-navigation"
         (click)="menuOpen.set(!menuOpen())"
       >
         ☰</button
@@ -45,6 +75,6 @@
         {{ session.currentUser()?.login?.charAt(0)?.toUpperCase() }}
       </div>
     </header>
-    <main class="page"><router-outlet /></main>
+    <main class="page" id="main-content" tabindex="-1"><router-outlet /></main>
   </div>
 </div>

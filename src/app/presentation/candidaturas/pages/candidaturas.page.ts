@@ -8,6 +8,8 @@ import {
   finalize,
   firstValueFrom,
   map,
+  merge,
+  Subject,
   of,
   startWith,
   switchMap,
@@ -43,7 +45,6 @@ type Mode = 'nova' | 'priorizar' | 'contato' | 'nao-localizado' | 'admitir';
     PessoaSearchFieldComponent,
   ],
   templateUrl: './candidaturas.page.html',
-  styleUrl: '../../assistencia.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export default class CandidaturasPage {
@@ -75,6 +76,7 @@ export default class CandidaturasPage {
     justificativaExcecao: new FormControl<string | null>(null, [Validators.minLength(10)]),
   });
   private readonly destroy = inject(DestroyRef);
+  private readonly refreshRequested = new Subject<void>();
   constructor(
     private readonly listar: ListarCandidaturasUseCase,
     private readonly criar: CriarCandidaturaUseCase,
@@ -92,13 +94,17 @@ export default class CandidaturasPage {
       .subscribe((items) => this.grupos.set(items));
   }
   private connect() {
-    this.search.valueChanges
-      .pipe(
-        startWith(''),
+    merge(
+      this.search.valueChanges.pipe(
+        map((term) => term.trim()),
         debounceTime(350),
         distinctUntilChanged(),
-        map((x) => x.trim()),
-        switchMap((term) => {
+      ),
+      this.refreshRequested,
+    ).pipe(
+        startWith(undefined),
+        switchMap(() => {
+          const term = this.search.value.trim();
           this.loading.set(true);
           this.error.set('');
           const f = {
@@ -118,8 +124,7 @@ export default class CandidaturasPage {
       .subscribe((x) => this.items.set(x));
   }
   refresh() {
-    this.search.setValue(`${this.search.value} `);
-    this.search.setValue(this.search.value.trim());
+    this.refreshRequested.next();
   }
   open(mode: Mode, item: Candidatura | null = null) {
     if (mode === 'nova') this.pessoa.set(null);

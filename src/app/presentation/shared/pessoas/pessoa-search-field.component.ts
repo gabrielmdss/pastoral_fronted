@@ -35,7 +35,7 @@ import { userErrorMessage } from '../../../shared/errors/user-error';
 export class PessoaSearchFieldComponent {
   readonly canCreate = input(false);
   readonly blockExistingBeneficiary = input(false);
-  readonly pessoaSelecionada = output<Pessoa>();
+  readonly pessoaSelecionada = output<Pessoa | null>();
   readonly search = new FormControl('', { nonNullable: true });
   readonly results = signal<Pessoa[]>([]);
   readonly selected = signal<Pessoa | null>(null);
@@ -94,6 +94,7 @@ export class PessoaSearchFieldComponent {
   }
   clear() {
     this.selected.set(null);
+    this.pessoaSelecionada.emit(null);
     this.search.setValue('');
   }
   async create() {

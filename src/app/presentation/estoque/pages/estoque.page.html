@@ -1,0 +1,282 @@
+<header class="ui-header">
+  <div>
+    <p class="eyebrow">Preparação</p>
+    <h1>Estoque</h1>
+    <p>Saldos por apresentação informados pelo estoque.</p>
+  </div>
+  <button class="secondary" (click)="carregar()" [disabled]="loading() || saving()">
+    Atualizar
+  </button>
+</header>
+<div class="actions">
+  @if (session.hasPermission('ESTOQUE_ENTRADA')) {
+    <button (click)="abrir('entrada')" [disabled]="saving()">Registrar entrada</button>
+  }
+  @if (session.hasPermission('ESTOQUE_PERDA')) {
+    <button class="danger" (click)="abrir('perda')" [disabled]="saving()">Registrar perda</button>
+  }
+  @if (session.hasPermission('ESTOQUE_INSUMO_CADASTRAR')) {
+    <button class="secondary" (click)="abrir('insumo')" [disabled]="saving()">
+      Cadastrar insumo
+    </button>
+  }
+  @if (session.hasPermission('ESTOQUE_ENTRADA')) {
+    <button class="secondary" (click)="abrir('doador')" [disabled]="saving()">
+      Cadastrar doador
+    </button>
+  }
+</div>
+@if (feedback()) {
+  <p class="ui-message ui-message--success" role="status">{{ feedback() }}</p>
+}
+@if (mutationError()) {
+  <p class="ui-message ui-message--error" role="alert">{{ mutationError() }}</p>
+}
+@if (mode(); as activeMode) {
+  <section class="ui-panel">
+    @if (activeMode === 'entrada') {
+      <form class="form-grid" [formGroup]="entrada" (ngSubmit)="salvar()">
+        <h2>Registrar entrada</h2>
+        <label
+          >Tipo<select formControlName="tipo">
+            <option value="DOACAO">Doação</option>
+            <option value="COMPRA">Compra</option>
+            <option value="SALDO_INICIAL">Saldo inicial</option>
+            <option value="AJUSTE_POSITIVO">Ajuste positivo</option>
+          </select></label
+        >
+        <label
+          >Doador (opcional)<select formControlName="doadorId">
+            <option value="">Não informado</option>
+            @for (d of doadores(); track d.id) {
+              <option [value]="d.id">{{ d.nome }}{{ d.ativo ? '' : ' (inativo)' }}</option>
+            }
+          </select></label
+        >
+        <label>Data da entrada (opcional)<input type="date" formControlName="dataEntrada" /></label>
+        <div formArrayName="itens">
+          @for (row of entrada.controls.itens.controls; track row; let index = $index) {
+            <fieldset class="form-grid" [formGroupName]="index">
+              <legend>Item {{ index + 1 }}</legend>
+              <label
+                >Produto / apresentação<select formControlName="apresentacaoInsumoId">
+                  <option value="">Selecione</option>
+                  @for (i of insumos(); track i.apresentacaoId) {
+                    <option [value]="i.apresentacaoId">
+                      {{ i.insumo }} · {{ i.apresentacao }}
+                    </option>
+                  }
+                </select></label
+              >
+              <label
+                >Quantidade<input type="number" min="1" step="1" formControlName="quantidade"
+              /></label>
+              <label>Validade (opcional)<input type="date" formControlName="validade" /></label>
+              <button
+                type="button"
+                class="secondary"
+                [disabled]="saving() || entrada.controls.itens.length === 1"
+                (click)="entrada.controls.itens.removeAt(index)"
+              >
+                Remover item
+              </button>
+            </fieldset>
+          }
+        </div>
+        <button
+          type="button"
+          class="secondary"
+          [disabled]="saving()"
+          (click)="entrada.controls.itens.push(itemEntrada())"
+        >
+          Adicionar item
+        </button>
+        <label>Observação (opcional)<textarea formControlName="observacao"></textarea></label>
+        <button [disabled]="entrada.invalid || saving() || loading() || !!error()">
+          {{ saving() ? 'Salvando…' : 'Confirmar entrada' }}
+        </button>
+      </form>
+    }
+    @if (activeMode === 'perda') {
+      <form class="form-grid" [formGroup]="perda" (ngSubmit)="salvar()">
+        <h2>Registrar perda</h2>
+        <label
+          >Produto / apresentação<select formControlName="apresentacaoInsumoId">
+            <option value="">Selecione</option>
+            @for (i of insumos(); track i.apresentacaoId) {
+              <option [value]="i.apresentacaoId">{{ i.insumo }} · {{ i.apresentacao }}</option>
+            }
+          </select></label
+        >
+        <label
+          >Quantidade<input type="number" min="1" step="1" formControlName="quantidade"
+        /></label>
+        <label
+          >Código do motivo de perda<input
+            inputmode="numeric"
+            formControlName="motivoId"
+            aria-describedby="motivo-hint"
+        /></label>
+        <p class="hint" id="motivo-hint">
+          Informe o código de um motivo já cadastrado, fornecido pela coordenação. O sistema ainda
+          não disponibiliza a consulta de motivos de perda.
+        </p>
+        <label>Observação (opcional)<textarea formControlName="observacao"></textarea></label>
+        <button class="danger" [disabled]="perda.invalid || saving() || loading() || !!error()">
+          {{ saving() ? 'Salvando…' : 'Confirmar perda' }}
+        </button>
+      </form>
+    }
+    @if (activeMode === 'insumo') {
+      <form class="form-grid" [formGroup]="insumo" (ngSubmit)="salvar()">
+        <h2>Cadastrar insumo e apresentação</h2>
+        <label>Nome<input formControlName="nome" required /></label>
+        <label
+          >Categoria (opcional)<select formControlName="categoriaPrioridadeId">
+            <option value="">Sem categoria</option>
+            @for (c of categorias(); track c.id) {
+              <option [value]="c.id">{{ c.descricao }}</option>
+            }
+          </select></label
+        >
+        <label
+          >Apresentação<input
+            formControlName="descricao"
+            required
+            placeholder="Descrição da embalagem"
+        /></label>
+        <label
+          >Quantidade de referência (opcional)<input
+            type="number"
+            step="any"
+            formControlName="quantidadeReferencia"
+        /></label>
+        <label>Unidade de medida (opcional)<input formControlName="unidadeMedida" /></label>
+        <button [disabled]="insumo.invalid || saving() || loading() || !!error()">
+          {{ saving() ? 'Salvando…' : 'Cadastrar insumo' }}
+        </button>
+      </form>
+    }
+    @if (activeMode === 'doador') {
+      <form class="form-grid" [formGroup]="doador" (ngSubmit)="salvar()">
+        <h2>{{ doadorId() ? 'Editar doador' : 'Cadastrar doador' }}</h2>
+        <label
+          >Tipo<select formControlName="tipo">
+            <option value="PESSOA">Pessoa</option>
+            <option value="INSTITUICAO">Instituição</option>
+          </select></label
+        >
+        <label>Nome<input formControlName="nome" required /></label>
+        <label>Telefone (opcional)<input type="tel" formControlName="telefone" /></label>
+        <label>Observação (opcional)<textarea formControlName="observacao"></textarea></label>
+        @if (doadorId()) {
+          <label class="check"><input type="checkbox" formControlName="ativo" />Ativo</label>
+        }
+        <button [disabled]="doador.invalid || saving() || loading() || !!error()">
+          {{ saving() ? 'Salvando…' : 'Salvar doador' }}
+        </button>
+      </form>
+    }
+    <button class="btn-text" [disabled]="saving()" (click)="mode.set(null)">Cancelar</button>
+  </section>
+}
+<nav class="actions" aria-label="Consultas de estoque">
+  <button class="secondary" (click)="tab.set('saldos')" [attr.aria-pressed]="tab() === 'saldos'">
+    Saldos</button
+  ><button
+    class="secondary"
+    (click)="tab.set('doadores')"
+    [attr.aria-pressed]="tab() === 'doadores'"
+  >
+    Doadores
+  </button>
+</nav>
+@if (loading()) {
+  <p class="ui-state" role="status">Consultando estoque…</p>
+} @else if (error()) {
+  <p class="ui-message ui-message--error" role="alert">{{ error() }}</p>
+  <button (click)="carregar()">Tentar novamente</button>
+} @else if (tab() === 'saldos') {
+  <section class="filters">
+    <label
+      >Localizar na lista carregada<input
+        type="search"
+        [value]="busca()"
+        (input)="busca.set($any($event.target).value)"
+    /></label>
+  </section>
+  @if (!filtrados().length) {
+    <p class="ui-state">Nenhum insumo encontrado.</p>
+  } @else {
+    <div class="table-scroll" tabindex="0" role="region" aria-label="Saldos de estoque">
+      <table>
+        <thead>
+          <tr>
+            <th>Produto</th>
+            <th>Apresentação</th>
+            <th>Categoria</th>
+            <th>Físico</th>
+            <th>Reservado</th>
+            <th>Disponível</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (i of filtrados(); track i.apresentacaoId) {
+            <tr>
+              <td>{{ i.insumo }}</td>
+              <td>
+                {{ i.apresentacao }}
+                @if (i.quantidadeReferencia !== null) {
+                  · {{ i.quantidadeReferencia }} {{ i.unidadeMedida }}
+                }
+              </td>
+              <td>{{ i.categoria?.codigo || 'Sem categoria' }}</td>
+              <td class="number">{{ i.saldoFisico }}</td>
+              <td class="number">{{ i.saldoReservado }}</td>
+              <td class="number">{{ i.saldoDisponivel }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+  <p class="hint">
+    A consulta de históricos de entradas e perdas ainda não está disponível. Após cada registro, os
+    saldos são atualizados.
+  </p>
+} @else {
+  @if (!doadores().length) {
+    <p class="ui-state">Nenhum doador cadastrado.</p>
+  } @else {
+    <div class="table-scroll" tabindex="0" role="region" aria-label="Doadores">
+      <table>
+        <thead>
+          <tr>
+            <th>Nome</th>
+            <th>Tipo</th>
+            <th>Telefone</th>
+            <th>Status</th>
+            <th>Observação</th>
+            <th>Ações</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (d of doadores(); track d.id) {
+            <tr>
+              <td>{{ d.nome }}</td>
+              <td>{{ d.tipo === 'PESSOA' ? 'Pessoa' : 'Instituição' }}</td>
+              <td>{{ d.telefone || 'Não informado' }}</td>
+              <td>{{ d.ativo ? 'Ativo' : 'Inativo' }}</td>
+              <td>{{ d.observacao || '—' }}</td>
+              <td>
+                @if (session.hasPermission('ESTOQUE_ENTRADA')) {
+                  <button class="secondary" (click)="abrir('doador', d)">Editar</button>
+                }
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+}

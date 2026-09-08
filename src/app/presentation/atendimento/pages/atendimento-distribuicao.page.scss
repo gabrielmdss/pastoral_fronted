@@ -1,0 +1,214 @@
+:host {
+  display: block;
+}
+.atendimento-page {
+  display: grid;
+  gap: var(--space-5);
+}
+.atendimento-header {
+  margin-bottom: 0;
+  border-bottom: 1px solid var(--color-border);
+  padding-bottom: var(--space-5);
+}
+.atendimento-header__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin-top: 0.75rem;
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+}
+.atendimento-header__actions,
+.atendimento-checkin-card__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: center;
+}
+.atendimento-summary {
+  padding-bottom: var(--space-4);
+  border-bottom: 1px solid var(--color-border);
+}
+.atendimento-search-section,
+.atendimento-fila,
+.atendimento-retiradas {
+  display: grid;
+  gap: var(--space-4);
+  min-width: 0;
+}
+.atendimento-search-section {
+  border-top: 3px solid var(--color-primary);
+}
+.atendimento-search {
+  display: grid;
+  gap: var(--space-2);
+}
+.atendimento-search__control {
+  display: grid;
+  gap: var(--space-2);
+  max-width: 44rem;
+}
+.atendimento-search__control input {
+  width: 100%;
+}
+.atendimento-search__loading {
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+}
+.atendimento-filas {
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+  gap: var(--space-4);
+  align-items: start;
+}
+.atendimento-fila--pendente {
+  border-top: 3px solid var(--color-warning);
+}
+.atendimento-fila__count,
+.atendimento-checkin-card__ordem {
+  display: grid;
+  place-items: center;
+  min-width: 2rem;
+  height: 2rem;
+  padding: 0 0.5rem;
+  background: var(--color-surface-soft);
+  border-radius: var(--radius-md);
+  color: var(--color-text-muted);
+  font-size: 0.8125rem;
+  font-weight: 700;
+}
+.atendimento-fila__list,
+.atendimento-search-results,
+.atendimento-retiradas__list {
+  display: grid;
+  gap: var(--space-3);
+}
+.atendimento-checkin-card {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+.atendimento-checkin-card__content {
+  min-width: 0;
+}
+.atendimento-checkin-card__nome {
+  display: block;
+  overflow-wrap: anywhere;
+}
+.atendimento-checkin-card__meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+  color: var(--color-text-muted);
+  font-size: 0.8125rem;
+}
+.atendimento-checkin-card__actions {
+  grid-column: 1/-1;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--color-border);
+}
+.atendimento-checkin-card__observacoes,
+.atendimento-checkin-card__pendencias {
+  display: grid;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+}
+.atendimento-checkin-card__bloqueio {
+  margin-top: 0.75rem;
+}
+.atendimento-pendencia {
+  display: grid;
+  gap: 0.25rem;
+  padding: 0.75rem;
+  background: var(--color-warning-soft);
+  border-radius: var(--radius-md);
+  color: var(--color-warning);
+}
+.atendimento-search-result,
+.atendimento-retirada,
+.atendimento-ausencia {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+.atendimento-search-result {
+  width: 100%;
+  text-align: left;
+}
+.atendimento-search-result:disabled {
+  background: #edf0ee;
+  opacity: 0.7;
+}
+.atendimento-search-result:hover:not(:disabled) {
+  border-color: var(--color-primary);
+  background: var(--color-primary-soft);
+  color: var(--color-text);
+}
+.atendimento-search-result > div,
+.atendimento-retirada > div,
+.atendimento-ausencia > div {
+  display: grid;
+  gap: 0.25rem;
+  min-width: 0;
+}
+.atendimento-search-result span,
+.atendimento-retirada span,
+.atendimento-ausencia span {
+  font-size: 0.8125rem;
+}
+.atendimento-search-result__action {
+  color: var(--color-primary);
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+.atendimento-retirada__meta {
+  justify-items: end;
+  color: var(--color-text-muted);
+}
+.atendimento-ausencias {
+  grid-column: 1/-1;
+  display: grid;
+  gap: 0.75rem;
+  border-top: 1px solid var(--color-border);
+  padding-top: 0.75rem;
+}
+.atendimento-ausencia {
+  background: var(--color-surface-soft);
+  font-size: 0.875rem;
+}
+.atendimento-ausencia .atendimento-ausencia__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+@media (max-width: 1100px) {
+  .atendimento-filas {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+@media (max-width: 600px) {
+  .atendimento-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .atendimento-checkin-card__actions > button {
+    flex: 1 1 10rem;
+  }
+  .atendimento-retirada__meta {
+    justify-items: start;
+  }
+}

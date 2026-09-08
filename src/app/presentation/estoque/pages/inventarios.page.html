@@ -1,0 +1,160 @@
+@if (id()) {
+  <a class="back-link" routerLink="/inventarios">← Voltar para inventários</a>
+}
+<header class="ui-header">
+  <div>
+    <p class="eyebrow">Preparação · Estoque</p>
+    <h1>{{ id() ? 'Inventário ' + id() : 'Inventários de estoque' }}</h1>
+    <p>Consulte o saldo capturado e registre a contagem física.</p>
+  </div>
+  <div class="actions">
+    @if (id()) {
+      <button
+        type="button"
+        class="secondary"
+        (click)="carregar()"
+        [disabled]="loading() || saving()"
+      >
+        Atualizar consulta
+      </button>
+    }
+    @if (permitido) {
+      <button type="button" (click)="criar()" [disabled]="loading() || saving()">
+        {{ saving() && !savingItem() ? 'Processando…' : 'Abrir novo inventário' }}
+      </button>
+    }
+  </div>
+</header>
+@if (feedback()) {
+  <p class="ui-message ui-message--success" role="status">{{ feedback() }}</p>
+}
+@if (mutationError()) {
+  <p class="ui-message ui-message--error" role="alert">{{ mutationError() }}</p>
+}
+@if (!id()) {
+  <section class="ui-panel">
+    <h2>Consultar inventário</h2>
+    <p>
+      O backend não disponibiliza listagem de inventários. Consulte um inventário pelo código ou
+      abra um novo.
+    </p>
+    <form class="form-grid" (ngSubmit)="consultar()">
+      <label
+        >Código do inventário<input [formControl]="codigo" inputmode="numeric" required /></label
+      ><button type="submit" [disabled]="codigo.invalid || saving()">Consultar</button>
+    </form>
+  </section>
+}
+@if (loading()) {
+  <p class="ui-state" role="status">Consultando inventário…</p>
+} @else if (error()) {
+  <p class="ui-message ui-message--error" role="alert">{{ error() }}</p>
+  <button type="button" (click)="carregar()" [disabled]="saving()">Tentar novamente</button>
+} @else if (inventario(); as inv) {
+  <section class="ui-panel">
+    <header class="ui-section-header">
+      <div>
+        <h2>Inventário {{ inv.id }}</h2>
+        <p>
+          Aberto em {{ inv.iniciadoEm | date: 'dd/MM/yyyy HH:mm' }} · Responsável: código
+          {{ inv.usuarioResponsavelId }}
+        </p>
+        @if (inv.concluidoEm) {
+          <p>Concluído em {{ inv.concluidoEm | date: 'dd/MM/yyyy HH:mm' }}</p>
+        }
+      </div>
+      <span class="ui-badge" [attr.data-status]="inv.status">{{ inv.status }}</span>
+    </header>
+    <p>{{ inv.itens.length }} itens retornados · {{ divergentes() }} com divergência registrada.</p>
+    <p class="hint">
+      A contagem é iniciada pelo backend com o saldo capturado. Não há indicação de quais itens já
+      foram conferidos. A divergência exibida corresponde ao último valor salvo.
+    </p>
+    @if (pendentesLocais()) {
+      <p role="status">{{ pendentesLocais() }} edição(ões) ainda não salva(s) nesta tela.</p>
+    }
+    @if (permitido && inv.status === 'ABERTO') {
+      <button type="button" (click)="concluir()" [disabled]="saving()">Concluir inventário</button>
+    }
+    @if (podeEstoque) {
+      <p><a routerLink="/estoque">Consultar estoque</a></p>
+    }
+  </section>
+  @if (estoqueError()) {
+    <p class="ui-message ui-message--error" role="alert">{{ estoqueError() }}</p>
+  }
+  <section class="ui-panel">
+    <h2>Contagens e divergências</h2>
+    @if (!inv.itens.length) {
+      <p class="ui-state">Nenhum item retornado para este inventário.</p>
+    } @else {
+      <div class="table-scroll" tabindex="0" role="region" aria-label="Contagens do inventário">
+        <table>
+          <thead>
+            <tr>
+              <th scope="col">Insumo</th>
+              <th scope="col">Apresentação</th>
+              <th scope="col">Saldo capturado</th>
+              <th scope="col">Contagem registrada</th>
+              <th scope="col">Divergência registrada</th>
+              @if (podeEstoque) {
+                <th scope="col">Saldo físico atual</th>
+              }
+              @if (inv.status === 'ABERTO') {
+                <th scope="col">Nova contagem</th>
+              }
+            </tr>
+          </thead>
+          <tbody>
+            @for (i of inv.itens; track i.apresentacaoId) {
+              <tr>
+                <td>{{ i.insumo }}</td>
+                <td>{{ i.apresentacao }}</td>
+                <td class="number">{{ i.saldoSistema }}</td>
+                <td class="number">{{ i.saldoFisico }}</td>
+                <td class="number">
+                  <span class="ui-badge" [class.ui-badge--warning]="i.diferenca !== 0">{{
+                    i.diferenca
+                  }}</span>
+                </td>
+                @if (podeEstoque) {
+                  <td class="number">
+                    {{ estoquePorId().get(i.apresentacaoId)?.saldoFisico ?? '—' }}
+                  </td>
+                }
+                @if (inv.status === 'ABERTO') {
+                  <td>
+                    @if (controles()[i.apresentacaoId]; as control) {
+                      <form class="form-grid" (ngSubmit)="contar(i.apresentacaoId)">
+                        <fieldset class="form-grid" [disabled]="saving()">
+                          <label
+                            >{{ i.insumo }} · {{ i.apresentacao
+                            }}<input
+                              type="number"
+                              [formControl]="control"
+                              min="0"
+                              step="1"
+                              required
+                              [attr.aria-invalid]="control.touched && control.invalid"
+                          /></label>
+                          @if (control.touched && control.invalid) {
+                            <p class="field-error">Informe um inteiro igual ou maior que zero.</p>
+                          }
+                          <button type="submit" [disabled]="control.invalid || !permitido">
+                            {{
+                              savingItem() === i.apresentacaoId ? 'Salvando…' : 'Salvar contagem'
+                            }}
+                          </button>
+                        </fieldset>
+                      </form>
+                    }
+                  </td>
+                }
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  </section>
+}

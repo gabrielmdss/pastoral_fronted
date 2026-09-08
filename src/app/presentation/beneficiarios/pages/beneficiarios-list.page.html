@@ -45,15 +45,15 @@
     message="Altere os termos ou filtros da busca."
   />
 } @else {
-  <div class="responsive-list">
+  <div class="responsive-list" tabindex="0" role="region" aria-label="Lista de benefici?rios">
     <table>
       <thead>
         <tr>
-          <th>Beneficiário</th>
-          <th>Documento</th>
-          <th>Grupo</th>
-          <th>Status</th>
-          <th><span class="sr-only">Ações</span></th>
+          <th scope="col">Beneficiário</th>
+          <th scope="col">Documento</th>
+          <th scope="col">Grupo</th>
+          <th scope="col">Status</th>
+          <th scope="col"><span class="sr-only">Ações</span></th>
         </tr>
       </thead>
       <tbody>
@@ -73,19 +73,6 @@
         }
       </tbody>
     </table>
-    <div class="mobile-cards">
-      @for (item of items(); track item.id) {
-        <article>
-          <div class="person">
-            <span class="avatar">{{ item.nomeCompleto.charAt(0) }}</span
-            ><strong>{{ item.nomeCompleto }}</strong>
-          </div>
-          <app-status-badge [status]="item.status" />
-          <p>{{ item.grupo?.codigo || 'Sem grupo' }}</p>
-          <a class="button-link" [routerLink]="['/beneficiarios', item.id]">Ver</a>
-        </article>
-      }
-    </div>
   </div>
 }
 @if (dialog()) {

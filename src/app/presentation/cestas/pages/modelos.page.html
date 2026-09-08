@@ -1,0 +1,162 @@
+<header class="ui-header">
+  <div>
+    <p class="eyebrow">Preparação</p>
+    <h1>Modelos de cesta</h1>
+    <p>Consulte modelos e suas versões de composição.</p>
+  </div>
+  <button class="secondary" (click)="carregar()" [disabled]="loading() || saving()">
+    Atualizar
+  </button>
+</header>
+@if (feedback()) {
+  <p class="ui-message ui-message--success" role="status">{{ feedback() }}</p>
+}
+@if (mutationError()) {
+  <p class="ui-message ui-message--error" role="alert">{{ mutationError() }}</p>
+}
+@if (session.hasPermission('CESTA_MODELO_GERENCIAR')) {
+  <form class="form-grid ui-panel" [formGroup]="novo" (ngSubmit)="salvar('modelo')">
+    <h2>Novo modelo</h2>
+    <label>Nome<input formControlName="nome" required /></label
+    ><label
+      >Tipo<select formControlName="tipo">
+        <option value="REGULAR">Regular</option>
+        <option value="EMERGENCIAL">Emergencial</option>
+        <option value="ESPECIAL">Especial</option>
+        <option value="OUTRO">Outro</option>
+      </select></label
+    ><button [disabled]="novo.invalid || loading() || saving() || !!error()">
+      {{ saving() ? 'Salvando…' : 'Criar modelo' }}
+    </button>
+  </form>
+}
+@if (loading()) {
+  <p class="ui-state" role="status">Consultando modelos…</p>
+} @else if (error()) {
+  <p class="ui-message ui-message--error" role="alert">{{ error() }}</p>
+  <button (click)="carregar()">Tentar novamente</button>
+} @else {
+  @if (!modelos().length) {
+    <p class="ui-state">Nenhum modelo cadastrado.</p>
+  } @else {
+    <div class="table-scroll" tabindex="0" role="region" aria-label="Modelos">
+      <table>
+        <thead>
+          <tr>
+            <th>Nome</th>
+            <th>Tipo</th>
+            <th>Status</th>
+            <th>Consulta</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (m of modelos(); track m.id) {
+            <tr>
+              <td>{{ m.nome }}</td>
+              <td>{{ m.tipo }}</td>
+              <td>{{ m.ativo ? 'Ativo' : 'Inativo' }}</td>
+              <td>
+                <button class="secondary" (click)="selecionar(m.id)" [disabled]="saving()">
+                  Consultar versões
+                </button>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+  @if (detalhe(); as d) {
+    <section class="ui-panel">
+      <h2>{{ d.nome }} · Composição</h2>
+      @if (!d.versoes.length) {
+        <p class="ui-state">Nenhuma versão cadastrada.</p>
+      }
+      @for (v of d.versoes; track v.id) {
+        <h3>Versão {{ v.numeroVersao }} · Meta: {{ v.metaItens }} itens</h3>
+        <p class="hint">Criada em {{ v.criadoEm | date: 'dd/MM/yyyy HH:mm' }}</p>
+        <div
+          class="table-scroll"
+          tabindex="0"
+          role="region"
+          [attr.aria-label]="'Composição da versão ' + v.numeroVersao"
+        >
+          <table>
+            <thead>
+              <tr>
+                <th>Produto</th>
+                <th>Apresentação</th>
+                <th>Quantidade</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (i of v.itens; track i.apresentacaoInsumoId) {
+                <tr>
+                  <td>{{ i.insumo || 'Produto indisponível' }}</td>
+                  <td>{{ i.apresentacao || 'Apresentação indisponível' }}</td>
+                  <td>{{ i.quantidade }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </section>
+    @if (
+      session.hasPermission('CESTA_MODELO_GERENCIAR') && session.hasPermission('ESTOQUE_VISUALIZAR')
+    ) {
+      <form class="form-grid ui-panel" [formGroup]="versao" (ngSubmit)="salvar('versao')">
+        <h2>Nova versão de {{ d.nome }}</h2>
+        <label
+          >Meta de itens<input type="number" min="1" step="1" formControlName="metaItens"
+        /></label>
+        <div formArrayName="itens">
+          @for (row of versao.controls.itens.controls; track row; let index = $index) {
+            <fieldset class="form-grid" [formGroupName]="index">
+              <legend>Item {{ index + 1 }}</legend>
+              <label
+                >Produto / apresentação<select formControlName="apresentacaoInsumoId">
+                  <option value="">Selecione</option>
+                  @for (i of insumos(); track i.apresentacaoId) {
+                    <option [value]="i.apresentacaoId">
+                      {{ i.insumo }} · {{ i.apresentacao }}
+                    </option>
+                  }
+                </select></label
+              ><label
+                >Quantidade<input
+                  type="number"
+                  min="1"
+                  step="1"
+                  formControlName="quantidade" /></label
+              ><button
+                type="button"
+                class="secondary"
+                [disabled]="saving() || versao.controls.itens.length === 1"
+                (click)="versao.controls.itens.removeAt(index)"
+              >
+                Remover item
+              </button>
+            </fieldset>
+          }
+        </div>
+        <button
+          type="button"
+          class="secondary"
+          [disabled]="saving()"
+          (click)="versao.controls.itens.push(item())"
+        >
+          Adicionar item</button
+        ><button [disabled]="saving() || versao.invalid">
+          {{ saving() ? 'Salvando…' : 'Criar versão' }}
+        </button>
+      </form>
+    } @else {
+      <p class="hint">
+        A consulta de insumos é necessária para compor uma nova versão. Solicite acesso ao estoque.
+      </p>
+    }
+  } @else if (selectedId()) {
+    <p class="ui-state">Modelo não encontrado.</p>
+  }
+}

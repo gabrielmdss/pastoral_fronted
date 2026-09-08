@@ -1,0 +1,129 @@
+<section class="distribuicoes-page">
+  <header class="distribuicoes-header ui-header">
+    <div>
+      <h1 class="distribuicoes-title">Distribuições</h1>
+      <p class="distribuicoes-subtitle">
+        Consulte as distribuições previstas e acompanhe o andamento de cada grupo.
+      </p>
+    </div>
+
+    <button type="button" class="btn btn-secondary" (click)="carregar()" [disabled]="loading()">
+      Atualizar
+    </button>
+  </header>
+
+  @if (loading()) {
+    <div class="distribuicoes-state ui-state" aria-live="polite">
+      <span>Carregando distribuições...</span>
+    </div>
+  } @else if (error()) {
+    <div class="distribuicoes-error ui-state ui-state--error" role="alert">
+      <span>{{ error() }}</span>
+
+      <button type="button" class="btn btn-secondary" (click)="carregar()">Tentar novamente</button>
+    </div>
+  } @else if (distribuicoes().length === 0) {
+    <div class="distribuicoes-state ui-state">
+      <strong>Nenhuma distribuição encontrada.</strong>
+      <span> Quando uma competência possuir distribuições, elas aparecerão aqui. </span>
+    </div>
+  } @else {
+    <div class="distribuicoes-grid">
+      @for (distribuicao of distribuicoes(); track distribuicao.id) {
+        <article class="distribuicao-card ui-panel">
+          <div class="distribuicao-card__header">
+            <div>
+              <h2 class="distribuicao-card__grupo">
+                {{ distribuicao.grupo.nome }}
+              </h2>
+
+              <div class="distribuicao-card__data">
+                {{ dataLabel(distribuicao.dataPrevista) }}
+                · Competência {{ competenciaLabel(distribuicao) }}
+              </div>
+            </div>
+
+            <span
+              class="distribuicao-card__status ui-badge"
+              [attr.data-status]="distribuicao.status"
+            >
+              {{ statusLabel(distribuicao.status) }}
+            </span>
+          </div>
+
+          <div class="distribuicao-card__metrics">
+            <div class="distribuicao-metric ui-metric">
+              <span class="distribuicao-metric__label"> Previstos </span>
+              <strong class="distribuicao-metric__value">
+                {{ distribuicao.previstos }}
+              </strong>
+            </div>
+
+            <div class="distribuicao-metric ui-metric">
+              <span class="distribuicao-metric__label"> Presentes </span>
+              <strong class="distribuicao-metric__value">
+                {{ distribuicao.checkIns }}
+              </strong>
+            </div>
+
+            <div class="distribuicao-metric ui-metric">
+              <span class="distribuicao-metric__label"> Retiradas </span>
+              <strong class="distribuicao-metric__value">
+                {{ distribuicao.retiradas }}
+              </strong>
+            </div>
+
+            <div class="distribuicao-metric ui-metric">
+              <span class="distribuicao-metric__label"> Cestas disponíveis </span>
+              <strong class="distribuicao-metric__value">
+                {{ distribuicao.cestasDisponiveis }}
+              </strong>
+            </div>
+          </div>
+
+          @if (distribuicao.status === 'ABERTA') {
+            <div class="distribuicao-card__metrics">
+              <div class="distribuicao-metric ui-metric">
+                <span class="distribuicao-metric__label"> Regulares </span>
+                <strong class="distribuicao-metric__value">
+                  {{ distribuicao.regularesPresentes }}
+                </strong>
+              </div>
+
+              <div class="distribuicao-metric ui-metric">
+                <span class="distribuicao-metric__label"> Pendentes </span>
+                <strong class="distribuicao-metric__value">
+                  {{ distribuicao.pendentesPresentes }}
+                </strong>
+              </div>
+            </div>
+          }
+
+          @if (distribuicao.status === 'ENCERRADA') {
+            <div class="distribuicao-card__metrics">
+              <div class="distribuicao-metric ui-metric">
+                <span class="distribuicao-metric__label"> Ausentes </span>
+                <strong class="distribuicao-metric__value">
+                  {{ distribuicao.ausentes }}
+                </strong>
+              </div>
+
+              <div class="distribuicao-metric ui-metric">
+                <span class="distribuicao-metric__label"> Cestas retornadas </span>
+                <strong class="distribuicao-metric__value">
+                  {{ distribuicao.cestasRetornadas }}
+                </strong>
+              </div>
+            </div>
+          }
+
+          <footer class="distribuicao-card__actions">
+            <a class="btn btn-primary" [routerLink]="['/distribuicoes', distribuicao.id]">
+              Ver distribuição
+            </a>
+          </footer>
+        </article>
+      }
+    </div>
+  }
+</section>

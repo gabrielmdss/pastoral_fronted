@@ -6,9 +6,9 @@
 .login-shell {
   min-height: 100dvh;
   display: grid;
-  grid-template-columns: minmax(18rem, 1fr) minmax(22rem, 30rem);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 28rem);
   align-items: center;
-  gap: clamp(2rem, 8vw, 8rem);
+  gap: clamp(2rem, 5vw, 5rem);
   max-width: 75rem;
   margin: auto;
   padding: var(--space-8);
@@ -16,7 +16,7 @@
 .identity {
   max-width: 34rem;
   h1 {
-    font-size: clamp(2.5rem, 6vw, 4.5rem);
+    font-size: clamp(2rem, 4vw, 3.25rem);
     margin: 0.25rem 0 var(--space-4);
     color: var(--color-primary-dark);
   }
@@ -48,7 +48,7 @@
   padding: clamp(1.5rem, 5vw, 2.5rem);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-xl);
-  box-shadow: var(--shadow-lg);
+  box-shadow: var(--shadow-sm);
   h2 {
     margin: 0.25rem 0;
   }

@@ -9,6 +9,8 @@ import {
   finalize,
   firstValueFrom,
   map,
+  merge,
+  Subject,
   of,
   startWith,
   switchMap,
@@ -40,7 +42,6 @@ import type { Pessoa } from '../../../domain/pessoas/pessoa.model';
     PessoaSearchFieldComponent,
   ],
   templateUrl: './beneficiarios-list.page.html',
-  styleUrl: '../../assistencia.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export default class BeneficiariosListPage {
@@ -66,6 +67,7 @@ export default class BeneficiariosListPage {
     justificativaExcecao: new FormControl<string | null>(null, [Validators.minLength(10)]),
   });
   private readonly destroy = inject(DestroyRef);
+  private readonly refreshRequested = new Subject<void>();
   constructor(
     private readonly buscar: BuscarBeneficiariosUseCase,
     private readonly admitir: AdmitirBeneficiarioUseCase,
@@ -79,13 +81,17 @@ export default class BeneficiariosListPage {
       .subscribe((items) => this.grupos.set(items));
   }
   private connectSearch(): void {
-    this.search.valueChanges
-      .pipe(
-        startWith(''),
+    merge(
+      this.search.valueChanges.pipe(
+        map((term) => term.trim()),
         debounceTime(350),
         distinctUntilChanged(),
-        map((term) => term.trim()),
-        switchMap((term) => {
+      ),
+      this.refreshRequested,
+    ).pipe(
+        startWith(undefined),
+        switchMap(() => {
+          const term = this.search.value.trim();
           this.loading.set(true);
           this.error.set('');
           const f = {
@@ -105,8 +111,7 @@ export default class BeneficiariosListPage {
       .subscribe((x) => this.items.set(x));
   }
   applyFilters(): void {
-    this.search.setValue(`${this.search.value} `);
-    this.search.setValue(this.search.value.trim());
+    this.refreshRequested.next();
   }
   openAdmission(): void {
     this.pessoa.set(null);
@@ -136,7 +141,7 @@ export default class BeneficiariosListPage {
       );
       this.feedback.set('Beneficiário admitido com sucesso.');
       this.closeAdmission();
-      this.search.setValue('');
+      this.applyFilters();
     } catch (e) {
       this.feedback.set(userErrorMessage(e));
     } finally {

@@ -1,0 +1,305 @@
+<a class="back-link" routerLink="/planejamentos">← Voltar para planejamentos</a>
+<header class="ui-header">
+  <div>
+    <p class="eyebrow">Preparação</p>
+    <h1>{{ id() ? 'Detalhe do planejamento' : 'Simular planejamento' }}</h1>
+    <p>
+      {{
+        id()
+          ? 'Versões, composição e reservas confirmadas pelo estoque.'
+          : 'Selecione a competência, a versão do modelo e a quantidade de cestas.'
+      }}
+    </p>
+  </div>
+  <button
+    type="button"
+    class="secondary"
+    (click)="carregar()"
+    [disabled]="loading() || saving() || simulating()"
+  >
+    Atualizar consulta
+  </button>
+</header>
+@if (feedback()) {
+  <p class="ui-message ui-message--success" role="status">{{ feedback() }}</p>
+}
+@if (mutationError()) {
+  <p class="ui-message ui-message--error" role="alert">{{ mutationError() }}</p>
+}
+@if (loading()) {
+  <p class="ui-state" role="status">Consultando planejamento…</p>
+} @else if (error()) {
+  <p class="ui-message ui-message--error" role="alert">{{ error() }}</p>
+  <button type="button" (click)="carregar()">Tentar novamente</button>
+} @else {
+  @if (detalhe(); as p) {
+    <section class="ui-panel">
+      <h2>{{ p.modelo }} · {{ p.mes }}/{{ p.ano }}</h2>
+      <p class="hint">
+        Criado em {{ p.criadoEm | date: 'dd/MM/yyyy HH:mm' }} · Planejamento {{ p.id }}
+      </p>
+      <div class="actions">
+        @if (podeAprovar) {
+          <button
+            type="button"
+            class="secondary"
+            (click)="abrirRevisao()"
+            [disabled]="saving() || simulating()"
+          >
+            Revisar planejamento
+          </button>
+          @if (temPendente()) {
+            <button type="button" (click)="aprovar()" [disabled]="saving() || simulating()">
+              {{ saving() ? 'Processando…' : 'Aprovar e reservar insumos' }}
+            </button>
+          }
+        }
+      </div>
+    </section>
+    @if (!p.versoes.length) {
+      <p class="ui-state">Nenhuma versão retornada para este planejamento.</p>
+    }
+    @for (v of p.versoes; track v.id) {
+      <section class="ui-panel">
+        <header class="ui-section-header">
+          <div>
+            <h2>Versão {{ v.numeroVersao }} · {{ v.quantidadePlanejada }} cestas</h2>
+            @if (v.aprovadoEm) {
+              <p>Aprovada em {{ v.aprovadoEm | date: 'dd/MM/yyyy HH:mm' }}</p>
+            }
+            @if (v.motivoRevisao) {
+              <p>Motivo da revisão: {{ v.motivoRevisao }}</p>
+            }
+          </div>
+          <span class="ui-badge" [attr.data-status]="v.status">{{ v.status }}</span>
+        </header>
+        <div
+          class="table-scroll"
+          tabindex="0"
+          role="region"
+          [attr.aria-label]="'Composição e reservas da versão ' + v.numeroVersao"
+        >
+          <table>
+            <thead>
+              <tr>
+                <th scope="col">Produto</th>
+                <th scope="col">Apresentação</th>
+                <th scope="col">Por cesta</th>
+                <th scope="col">Reservado</th>
+                <th scope="col">Consumido</th>
+                <th scope="col">Disponível agora</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (i of v.itens; track i.apresentacaoInsumoId) {
+                <tr>
+                  <td>
+                    {{
+                      insumoPorId().get(i.apresentacaoInsumoId)?.insumo ||
+                        'Produto não disponível na consulta'
+                    }}
+                  </td>
+                  <td>
+                    {{
+                      insumoPorId().get(i.apresentacaoInsumoId)?.apresentacao ||
+                        'Apresentação não disponível'
+                    }}
+                  </td>
+                  <td class="number">{{ i.quantidadePorCesta }}</td>
+                  <td class="number">{{ i.reservado ?? '—' }}</td>
+                  <td class="number">{{ i.consumido ?? '—' }}</td>
+                  <td class="number">
+                    {{ insumoPorId().get(i.apresentacaoInsumoId)?.saldoDisponivel ?? '—' }}
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+        <p class="hint">
+          “—” indica informação não retornada. A disponibilidade atual vem da consulta de estoque e
+          não representa um saldo histórico desta versão.
+        </p>
+      </section>
+    }
+  }
+  @if (editing()) {
+    @if (!podeModelos || (!id() && !podeCompetencias)) {
+      <p class="ui-message ui-message--warning">
+        Para selecionar os dados da simulação, é necessário acesso aos modelos de cesta e, para um
+        novo planejamento, à consulta de competências. Solicite os acessos correspondentes.
+      </p>
+    } @else {
+      @if (catalogLoading()) {
+        <p role="status">Consultando opções…</p>
+      }
+      @if (catalogError()) {
+        <p class="ui-message ui-message--error" role="alert">{{ catalogError() }}</p>
+        <button type="button" (click)="carregarCatalogos()">
+          Tentar consultar opções novamente
+        </button>
+      }
+      <form class="form-grid ui-panel" [formGroup]="form" (ngSubmit)="simular()">
+        <h2>{{ id() ? 'Revisar composição e quantidade' : 'Simulação de produção' }}</h2>
+        <fieldset class="form-grid" [disabled]="saving() || simulating() || catalogLoading()">
+          <legend>Dados da produção</legend>
+          @if (!id()) {
+            <label
+              >Competência<select formControlName="competenciaId">
+                <option value="">Selecione</option>
+                @for (c of competencias(); track c.id) {
+                  <option [value]="c.id">{{ c.mes }}/{{ c.ano }} · {{ c.status }}</option>
+                }
+              </select></label
+            >
+            <label
+              >Modelo de cesta<select formControlName="modeloId">
+                <option value="">Selecione</option>
+                @for (m of modelos(); track m.id) {
+                  <option [value]="m.id">
+                    {{ m.nome }} · {{ m.tipo }}{{ m.ativo ? '' : ' (inativo)' }}
+                  </option>
+                }
+              </select></label
+            >
+            @if (
+              !catalogLoading() && !catalogError() && (!competencias().length || !modelos().length)
+            ) {
+              <p class="hint">
+                Cadastre a competência e um modelo com composição antes de simular.
+              </p>
+            }
+          } @else {
+            <p>
+              Competência {{ detalhe()?.mes }}/{{ detalhe()?.ano }} · Modelo {{ detalhe()?.modelo }}
+            </p>
+          }
+          @if (modelLoading()) {
+            <p role="status">Consultando versões do modelo…</p>
+          }
+          @if (modelError()) {
+            <p class="ui-message ui-message--error" role="alert">{{ modelError() }}</p>
+            <button type="button" class="secondary" (click)="carregarModelo()">
+              Tentar consultar versões novamente
+            </button>
+          }
+          <label
+            >Versão do modelo<select formControlName="modeloCestaVersaoId">
+              <option value="">Selecione</option>
+              @for (v of versoesModelo(); track v.id) {
+                <option [value]="v.id">
+                  Versão {{ v.numeroVersao }} · Meta {{ v.metaItens }} itens
+                </option>
+              }
+            </select></label
+          >
+          @if (
+            form.controls.modeloId.value &&
+            !modelLoading() &&
+            !modelError() &&
+            !versoesModelo().length
+          ) {
+            <p class="hint">Este modelo ainda não possui versão de composição.</p>
+          }
+          <label
+            >Quantidade de cestas<input
+              type="number"
+              formControlName="quantidade"
+              min="1"
+              step="1"
+              required
+              [attr.aria-invalid]="
+                form.controls.quantidade.touched && form.controls.quantidade.invalid
+              "
+          /></label>
+          @if (form.controls.quantidade.touched && form.controls.quantidade.invalid) {
+            <p class="field-error">Informe uma quantidade inteira maior que zero.</p>
+          }
+          @if (id()) {
+            <label>Motivo da revisão<textarea formControlName="motivo"></textarea></label>
+          }
+        </fieldset>
+        <button
+          type="submit"
+          [disabled]="
+            saving() ||
+            simulating() ||
+            form.invalid ||
+            catalogLoading() ||
+            modelLoading() ||
+            !!catalogError() ||
+            !!modelError()
+          "
+        >
+          {{ simulating() ? 'Simulando…' : 'Simular com estoque atual' }}
+        </button>
+        <p class="hint">
+          Simular não reserva insumos. Criar ou revisar um planejamento também não o aprova.
+        </p>
+      </form>
+    }
+    @if (simulacao(); as s) {
+      <section class="ui-panel">
+        <header class="ui-section-header">
+          <div>
+            <h2>{{ s.quantidade }} cestas pretendidas</h2>
+            <p>
+              Capacidade máxima informada: {{ s.capacidadeMaxima }} cestas · Cobertura:
+              {{ s.cobertura | percent: '1.0-2' }}
+            </p>
+          </div>
+        </header>
+        <div class="table-scroll" tabindex="0" role="region" aria-label="Resultado da simulação">
+          <table>
+            <thead>
+              <tr>
+                <th scope="col">Produto / apresentação</th>
+                <th scope="col">Por cesta</th>
+                <th scope="col">Necessário</th>
+                <th scope="col">Físico</th>
+                <th scope="col">Reservado</th>
+                <th scope="col">Disponível</th>
+                <th scope="col">Falta</th>
+                <th scope="col">Situação</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (i of s.itens; track i.apresentacaoInsumoId) {
+                <tr>
+                  <td>{{ i.insumo }} · {{ i.apresentacao }}</td>
+                  <td class="number">{{ i.quantidadePorCesta }}</td>
+                  <td class="number">{{ i.necessidade }}</td>
+                  <td class="number">{{ i.saldoFisico }}</td>
+                  <td class="number">{{ i.saldoReservado }}</td>
+                  <td class="number">{{ i.saldoDisponivel }}</td>
+                  <td class="number">{{ i.deficit }}</td>
+                  <td>
+                    <span
+                      class="ui-badge"
+                      [class.ui-badge--warning]="i.deficit > 0"
+                      [class.ui-badge--success]="i.deficit === 0"
+                      >{{ i.deficit > 0 ? 'Insuficiente' : 'Suficiente' }}</span
+                    >
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+        <p class="hint">
+          Valores calculados pelo estoque no momento da simulação. A aprovação verifica novamente a
+          disponibilidade.
+        </p>
+        @if (podeAprovar) {
+          <button
+            type="button"
+            (click)="salvar()"
+            [disabled]="saving() || simulating() || !simulatedInput()"
+          >
+            {{ saving() ? 'Salvando…' : id() ? 'Registrar revisão' : 'Criar planejamento' }}
+          </button>
+        }
+      </section>
+    }
+  }
+}

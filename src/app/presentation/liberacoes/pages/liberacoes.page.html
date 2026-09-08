@@ -1,0 +1,147 @@
+<a class="back-link" [routerLink]="id() ? ['/distribuicoes', id()] : ['/distribuicoes']"
+  >← Voltar para distribuição</a
+>
+<header class="ui-header">
+  <div>
+    <p class="eyebrow">Preparação</p>
+    <h1>Liberação de cestas</h1>
+    <p>Destine cestas montadas ao atendimento da distribuição.</p>
+  </div>
+  <button type="button" class="secondary" (click)="carregar()" [disabled]="loading() || saving()">
+    Atualizar consulta
+  </button>
+</header>
+@if (feedback()) {
+  <p class="ui-message ui-message--success" role="status">{{ feedback() }}</p>
+}
+@if (mutationError()) {
+  <p class="ui-message ui-message--error" role="alert">{{ mutationError() }}</p>
+}
+@if (loading()) {
+  <p class="ui-state" role="status">Consultando distribuição, lotes e liberações…</p>
+} @else if (error()) {
+  <p class="ui-message ui-message--error" role="alert">{{ error() }}</p>
+  <button type="button" (click)="carregar()" [disabled]="saving()">Tentar novamente</button>
+} @else if (distribuicao(); as d) {
+  <section class="ui-panel">
+    <header class="ui-section-header">
+      <div>
+        <h2>{{ d.grupo.nome }}</h2>
+        <p>
+          Competência {{ d.competencia.mes }}/{{ d.competencia.ano }} ·
+          {{ d.dataPrevista | date: 'dd/MM/yyyy' }}
+        </p>
+      </div>
+      <span class="ui-badge" [attr.data-status]="d.status">{{ d.status }}</span>
+    </header>
+    <p>
+      <strong>{{ d.cestasDisponiveis }} cestas disponíveis para atendimento</strong>
+    </p>
+    <p>
+      Liberadas: {{ d.cestasLiberadas }} · Consumidas: {{ d.cestasConsumidas }} · Retornadas:
+      {{ d.cestasRetornadas }}
+    </p>
+    <div class="actions">
+      <a routerLink="/distribuicoes">Escolher outra distribuição</a
+      ><a [routerLink]="['/distribuicoes', d.id]">Detalhe / abertura da distribuição</a>
+      @if (podeAtender && (d.status === 'ABERTA' || d.status === 'ENCERRADA')) {
+        <a [routerLink]="['/distribuicoes', d.id, 'atendimento']">{{
+          d.status === 'ENCERRADA' ? 'Consultar atendimento histórico' : 'Ir para Atendimento'
+        }}</a>
+      }
+    </div>
+  </section>
+  @if (d.status === 'ENCERRADA') {
+    <p class="ui-state">
+      Distribuição encerrada. As liberações permanecem disponíveis para consulta.
+    </p>
+  } @else if (podeLiberar) {
+    <form class="form-grid ui-panel" [formGroup]="form" (ngSubmit)="liberar()">
+      <h2>Nova liberação</h2>
+      <fieldset class="form-grid" [disabled]="saving()">
+        <legend>Lote e quantidade</legend>
+        <label
+          >Lote de origem<select formControlName="loteMontagemId">
+            <option value="">Selecione</option>
+            @for (l of utilizaveis(); track l.id) {
+              <option [value]="l.id">
+                {{ loteLabel(l) }} · {{ l.quantidadeDisponivel }} disponíveis
+              </option>
+            }
+          </select></label
+        >
+        @if (!utilizaveis().length) {
+          <p class="ui-state">Nenhum lote ativo com cestas disponíveis. Consulte a Montagem.</p>
+        }
+        @if (lotePorId().get(form.controls.loteMontagemId.value); as l) {
+          <p>
+            {{ l.quantidadeMontada }} cestas montadas · {{ l.quantidadeDisponivel }} disponíveis ·
+            {{ l.status }} · Montagem em {{ l.montadoEm | date: 'dd/MM/yyyy HH:mm' }}
+          </p>
+          <a [routerLink]="['/montagem', l.id]">Consultar lote e composição efetiva</a>
+        }
+        <label
+          >Quantidade de cestas<input
+            type="number"
+            formControlName="quantidade"
+            min="1"
+            step="1"
+            required
+            [attr.aria-invalid]="
+              form.controls.quantidade.touched && form.controls.quantidade.invalid
+            "
+        /></label>
+        @if (form.controls.quantidade.touched && form.controls.quantidade.invalid) {
+          <p class="field-error">Informe uma quantidade inteira maior que zero.</p>
+        }
+      </fieldset>
+      <p class="hint">
+        A liberação destina cestas à distribuição. O consumo é registrado no Atendimento.
+      </p>
+      <button type="submit" [disabled]="saving() || form.invalid || !utilizaveis().length">
+        {{ saving() ? 'Liberando…' : 'Liberar cestas' }}
+      </button>
+    </form>
+  }
+  <section class="ui-panel">
+    <h2>Liberações registradas</h2>
+    @if (!liberacoes().length) {
+      <p class="ui-state">Nenhuma liberação registrada para esta distribuição.</p>
+    } @else {
+      <div class="table-scroll" tabindex="0" role="region" aria-label="Liberações da distribuição">
+        <table>
+          <thead>
+            <tr>
+              <th scope="col">Lote / modelo</th>
+              <th scope="col">Data</th>
+              <th scope="col">Liberadas</th>
+              <th scope="col">Consumidas</th>
+              <th scope="col">Retornadas</th>
+              <th scope="col">Disponíveis</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (r of liberacoes(); track r.id) {
+              <tr>
+                <td>
+                  <a [routerLink]="['/montagem', r.loteMontagemId]">
+                    @if (lotePorId().get(r.loteMontagemId); as l) {
+                      {{ loteLabel(l) }}
+                    } @else {
+                      Lote {{ r.loteMontagemId }}
+                    }
+                  </a>
+                </td>
+                <td>{{ r.liberadoEm | date: 'dd/MM/yyyy HH:mm' }}</td>
+                <td class="number">{{ r.quantidadeLiberada }}</td>
+                <td class="number">{{ r.quantidadeConsumida }}</td>
+                <td class="number">{{ r.quantidadeRetornada }}</td>
+                <td class="number">{{ r.quantidadeDisponivel }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  </section>
+}

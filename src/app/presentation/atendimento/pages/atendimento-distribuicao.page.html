@@ -1,0 +1,627 @@
+<section class="atendimento-page">
+  <a class="atendimento-page__back back-link" [routerLink]="['/distribuicoes', distribuicao()?.id]">
+    ← Voltar para distribuição
+  </a>
+
+  @if (loading()) {
+    <div class="atendimento-state ui-state" aria-live="polite">Carregando atendimento...</div>
+  } @else if (error()) {
+    <div class="atendimento-error ui-state ui-state--error" role="alert">
+      <span>{{ error() }}</span>
+
+      <button type="button" class="btn btn-secondary" (click)="carregar()">Tentar novamente</button>
+    </div>
+  } @else if (distribuicao(); as distribuicao) {
+    <header class="atendimento-header ui-header">
+      <div>
+        <div class="atendimento-header__eyebrow eyebrow">
+          Atendimento · Competência
+          {{ competenciaLabel(distribuicao) }}
+        </div>
+
+        <h1 class="atendimento-header__title">
+          {{ distribuicao.grupo.nome }}
+        </h1>
+
+        <div class="atendimento-header__meta">
+          <span>
+            Data:
+            <strong>
+              {{ dataLabel(distribuicao.dataPrevista) }}
+            </strong>
+          </span>
+
+          <span>
+            Status:
+            <strong class="ui-badge" [attr.data-status]="distribuicao.status"
+              >{{ distribuicao.status }}
+            </strong>
+          </span>
+        </div>
+      </div>
+
+      <div class="atendimento-header__actions">
+        @if (podeCestasAdicionais) {
+          <a [routerLink]="['/distribuicoes', distribuicao.id]" fragment="cestas-adicionais">Cestas adicionais</a>
+        }
+        <button
+          type="button"
+          class="btn btn-secondary"
+          (click)="carregar()"
+          [disabled]="encerrando()"
+        >
+          Atualizar
+        </button>
+        @if (distribuicao.status === 'ABERTA' && podeEncerrar) {
+          <button
+            type="button"
+            class="btn btn-danger"
+            (click)="encerrar()"
+            [disabled]="encerrando()"
+          >
+            {{ encerrando() ? 'Encerrando...' : 'Encerrar distribuição' }}
+          </button>
+        }
+      </div>
+    </header>
+
+    @if (distribuicao.status !== 'ABERTA') {
+      <div class="atendimento-warning ui-message ui-message--warning">
+        Esta distribuição não está aberta para atendimento.
+      </div>
+    }
+
+    <section class="atendimento-summary ui-metrics">
+      <article class="atendimento-summary__item ui-metric">
+        <span>Previstos</span>
+        <strong>{{ distribuicao.previstos }}</strong>
+      </article>
+
+      <article class="atendimento-summary__item ui-metric">
+        <span>Presentes</span>
+        <strong>{{ distribuicao.checkIns }}</strong>
+      </article>
+
+      <article class="atendimento-summary__item ui-metric">
+        <span>Regulares</span>
+        <strong>{{ distribuicao.regularesPresentes }}</strong>
+      </article>
+
+      <article class="atendimento-summary__item ui-metric">
+        <span>Pendentes</span>
+        <strong>{{ distribuicao.pendentesPresentes }}</strong>
+      </article>
+
+      <article class="atendimento-summary__item ui-metric">
+        <span>Retiradas</span>
+        <strong>{{ distribuicao.retiradas }}</strong>
+      </article>
+
+      <article class="atendimento-summary__item ui-metric">
+        <span>Cestas disponíveis</span>
+        <strong>{{ distribuicao.cestasDisponiveis }}</strong>
+      </article>
+    </section>
+
+    <section class="atendimento-search-section ui-panel">
+      <div class="atendimento-section-header ui-section-header">
+        <div>
+          <h2>Registrar chegada</h2>
+          <p>Busque o beneficiário por nome ou documento para realizar o check-in.</p>
+        </div>
+      </div>
+
+      <div class="atendimento-search">
+        <label class="atendimento-search__label" for="beneficiario-search">
+          Nome ou documento
+        </label>
+
+        <div class="atendimento-search__control">
+          <input
+            #buscaInput
+            id="beneficiario-search"
+            type="search"
+            class="form-control"
+            autocomplete="off"
+            placeholder="Digite o nome ou documento"
+            [value]="busca()"
+            [disabled]="distribuicao.status !== 'ABERTA' || checkInEmAndamento()"
+            (input)="onBuscaChange($any($event.target).value)"
+          />
+
+          @if (buscando()) {
+            <span class="atendimento-search__loading"> Buscando... </span>
+          }
+        </div>
+
+        @if (buscaError()) {
+          <div class="atendimento-search__error ui-message ui-message--error" role="alert">
+            {{ buscaError() }}
+          </div>
+        }
+
+        @if (busca().trim() && !buscando() && resultadosBusca().length === 0 && !buscaError()) {
+          <div class="atendimento-search__empty ui-state">
+            Nenhum beneficiário ativo encontrado.
+          </div>
+        }
+
+        @if (resultadosBusca().length > 0) {
+          <div class="atendimento-search-results">
+            @for (beneficiario of resultadosBusca(); track beneficiario.id) {
+              <button
+                type="button"
+                class="atendimento-search-result"
+                [disabled]="checkInEmAndamento()"
+                (click)="registrarChegada(beneficiario)"
+              >
+                <div>
+                  <strong>
+                    {{ beneficiario.nomeCompleto }}
+                  </strong>
+
+                  @if (beneficiario.documentos && beneficiario.documentos.length > 0) {
+                    <span>
+                      {{ beneficiario.documentos[0].numeroMascarado }}
+                    </span>
+                  }
+                </div>
+
+                <span class="atendimento-search-result__action"> Registrar chegada </span>
+              </button>
+            }
+          </div>
+        }
+      </div>
+    </section>
+    @if (ultimoCheckIn(); as checkIn) {
+      <app-check-in-feedback [checkIn]="checkIn" (fecharSolicitado)="fecharFeedbackCheckIn()" />
+    }
+
+    @if (filasError()) {
+      <div class="atendimento-warning ui-message ui-message--warning" role="alert">
+        {{ filasError() }}
+      </div>
+    }
+
+    @if (encerramentoError()) {
+      <div class="atendimento-error-inline ui-message ui-message--error" role="alert">
+        {{ encerramentoError() }}
+      </div>
+    }
+
+    @if (resumoError()) {
+      <div class="atendimento-warning ui-message ui-message--warning" role="alert">
+        {{ resumoError() }}
+      </div>
+    }
+
+    @if (justificativaFeedback()) {
+      <div class="atendimento-success ui-message ui-message--success" role="status">
+        {{ justificativaFeedback() }}
+      </div>
+    }
+    @if (justificativaError()) {
+      <div class="atendimento-error-inline ui-message ui-message--error" role="alert">
+        {{ justificativaError() }}
+      </div>
+    }
+
+    <section class="atendimento-filas">
+      <article class="atendimento-fila ui-panel">
+        <header class="atendimento-fila__header ui-section-header">
+          <div>
+            <h2>Fila principal</h2>
+            <p>Beneficiários regulares presentes.</p>
+          </div>
+
+          <span class="atendimento-fila__count">
+            {{ filaRegular().length }}
+          </span>
+        </header>
+
+        @if (loadingFilas()) {
+          <div class="atendimento-fila__empty ui-state">Carregando fila principal...</div>
+        } @else if (filaRegular().length === 0) {
+          <div class="atendimento-fila__empty ui-state">
+            Nenhum beneficiário regular aguardando.
+          </div>
+        } @else {
+          <div class="atendimento-fila__list">
+            @for (checkIn of filaRegular(); track checkIn.id; let index = $index) {
+              <article class="atendimento-checkin-card">
+                <div class="atendimento-checkin-card__ordem">
+                  {{ index + 1 }}
+                </div>
+
+                <div class="atendimento-checkin-card__content">
+                  <strong class="atendimento-checkin-card__nome">
+                    {{ checkIn.beneficiario.nomeCompleto }}
+                  </strong>
+
+                  <div class="atendimento-checkin-card__meta">
+                    <span> Chegada: {{ horaLabel(checkIn.ocorridoEm) }} </span>
+
+                    <span
+                      class="atendimento-checkin-card__badge ui-badge atendimento-checkin-card__badge--regular ui-badge--success"
+                    >
+                      Regular
+                    </span>
+
+                    <span
+                      class="atendimento-checkin-card__badge ui-badge"
+                      [class.ui-badge--success]="checkIn.podeRetirar"
+                      [class.ui-badge--danger]="!checkIn.podeRetirar"
+                    >
+                      {{ checkIn.podeRetirar ? 'Apto para retirada' : 'Retirada bloqueada' }}
+                    </span>
+                  </div>
+
+                  @if (!checkIn.podeRetirar) {
+                    <div
+                      class="atendimento-checkin-card__bloqueio ui-message ui-message--error"
+                      role="note"
+                    >
+                      {{ motivoBloqueioLabel(checkIn.motivoBloqueio) }}
+                    </div>
+                  }
+
+                  @if (checkIn.pendencias.length > 0) {
+                    <div class="atendimento-checkin-card__observacoes">
+                      @for (pendencia of checkIn.pendencias; track $index) {
+                        <span>
+                          {{ pendencia.codigo }}
+
+                          @if (pendencia.grupoEsperado) {
+                            — grupo esperado:
+                            {{ pendencia.grupoEsperado }}
+                          }
+                        </span>
+                      }
+                    </div>
+                  }
+                </div>
+
+                <div class="atendimento-checkin-card__actions">
+                  <button
+                    type="button"
+                    class="btn btn-primary"
+                    [disabled]="!podeRegistrarRetirada(checkIn) || retiradaEmAndamentoId() !== null"
+                    (click)="registrarRetiradaTitular(checkIn)"
+                  >
+                    @if (retiradaEmAndamentoId() === checkIn.id) {
+                      Entregando...
+                    } @else {
+                      Entregar cesta
+                    }
+                  </button>
+                  <button
+                    type="button"
+                    class="btn btn-secondary"
+                    [disabled]="!podeRegistrarRetirada(checkIn) || retiradaEmAndamentoId() !== null"
+                    (click)="registrarRetiradaRepresentante(checkIn)"
+                  >
+                    Representante
+                  </button>
+                </div>
+              </article>
+            }
+          </div>
+        }
+      </article>
+
+      <article class="atendimento-fila ui-panel atendimento-fila--pendente">
+        <header class="atendimento-fila__header ui-section-header">
+          <div>
+            <h2>Fila secundária</h2>
+            <p>Beneficiários com pendências.</p>
+          </div>
+
+          <span class="atendimento-fila__count">
+            {{ filaPendente().length }}
+          </span>
+        </header>
+
+        @if (loadingFilas()) {
+          <div class="atendimento-fila__empty ui-state">Carregando fila secundária...</div>
+        } @else if (filaPendente().length === 0) {
+          <div class="atendimento-fila__empty ui-state">
+            Nenhum beneficiário pendente aguardando.
+          </div>
+        } @else {
+          <div class="atendimento-fila__list">
+            @for (checkIn of filaPendente(); track checkIn.id; let index = $index) {
+              <article class="atendimento-checkin-card atendimento-checkin-card--pendente">
+                <div class="atendimento-checkin-card__ordem">
+                  {{ index + 1 }}
+                </div>
+
+                <div class="atendimento-checkin-card__content">
+                  <strong class="atendimento-checkin-card__nome">
+                    {{ checkIn.beneficiario.nomeCompleto }}
+                  </strong>
+
+                  <div class="atendimento-checkin-card__meta">
+                    <span> Chegada: {{ horaLabel(checkIn.ocorridoEm) }} </span>
+
+                    <span
+                      class="atendimento-checkin-card__badge ui-badge atendimento-checkin-card__badge--pendente ui-badge--warning"
+                    >
+                      Pendente
+                    </span>
+
+                    <span
+                      class="atendimento-checkin-card__badge ui-badge"
+                      [class.ui-badge--success]="checkIn.podeRetirar"
+                      [class.ui-badge--danger]="!checkIn.podeRetirar"
+                    >
+                      {{ checkIn.podeRetirar ? 'Apto para retirada' : 'Retirada bloqueada' }}
+                    </span>
+                  </div>
+
+                  @if (!checkIn.podeRetirar) {
+                    <div
+                      class="atendimento-checkin-card__bloqueio ui-message ui-message--error"
+                      role="note"
+                    >
+                      {{ motivoBloqueioLabel(checkIn.motivoBloqueio) }}
+                    </div>
+                  }
+
+                  @if (checkIn.pendencias.length > 0) {
+                    <div class="atendimento-checkin-card__pendencias">
+                      @for (pendencia of checkIn.pendencias; track $index) {
+                        <div class="atendimento-pendencia">
+                          <strong>
+                            {{ pendencia.codigo }}
+                          </strong>
+
+                          @if (pendencia.grupoEsperado) {
+                            <span>
+                              Grupo esperado:
+                              {{ pendencia.grupoEsperado }}
+                            </span>
+                          }
+
+                          @if (pendencia.competencia) {
+                            <span>
+                              Competência:
+                              {{ pendencia.competencia }}
+                            </span>
+                          }
+                        </div>
+                      }
+                    </div>
+                  } @else {
+                    <div class="atendimento-checkin-card__pendencias">
+                      <span> Pendência identificada pelo atendimento. </span>
+                    </div>
+                  }
+                </div>
+
+                <div class="atendimento-checkin-card__actions">
+                  <button
+                    type="button"
+                    class="btn btn-secondary"
+                    [disabled]="historicoAusenciaLoadingId() !== null"
+                    (click)="carregarAusencias(checkIn.beneficiario.id)"
+                  >
+                    {{
+                      historicoAusenciaLoadingId() === checkIn.beneficiario.id
+                        ? 'Consultando...'
+                        : 'Ausências/justificativas'
+                    }}
+                  </button>
+                  <button
+                    type="button"
+                    class="btn btn-secondary"
+                    [disabled]="!podeRegistrarRetirada(checkIn) || retiradaEmAndamentoId() !== null"
+                    (click)="registrarRetiradaTitular(checkIn)"
+                  >
+                    @if (retiradaEmAndamentoId() === checkIn.id) {
+                      Entregando...
+                    } @else {
+                      Entregar cesta
+                    }
+                  </button>
+                  <button
+                    type="button"
+                    class="btn btn-secondary"
+                    [disabled]="!podeRegistrarRetirada(checkIn) || retiradaEmAndamentoId() !== null"
+                    (click)="registrarRetiradaRepresentante(checkIn)"
+                  >
+                    Representante
+                  </button>
+                </div>
+                @if (ausenciasPorBeneficiario()[checkIn.beneficiario.id]; as ausencias) {
+                  <div class="atendimento-ausencias">
+                    @if (ausencias.length === 0) {
+                      <span>Nenhuma ausência encontrada no histórico.</span>
+                    } @else {
+                      @for (ausencia of ausencias; track ausencia.id) {
+                        <article class="atendimento-ausencia">
+                          <div>
+                            <strong>{{ statusAusenciaLabel(ausencia.status) }}</strong>
+                            <span
+                              >Ausência {{ ausencia.id }} ·
+                              {{ horaLabel(ausencia.ocorridoEm) }}</span
+                            >
+                            @for (justificativa of ausencia.justificativas; track $index) {
+                              <span
+                                >Justificativa:
+                                {{ decisaoJustificativaLabel(justificativa.decisao) }} ·
+                                {{ justificativa.momento }}</span
+                              >
+                            }
+                          </div>
+                          <div class="atendimento-ausencia__actions">
+                            @if (podeRegistrarJustificativa) {
+                              <button
+                                type="button"
+                                class="btn btn-secondary"
+                                [disabled]="justificativaLoadingId() !== null"
+                                (click)="registrarJustificativa(checkIn.beneficiario.id, ausencia)"
+                              >
+                                Registrar justificativa
+                              </button>
+                            }
+                            @if (podeAvaliarJustificativa && justificativaPendenteId(ausencia)) {
+                              <button
+                                type="button"
+                                class="btn btn-primary"
+                                [disabled]="justificativaLoadingId() !== null"
+                                (click)="
+                                  avaliarJustificativa(checkIn.beneficiario.id, ausencia, 'ACEITA')
+                                "
+                              >
+                                Aceitar
+                              </button>
+                              <button
+                                type="button"
+                                class="btn btn-danger"
+                                [disabled]="justificativaLoadingId() !== null"
+                                (click)="
+                                  avaliarJustificativa(
+                                    checkIn.beneficiario.id,
+                                    ausencia,
+                                    'REJEITADA'
+                                  )
+                                "
+                              >
+                                Rejeitar
+                              </button>
+                            }
+                          </div>
+                        </article>
+                      }
+                    }
+                  </div>
+                }
+              </article>
+            }
+          </div>
+        }
+      </article>
+    </section>
+
+    @if (distribuicao.status === 'ENCERRADA') {
+      <section class="atendimento-retiradas ui-panel">
+        <header class="atendimento-section-header ui-section-header">
+          <div>
+            <h2>Histórico de check-ins</h2>
+            <p>Registros preservados após o encerramento da distribuição.</p>
+          </div>
+        </header>
+
+        @if (historicoCheckInsError()) {
+          <div class="atendimento-error-inline ui-message ui-message--error" role="alert">
+            {{ historicoCheckInsError() }}
+          </div>
+        } @else if (loadingHistoricoCheckIns()) {
+          <div class="atendimento-retiradas__empty ui-state">Carregando histórico...</div>
+        } @else if (historicoCheckIns().length === 0) {
+          <div class="atendimento-retiradas__empty ui-state">Nenhum check-in registrado.</div>
+        } @else {
+          <div class="atendimento-retiradas__list">
+            @for (checkIn of historicoCheckIns(); track checkIn.id) {
+              <article class="atendimento-retirada">
+                <div>
+                  <strong>{{ checkIn.beneficiario.nomeCompleto }}</strong>
+                  <span>{{ checkIn.classificacao }} · {{ checkIn.situacaoOperacional }}</span>
+                </div>
+                <div class="atendimento-retirada__meta">
+                  <span>{{ horaLabel(checkIn.ocorridoEm) }}</span>
+                </div>
+              </article>
+            }
+          </div>
+        }
+      </section>
+    }
+
+    @if (retiradaFeedback()) {
+      <div class="atendimento-success ui-message ui-message--success" role="status">
+        {{ retiradaFeedback() }}
+      </div>
+    }
+
+    @if (retiradasError()) {
+      <div class="atendimento-error-inline ui-message ui-message--error" role="alert">
+        {{ retiradasError() }}
+      </div>
+    }
+
+    @if (podeAcessarRetiradas) {
+      <section class="atendimento-retiradas ui-panel">
+        <header class="atendimento-section-header ui-section-header">
+          <div>
+            <h2>Retiradas da distribuição</h2>
+            <p>Entregas registradas, incluindo eventuais registros estornados.</p>
+          </div>
+
+          <button
+            type="button"
+            class="btn btn-secondary"
+            (click)="carregarRetiradas()"
+            [disabled]="loadingRetiradas()"
+          >
+            Atualizar retiradas
+          </button>
+        </header>
+
+        @if (loadingRetiradas()) {
+          <div class="atendimento-retiradas__empty ui-state">Carregando retiradas...</div>
+        } @else if (retiradas().length === 0) {
+          <div class="atendimento-retiradas__empty ui-state">Nenhuma retirada registrada.</div>
+        } @else {
+          <div class="atendimento-retiradas__list">
+            @for (retirada of retiradas(); track retirada.id) {
+              <article class="atendimento-retirada">
+                <div>
+                  <strong>{{ retirada.beneficiario.nomeCompleto }}</strong>
+                  <span
+                    >{{ tipoRetiradaLabel(retirada.tipo) }} ·
+                    {{ formaIdentificacaoLabel(retirada.formaIdentificacao) }}</span
+                  >
+                  @if (retirada.representante; as representante) {
+                    <span>
+                      Representante: {{ representante.nome }}
+                      @if (representante.documentoMascarado) {
+                        · {{ representante.documentoMascarado }}
+                      }
+                    </span>
+                  }
+                </div>
+
+                <div class="atendimento-retirada__meta">
+                  <span
+                    class="atendimento-retirada__status ui-badge"
+                    [attr.data-status]="retirada.status"
+                  >
+                    {{ retirada.status === 'VALIDA' ? 'Válida' : 'Estornada' }}
+                  </span>
+                  <span>{{ retirada.operador.login }}</span>
+                  <span>{{ horaLabel(retirada.ocorridoEm) }}</span>
+                  @if (podeEstornar(retirada)) {
+                    <button
+                      type="button"
+                      class="btn btn-secondary"
+                      [disabled]="estornoEmAndamentoId() !== null"
+                      (click)="solicitarEstorno(retirada)"
+                    >
+                      @if (estornoEmAndamentoId() === retirada.id) {
+                        Estornando...
+                      } @else {
+                        Estornar
+                      }
+                    </button>
+                  }
+                </div>
+              </article>
+            }
+          </div>
+        }
+      </section>
+    }
+  }
+</section>

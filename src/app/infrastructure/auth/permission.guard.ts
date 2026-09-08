@@ -6,4 +6,4 @@ export const permissionGuard =
   () =>
     inject(SessionFacade).hasPermission(permission)
       ? true
-      : inject(Router).createUrlTree(['/dashboard']);
+      : inject(Router).createUrlTree(['/acesso-negado']);

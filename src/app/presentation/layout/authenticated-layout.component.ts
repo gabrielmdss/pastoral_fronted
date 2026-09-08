@@ -15,7 +15,12 @@ interface MenuItem {
 })
 export default class AuthenticatedLayoutComponent {
   readonly menuOpen = signal(false);
-  private readonly allItems: MenuItem[] = [{ label: 'Dashboard', route: '/dashboard' }];
+  readonly podeRelatorios = computed(() => this.session.hasPermission('BENEFICIARIO_VISUALIZAR') || this.session.hasPermission('ESTOQUE_VISUALIZAR'));
+  private readonly allItems: MenuItem[] = [
+    { label: 'Dashboard', route: '/dashboard' },
+    { label: 'Competências', route: '/competencias', permission: 'BENEFICIARIO_VISUALIZAR' },
+    { label: 'Distribuições', route: '/distribuicoes', permission: 'BENEFICIARIO_VISUALIZAR' },
+  ];
   private readonly assistanceItems: MenuItem[] = [
     { label: 'Beneficiários', route: '/beneficiarios', permission: 'BENEFICIARIO_VISUALIZAR' },
     { label: 'Lista de espera', route: '/candidaturas', permission: 'CANDIDATURA_VISUALIZAR' },
@@ -23,7 +28,8 @@ export default class AuthenticatedLayoutComponent {
   ];
   readonly menuItems = computed(() =>
     this.allItems.filter(
-      (item) => item.route && (!item.permission || this.session.hasPermission(item.permission)),
+      (item) => item.route && (!item.permission || this.session.hasPermission(item.permission))
+        && (item.route !== '/dashboard' || (this.session.hasPermission('BENEFICIARIO_VISUALIZAR') && this.session.hasPermission('ESTOQUE_VISUALIZAR'))),
     ),
   );
   readonly assistanceMenu = computed(() =>
@@ -31,6 +37,13 @@ export default class AuthenticatedLayoutComponent {
       (item) => !item.permission || this.session.hasPermission(item.permission),
     ),
   );
+  readonly preparationMenu = computed(() => [
+    { label: 'Estoque', route: '/estoque', permission: 'ESTOQUE_VISUALIZAR' },
+    { label: 'Inventários', route: '/inventarios', permission: 'ESTOQUE_INVENTARIO' },
+    { label: 'Modelos de cesta', route: '/modelos-cesta', permission: 'CESTA_MODELO_GERENCIAR' },
+    { label: 'Planejamento', route: '/planejamentos', permission: 'ESTOQUE_VISUALIZAR' },
+    { label: 'Montagem', route: '/montagem', permission: 'ESTOQUE_VISUALIZAR' },
+  ].filter(item => this.session.hasPermission(item.permission)));
   constructor(
     readonly session: SessionFacade,
     private readonly router: Router,

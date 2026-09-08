@@ -1,0 +1,70 @@
+<section class="check-in-feedback" [class.check-in-feedback--regular]="isRegular"
+    [class.check-in-feedback--pendente]="isPendente" role="status" aria-live="polite">
+    <div class="check-in-feedback__icon" aria-hidden="true">
+        @if (isRegular) {
+        ✓
+        } @else {
+        !
+        }
+    </div>
+
+    <div class="check-in-feedback__content">
+        <strong class="check-in-feedback__nome">
+            {{ checkIn().beneficiario.nomeCompleto }}
+        </strong>
+
+        <div class="check-in-feedback__status">
+            @if (isRegular) {
+            Check-in regular
+            } @else {
+            Check-in pendente
+            }
+        </div>
+
+        <div class="check-in-feedback__fila">
+            @if (checkIn().fila === 'PRINCIPAL') {
+            Encaminhado para a fila principal.
+            } @else {
+            Encaminhado para a fila secundária.
+            }
+        </div>
+
+        <div class="check-in-feedback__aptidao"
+            [class.check-in-feedback__aptidao--bloqueada]="!checkIn().podeRetirar">
+            @if (checkIn().podeRetirar) {
+            Apto para retirada.
+            } @else {
+            {{ motivoBloqueioLabel(checkIn().motivoBloqueio) }}
+            }
+        </div>
+
+        @if (checkIn().pendencias.length > 0) {
+        <div class="check-in-feedback__pendencias">
+            @for (pendencia of checkIn().pendencias; track $index) {
+            <div class="check-in-feedback__pendencia">
+                <strong>{{ pendencia.codigo }}</strong>
+
+                @if (pendencia.grupoEsperado) {
+                <span>
+                    Grupo esperado:
+                    {{ pendencia.grupoEsperado }}
+                </span>
+                }
+
+                @if (pendencia.competencia) {
+                <span>
+                    Competência:
+                    {{ pendencia.competencia }}
+                </span>
+                }
+            </div>
+            }
+        </div>
+        }
+    </div>
+
+    <button type="button" class="check-in-feedback__close" aria-label="Fechar confirmação do check-in"
+        (click)="fechar()">
+        ×
+    </button>
+</section>

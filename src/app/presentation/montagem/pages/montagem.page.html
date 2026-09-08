@@ -1,0 +1,360 @@
+@if (id()) {
+  <a class="back-link" routerLink="/montagem">← Voltar para lotes</a>
+}
+<header class="ui-header">
+  <div>
+    <p class="eyebrow">Preparação</p>
+    <h1>{{ id() ? 'Lote de cestas ' + id() : 'Montagem de cestas' }}</h1>
+    <p>Consulte os lotes e monte cestas a partir de um planejamento aprovado.</p>
+  </div>
+  <div class="actions">
+    <button type="button" class="secondary" (click)="carregar()" [disabled]="loading() || saving()">
+      Atualizar consulta
+    </button>
+    @if (!id() && podeMontar) {
+      <button type="button" (click)="criando.set(!criando())" [disabled]="loading() || saving()">
+        {{ criando() ? 'Fechar montagem' : 'Montar novo lote' }}
+      </button>
+    }
+  </div>
+</header>
+@if (feedback()) {
+  <p class="ui-message ui-message--success" role="status">{{ feedback() }}</p>
+}
+@if (mutationError()) {
+  <p class="ui-message ui-message--error" role="alert">{{ mutationError() }}</p>
+}
+@if (loading()) {
+  <p class="ui-state" role="status">Consultando lotes e estoque…</p>
+} @else if (error()) {
+  <p class="ui-message ui-message--error" role="alert">{{ error() }}</p>
+  <button type="button" (click)="carregar()">Tentar novamente</button>
+} @else {
+  @if (!id()) {
+    @if (criando() && podeMontar) {
+      <form class="form-grid ui-panel" [formGroup]="form" (ngSubmit)="montar()">
+        <h2>Montar novo lote</h2>
+        <fieldset class="form-grid" [disabled]="saving()">
+          <legend>Planejamento e quantidade</legend>
+          <label
+            >Planejamento<select formControlName="planejamentoId">
+              <option value="">Selecione</option>
+              @for (p of planos(); track p.id) {
+                <option [value]="p.id">{{ p.modelo }} · {{ p.mes }}/{{ p.ano }}</option>
+              }
+            </select></label
+          >
+          @if (!planos().length) {
+            <p class="ui-state">Nenhum planejamento disponível.</p>
+          }
+          @if (planLoading()) {
+            <p role="status">Consultando versões…</p>
+          }
+          @if (planError()) {
+            <p role="alert" class="ui-message ui-message--error">{{ planError() }}</p>
+            <button type="button" class="secondary" (click)="carregarPlano()">
+              Tentar consultar planejamento novamente
+            </button>
+          }
+          <label
+            >Versão aprovada do planejamento<select formControlName="planejamentoVersaoId">
+              <option value="">Selecione</option>
+              @for (v of aprovadas(); track v.id) {
+                <option [value]="v.id">
+                  Versão {{ v.numeroVersao }} · {{ v.quantidadePlanejada }} cestas planejadas
+                </option>
+              }
+            </select></label
+          >
+          @if (plano() && !aprovadas().length) {
+            <p class="ui-state">Este planejamento não possui versão aprovada para montagem.</p>
+          }
+          <label
+            >Quantidade de cestas<input
+              type="number"
+              formControlName="quantidade"
+              min="1"
+              step="1"
+              required
+          /></label>
+          @if (form.controls.quantidade.touched && form.controls.quantidade.invalid) {
+            <p class="field-error">Informe uma quantidade inteira maior que zero.</p>
+          }
+        </fieldset>
+        <p class="hint">
+          A montagem consome insumos. A disponibilidade e as reservas serão verificadas pelo
+          estoque.
+        </p>
+        <button
+          type="submit"
+          [disabled]="saving() || planLoading() || form.invalid || !!planError()"
+        >
+          {{ saving() ? 'Montando…' : 'Confirmar montagem' }}
+        </button>
+      </form>
+    }
+    @if (!lotes().length) {
+      <p class="ui-state">Nenhum lote de montagem encontrado.</p>
+    } @else {
+      <section class="ui-panel">
+        <div class="table-scroll" tabindex="0" role="region" aria-label="Lotes de montagem">
+          <table>
+            <thead>
+              <tr>
+                <th scope="col">Lote</th>
+                <th scope="col">Modelo / competência</th>
+                <th scope="col">Versão do planejamento</th>
+                <th scope="col">Montadas</th>
+                <th scope="col">Disponíveis</th>
+                <th scope="col">Estado</th>
+                <th scope="col">Montagem</th>
+                <th scope="col">Responsável</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (l of lotes(); track l.id) {
+                <tr>
+                  <td>
+                    <a [routerLink]="['/montagem', l.id]">Lote {{ l.id }}</a>
+                  </td>
+                  <td>
+                    @if (planoPorId().get(l.planejamento.id); as p) {
+                      {{ p.modelo }} · {{ p.mes }}/{{ p.ano }}
+                    } @else {
+                      Planejamento {{ l.planejamento.id }}
+                    }
+                  </td>
+                  <td>{{ l.planejamento.numeroVersao }}</td>
+                  <td class="number">{{ l.quantidadeMontada }}</td>
+                  <td class="number">{{ l.quantidadeDisponivel }}</td>
+                  <td>
+                    <span class="ui-badge" [attr.data-status]="l.status">{{ l.status }}</span>
+                  </td>
+                  <td>{{ l.montadoEm | date: 'dd/MM/yyyy HH:mm' }}</td>
+                  <td>{{ l.responsavel.login }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </section>
+    }
+  }
+  @if (lote(); as l) {
+    <section class="ui-panel">
+      <header class="ui-section-header">
+        <div>
+          <h2>{{ l.quantidadeDisponivel }} cestas disponíveis</h2>
+          <p>
+            {{ l.quantidadeMontada }} cestas montadas ·
+            {{ l.montadoEm | date: 'dd/MM/yyyy HH:mm' }} · {{ l.responsavel.login }}
+          </p>
+        </div>
+        <span class="ui-badge" [attr.data-status]="l.status">{{ l.status }}</span>
+      </header>
+      <p>
+        <a [routerLink]="['/planejamentos', l.planejamento.id]">
+          @if (planoPorId().get(l.planejamento.id); as p) {
+            {{ p.modelo }} · {{ p.mes }}/{{ p.ano }}
+          } @else {
+            Planejamento {{ l.planejamento.id }}
+          }
+          · Versão {{ l.planejamento.numeroVersao }} do planejamento</a
+        >
+      </p>
+    </section>
+    <section class="ui-panel">
+      <h2>Composição efetiva do lote</h2>
+      @if (!l.itens.length) {
+        <p class="ui-state">Nenhum item retornado para este lote.</p>
+      } @else {
+        <div class="table-scroll" tabindex="0" role="region" aria-label="Composição do lote">
+          <table>
+            <thead>
+              <tr>
+                <th scope="col">Insumo</th>
+                <th scope="col">Apresentação</th>
+                <th scope="col">Total no lote</th>
+                <th scope="col">Saldo físico atual</th>
+                <th scope="col">Reservado atual</th>
+                <th scope="col">Disponível atual</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (i of l.itens; track i.apresentacaoInsumoId) {
+                <tr>
+                  <td>
+                    {{
+                      insumoPorId().get(i.apresentacaoInsumoId)?.insumo || 'Insumo não encontrado'
+                    }}
+                  </td>
+                  <td>
+                    {{
+                      insumoPorId().get(i.apresentacaoInsumoId)?.apresentacao ||
+                        i.apresentacaoInsumoId
+                    }}
+                  </td>
+                  <td class="number">{{ i.quantidadeTotal ?? '—' }}</td>
+                  <td class="number">
+                    {{ insumoPorId().get(i.apresentacaoInsumoId)?.saldoFisico ?? '—' }}
+                  </td>
+                  <td class="number">
+                    {{ insumoPorId().get(i.apresentacaoInsumoId)?.saldoReservado ?? '—' }}
+                  </td>
+                  <td class="number">
+                    {{ insumoPorId().get(i.apresentacaoInsumoId)?.saldoDisponivel ?? '—' }}
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+      <p class="hint">
+        Saldos da consulta atual de estoque, compartilhados entre as operações. Não representam o
+        consumo histórico deste lote.
+      </p>
+    </section>
+    <div class="actions">
+      @if (podeAjustar()) {
+        <button
+          type="button"
+          class="secondary"
+          data-action="ajustar"
+          (click)="abrirAcao('ajuste')"
+          [disabled]="saving() || loading()"
+        >
+          Ajustar lote
+        </button>
+      }
+      @if (podeDesmontar()) {
+        <button
+          type="button"
+          class="danger"
+          data-action="desmontar"
+          (click)="abrirAcao('desmontagem')"
+          [disabled]="saving() || loading()"
+        >
+          Desmontar cestas
+        </button>
+      }
+    </div>
+    @if (l.possuiAjustes) {
+      <p class="ui-message ui-message--warning" role="status">
+        Este lote possui ajustes e só pode ser desmontado integralmente, com todas as cestas
+        disponíveis.
+      </p>
+    }
+    @if (acao() === 'ajuste' && podeAjustar()) {
+      <form class="form-grid ui-panel" [formGroup]="ajusteForm" (ngSubmit)="confirmarAcao()">
+        <h2>Ajustar lote</h2>
+        <fieldset class="form-grid" [disabled]="saving()">
+          <legend>Cestas e itens do ajuste</legend>
+          <label
+            >Quantidade de cestas afetadas<input
+              type="number"
+              formControlName="quantidadeCestasAfetadas"
+              min="1"
+              [max]="l.quantidadeDisponivel"
+              step="1"
+              required
+          /></label>
+          <label>Motivo<textarea formControlName="motivo" required></textarea></label>
+          <div formArrayName="itens">
+            @for (item of ajusteForm.controls.itens.controls; track item; let index = $index) {
+              <fieldset class="form-grid" [formGroupName]="index">
+                <legend>Item {{ index + 1 }}</legend>
+                <label
+                  >Apresentação<select formControlName="apresentacaoInsumoId" required>
+                    <option value="">Selecione</option>
+                    @for (insumo of estoque(); track insumo.apresentacaoId) {
+                      <option [value]="insumo.apresentacaoId">
+                        {{ insumo.insumo }} · {{ insumo.apresentacao }}
+                      </option>
+                    }
+                  </select></label
+                >
+                <label
+                  >Operação<select formControlName="operacao">
+                    <option value="ADICIONAR">Adicionar ao lote</option>
+                    <option value="REMOVER">Remover do lote</option>
+                  </select></label
+                >
+                <label
+                  >Unidades por cesta afetada<input
+                    type="number"
+                    formControlName="quantidadePorCesta"
+                    min="1"
+                    step="1"
+                    required
+                /></label>
+                <button
+                  type="button"
+                  class="secondary"
+                  (click)="removerItemAjuste(index)"
+                  [disabled]="saving() || ajusteForm.controls.itens.length === 1"
+                >
+                  Remover item {{ index + 1 }} do formulário
+                </button>
+              </fieldset>
+            }
+          </div>
+          <button type="button" class="secondary" (click)="adicionarItemAjuste()">
+            Adicionar item ao formulário
+          </button>
+        </fieldset>
+        @if (ajusteForm.touched && ajusteForm.invalid) {
+          <p class="field-error" role="alert">
+            Informe o motivo, as apresentações e quantidades inteiras positivas dentro do limite de
+            cestas disponíveis.
+          </p>
+        }
+        <p class="hint">O estoque validará o conteúdo efetivo e a disponibilidade dos insumos.</p>
+        <div class="actions">
+          <button type="submit" [disabled]="saving() || ajusteForm.invalid">
+            {{ saving() ? 'Ajustando…' : 'Confirmar ajuste' }}
+          </button>
+          <button type="button" class="secondary" (click)="acao.set(null)" [disabled]="saving()">
+            Cancelar
+          </button>
+        </div>
+      </form>
+    }
+    @if (acao() === 'desmontagem' && podeDesmontar()) {
+      <form class="form-grid ui-panel" [formGroup]="desmontagemForm" (ngSubmit)="confirmarAcao()">
+        <h2>Desmontar cestas</h2>
+        <fieldset class="form-grid" [disabled]="saving()">
+          <legend>Quantidade e motivo da desmontagem</legend>
+          @if (l.permiteDesmontagemParcial) {
+            <label
+              >Quantidade de cestas<input
+                type="number"
+                formControlName="quantidade"
+                min="1"
+                [max]="l.quantidadeDisponivel"
+                step="1"
+                required
+            /></label>
+          } @else {
+            <p>Desmontagem integral: {{ l.quantidadeMontada }} cestas.</p>
+          }
+          <label>Motivo<textarea formControlName="motivo" required></textarea></label>
+        </fieldset>
+        @if (desmontagemForm.touched && desmontagemForm.invalid) {
+          <p class="field-error" role="alert">
+            Informe um motivo e uma quantidade inteira positiva dentro do limite de cestas
+            disponíveis.
+          </p>
+        }
+        <div class="actions">
+          <button type="submit" class="danger" [disabled]="saving() || desmontagemForm.invalid">
+            {{ saving() ? 'Desmontando…' : 'Confirmar desmontagem' }}
+          </button>
+          <button type="button" class="secondary" (click)="acao.set(null)" [disabled]="saving()">
+            Cancelar
+          </button>
+        </div>
+      </form>
+    }
+  }
+}

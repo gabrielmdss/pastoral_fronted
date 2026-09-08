@@ -1,0 +1,91 @@
+:host {
+  display: block;
+}
+.check-in-feedback {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: start;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-left: 3px solid var(--color-success);
+  border-radius: var(--radius-lg);
+  background: var(--color-success-soft);
+}
+.check-in-feedback--pendente {
+  background: var(--color-warning-soft);
+  border-left-color: var(--color-warning);
+}
+.check-in-feedback__icon {
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: var(--radius-md);
+  color: var(--color-success);
+  font-weight: 700;
+}
+.check-in-feedback--pendente .check-in-feedback__icon,
+.check-in-feedback--pendente .check-in-feedback__status {
+  color: var(--color-warning);
+}
+.check-in-feedback__content,
+.check-in-feedback__pendencias,
+.check-in-feedback__pendencia {
+  display: grid;
+  gap: 0.375rem;
+  min-width: 0;
+}
+.check-in-feedback__nome {
+  overflow-wrap: anywhere;
+}
+.check-in-feedback__status {
+  color: var(--color-success);
+  font-size: 0.875rem;
+  font-weight: 650;
+}
+.check-in-feedback__fila {
+  color: var(--color-text-muted);
+  font-size: 0.8125rem;
+}
+.check-in-feedback__aptidao,
+.check-in-feedback__pendencia {
+  padding: 0.5rem 0.75rem;
+  background: var(--color-surface);
+  border-radius: var(--radius-md);
+  font-size: 0.8125rem;
+}
+.check-in-feedback__aptidao {
+  width: fit-content;
+  color: var(--color-success);
+}
+.check-in-feedback__aptidao--bloqueada {
+  color: var(--color-danger);
+}
+.check-in-feedback__pendencias {
+  margin-top: 0.5rem;
+}
+.check-in-feedback__pendencia {
+  color: var(--color-warning);
+}
+.check-in-feedback__close {
+  width: 2.75rem;
+  min-height: 2.75rem;
+  padding: 0;
+  background: transparent;
+  color: var(--color-text-muted);
+  font-size: 1.25rem;
+}
+.check-in-feedback__close:hover {
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+@media (max-width: 600px) {
+  .check-in-feedback {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  .check-in-feedback__icon {
+    display: none;
+  }
+}

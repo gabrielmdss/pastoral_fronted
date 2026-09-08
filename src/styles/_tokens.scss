@@ -1,0 +1,82 @@
+:root {
+  font-family:
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+  color: var(--color-text);
+  background: var(--color-surface-soft);
+  --color-primary: #25634f;
+  --color-primary-dark: #183f34;
+  --color-primary-soft: #e8f2ed;
+  --color-surface: #fff;
+  --color-surface-soft: #f4f6f5;
+  --color-text: #24352e;
+  --color-text-muted: #596960;
+  --color-border: #d8e0db;
+  --color-input-border: #85988d;
+  --color-danger: #a12b30;
+  --color-danger-soft: #fceeee;
+  --color-warning: #805500;
+  --color-warning-soft: #fff5db;
+  --color-success: #216344;
+  --color-success-soft: #e8f4ec;
+  --color-info: #285c86;
+  --color-info-soft: #eaf2fa;
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
+  --space-7: 2.5rem;
+  --space-8: 3rem;
+  --radius-md: 0.375rem;
+  --radius-lg: 0.5rem;
+  --radius-xl: 0.75rem;
+  --shadow-sm: 0 1px 2px #183f3408;
+  --shadow-lg: 0 8px 24px #183f3424;
+}
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+}
+h1,
+h2,
+h3,
+p,
+dd,
+strong {
+  overflow-wrap: anywhere;
+}
+h1 {
+  font-size: clamp(1.5rem, 2.3vw, 1.875rem);
+  line-height: 1.25;
+  letter-spacing: -0.025em;
+}
+h2 {
+  font-size: 1.125rem;
+  line-height: 1.4;
+}
+h3 {
+  font-size: 1rem;
+}
+a {
+  color: var(--color-primary);
+  text-underline-offset: 0.2em;
+}
+a:hover {
+  color: var(--color-primary-dark);
+}
+img {
+  max-width: 100%;
+}
+::selection {
+  background: var(--color-primary-soft);
+  color: var(--color-primary-dark);
+}

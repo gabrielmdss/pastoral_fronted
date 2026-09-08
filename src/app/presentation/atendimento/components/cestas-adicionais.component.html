@@ -1,0 +1,181 @@
+<section class="ui-panel" id="cestas-adicionais">
+  <header class="ui-section-header">
+    <div>
+      <h2>Cestas adicionais</h2>
+      <p>Autorizações e entregas desta distribuição.</p>
+    </div>
+    <div class="actions">
+      <button
+        type="button"
+        class="secondary"
+        (click)="carregar()"
+        [disabled]="loading() || saving()"
+      >
+        Atualizar cestas adicionais
+      </button>
+      @if (podeAutorizar && atual()?.status !== 'ENCERRADA') {
+        <button type="button" (click)="abrirFormulario()" [disabled]="loading() || saving()">
+          Autorizar cesta adicional
+        </button>
+      }
+    </div>
+  </header>
+  @if (feedback()) {
+    <p class="ui-message ui-message--success" role="status">{{ feedback() }}</p>
+  }
+  @if (mutationError()) {
+    <p class="ui-message ui-message--error" role="alert">{{ mutationError() }}</p>
+  }
+  @if (atual()?.status === 'ENCERRADA') {
+    <p class="ui-state">
+      Distribuição encerrada. Autorizações e entregas permanecem disponíveis para consulta.
+    </p>
+  }
+  @if (formulario() && podeAutorizar && atual()?.status !== 'ENCERRADA') {
+    @if (!podeCatalogos) {
+      <p class="ui-message ui-message--warning">
+        Para selecionar beneficiário e modelo, solicite acesso às consultas de Beneficiários e
+        Modelos de cesta.
+      </p>
+    } @else {
+      <form class="form-grid" [formGroup]="form" (ngSubmit)="autorizar()">
+        @if (catalogLoading()) {
+          <p role="status">Consultando beneficiários e modelos…</p>
+        }
+        @if (catalogError()) {
+          <p class="ui-message ui-message--error" role="alert">{{ catalogError() }}</p>
+          <button
+            type="button"
+            class="secondary"
+            (click)="carregarCatalogos()"
+            [disabled]="saving()"
+          >
+            Tentar consultar opções novamente
+          </button>
+        }
+        <fieldset class="form-grid" [disabled]="saving() || loading() || catalogLoading()">
+          <legend>Autorização de cesta adicional</legend>
+          <label
+            >Beneficiário<select formControlName="beneficiarioId">
+              <option value="">Selecione</option>
+              @for (b of beneficiarios(); track b.id) {
+                <option [value]="b.id">
+                  {{ b.nomeCompleto }} · {{ b.status }}
+                  @for (doc of b.documentos; track $index) {
+                    · {{ doc.numeroMascarado }}
+                  }
+                </option>
+              }
+            </select></label
+          >
+          <label
+            >Modelo de cesta<select formControlName="modeloCestaId">
+              <option value="">Selecione</option>
+              @for (m of modelos(); track m.id) {
+                <option [value]="m.id">
+                  {{ m.nome }} · {{ m.tipo }}{{ m.ativo ? '' : ' (inativo)' }}
+                </option>
+              }
+            </select></label
+          >
+          @if (
+            !catalogLoading() && !catalogError() && (!beneficiarios().length || !modelos().length)
+          ) {
+            <p class="ui-state">Não há beneficiários ou modelos disponíveis na consulta.</p>
+          }
+          <label
+            >Quantidade<input type="number" formControlName="quantidade" min="1" step="1" required
+          /></label>
+          <label>Justificativa<textarea formControlName="justificativa" required></textarea></label>
+        </fieldset>
+        <div class="actions">
+          <button
+            type="submit"
+            [disabled]="
+              saving() || loading() || form.invalid || catalogLoading() || !!catalogError()
+            "
+          >
+            {{ saving() ? 'Processando…' : 'Confirmar autorização' }}</button
+          ><button
+            type="button"
+            class="secondary"
+            (click)="formulario.set(false)"
+            [disabled]="saving()"
+          >
+            Fechar formulário
+          </button>
+        </div>
+      </form>
+    }
+  }
+  @if (loading()) {
+    <p class="ui-state" role="status">Consultando cestas adicionais…</p>
+  } @else if (error()) {
+    <p class="ui-message ui-message--error" role="alert">{{ error() }}</p>
+    <button type="button" (click)="carregar()" [disabled]="saving()">Tentar novamente</button>
+  } @else if (podeEntregar) {
+    @if (!items().length) {
+      <p class="ui-state">Nenhuma cesta adicional registrada.</p>
+    } @else {
+      <div
+        class="table-scroll"
+        tabindex="0"
+        role="region"
+        aria-label="Autorizações de cestas adicionais"
+      >
+        <table>
+          <thead>
+            <tr>
+              <th scope="col">Beneficiário</th>
+              <th scope="col">Modelo</th>
+              <th scope="col">Quantidade</th>
+              <th scope="col">Justificativa</th>
+              <th scope="col">Estado</th>
+              <th scope="col">Autorização</th>
+              <th scope="col">Entrega</th>
+              <th scope="col">Ações</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (i of items(); track i.id) {
+              <tr>
+                <td>{{ i.beneficiario.nomeCompleto }}</td>
+                <td>{{ i.modeloCesta.nome }}</td>
+                <td class="number">{{ i.quantidade }}</td>
+                <td>{{ i.justificativa }}</td>
+                <td>
+                  <span class="ui-badge" [attr.data-status]="i.status">{{ i.status }}</span>
+                </td>
+                <td>{{ i.autorizador.login }} · {{ i.autorizadoEm | date: 'dd/MM/yyyy HH:mm' }}</td>
+                <td>
+                  @if (i.entrega; as e) {
+                    {{ e.usuario.login }} · {{ e.entregueEm | date: 'dd/MM/yyyy HH:mm' }}
+                  } @else {
+                    Não registrada
+                  }
+                </td>
+                <td>
+                  @if (i.status === 'AUTORIZADA' && atual()?.status === 'ABERTA') {
+                    <button type="button" (click)="entregar(i.id)" [disabled]="saving()">
+                      {{ saving() ? 'Processando…' : 'Entregar' }}
+                    </button>
+                  }
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  } @else {
+    <p class="hint">
+      Seu acesso permite autorizar, mas não consultar a lista ou registrar entregas.
+    </p>
+    @if (ultimaAutorizacao(); as i) {
+      <p role="status">
+        {{ i.beneficiario.nomeCompleto }} · {{ i.modeloCesta.nome }} · {{ i.quantidade }} cesta(s) ·
+        {{ i.status }} · {{ i.autorizador.login }} · {{ i.autorizadoEm | date: 'dd/MM/yyyy HH:mm' }}
+      </p>
+    }
+  }
+</section>

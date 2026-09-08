@@ -1,0 +1,48 @@
+<header class="ui-header">
+  <div>
+    <p class="eyebrow">Preparação</p>
+    <h1>Planejamento de cestas</h1>
+    <p>Simule a produção e acompanhe as reservas confirmadas.</p>
+  </div>
+  <div class="actions">
+    <a class="btn" routerLink="/planejamentos/novo">{{
+      session.hasPermission('CESTA_PLANEJAMENTO_APROVAR') ? 'Novo planejamento' : 'Simular produção'
+    }}</a
+    ><button class="secondary" (click)="carregar()" [disabled]="loading()">Atualizar</button>
+  </div>
+</header>
+@if (loading()) {
+  <p class="ui-state" role="status">Consultando planejamentos…</p>
+} @else if (error()) {
+  <p class="ui-message ui-message--error" role="alert">{{ error() }}</p>
+  <button (click)="carregar()">Tentar novamente</button>
+} @else if (!items().length) {
+  <p class="ui-state">Nenhum planejamento encontrado.</p>
+} @else {
+  <div class="table-scroll" tabindex="0" role="region" aria-label="Planejamentos">
+    <table>
+      <thead>
+        <tr>
+          <th scope="col">Competência</th>
+          <th scope="col">Modelo</th>
+          <th scope="col">Criado em</th>
+          <th scope="col">Consulta</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (p of items(); track p.id) {
+          <tr>
+            <td>{{ p.mes }}/{{ p.ano }}</td>
+            <td>{{ p.modelo }}</td>
+            <td>{{ p.criadoEm | date: 'dd/MM/yyyy HH:mm' }}</td>
+            <td>
+              <a class="button-link" [routerLink]="['/planejamentos', p.id]"
+                >Consultar planejamento</a
+              >
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+}
