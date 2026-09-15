@@ -25,10 +25,9 @@
   <p class="ui-message ui-message--error" role="alert">{{ mutationError() }}</p>
 }
 @if (loading()) {
-  <p class="ui-state" role="status">Consultando lotes e estoque…</p>
+  <app-loading-state label="Consultando lotes e estoque…" />
 } @else if (error()) {
-  <p class="ui-message ui-message--error" role="alert">{{ error() }}</p>
-  <button type="button" (click)="carregar()">Tentar novamente</button>
+  <app-error-state [message]="error()" (retry)="carregar()" />
 } @else {
   @if (!id()) {
     @if (criando() && podeMontar) {
@@ -45,7 +44,7 @@
             </select></label
           >
           @if (!planos().length) {
-            <p class="ui-state">Nenhum planejamento disponível.</p>
+            <app-empty-state title="Sem planejamentos" message="Nenhum planejamento disponível." />
           }
           @if (planLoading()) {
             <p role="status">Consultando versões…</p>
@@ -67,7 +66,7 @@
             </select></label
           >
           @if (plano() && !aprovadas().length) {
-            <p class="ui-state">Este planejamento não possui versão aprovada para montagem.</p>
+            <app-empty-state title="Sem versão aprovada" message="Este planejamento não possui versão aprovada para montagem." />
           }
           <label
             >Quantidade de cestas<input
@@ -94,7 +93,7 @@
       </form>
     }
     @if (!lotes().length) {
-      <p class="ui-state">Nenhum lote de montagem encontrado.</p>
+      <app-empty-state title="Sem lotes" message="Nenhum lote de montagem encontrado." />
     } @else {
       <section class="ui-panel">
         <div class="table-scroll" tabindex="0" role="region" aria-label="Lotes de montagem">
@@ -104,8 +103,8 @@
                 <th scope="col">Lote</th>
                 <th scope="col">Modelo / competência</th>
                 <th scope="col">Versão do planejamento</th>
-                <th scope="col">Montadas</th>
-                <th scope="col">Disponíveis</th>
+                <th scope="col" class="number">Montadas</th>
+                <th scope="col" class="number">Disponíveis</th>
                 <th scope="col">Estado</th>
                 <th scope="col">Montagem</th>
                 <th scope="col">Responsável</th>
@@ -128,7 +127,7 @@
                   <td class="number">{{ l.quantidadeMontada }}</td>
                   <td class="number">{{ l.quantidadeDisponivel }}</td>
                   <td>
-                    <span class="ui-badge" [attr.data-status]="l.status">{{ l.status }}</span>
+                    <app-status-badge [status]="l.status" />
                   </td>
                   <td>{{ l.montadoEm | date: 'dd/MM/yyyy HH:mm' }}</td>
                   <td>{{ l.responsavel.login }}</td>
@@ -150,7 +149,7 @@
             {{ l.montadoEm | date: 'dd/MM/yyyy HH:mm' }} · {{ l.responsavel.login }}
           </p>
         </div>
-        <span class="ui-badge" [attr.data-status]="l.status">{{ l.status }}</span>
+        <app-status-badge [status]="l.status" />
       </header>
       <p>
         <a [routerLink]="['/planejamentos', l.planejamento.id]">
@@ -166,7 +165,7 @@
     <section class="ui-panel">
       <h2>Composição efetiva do lote</h2>
       @if (!l.itens.length) {
-        <p class="ui-state">Nenhum item retornado para este lote.</p>
+        <app-empty-state title="Sem itens" message="Nenhum item retornado para este lote." />
       } @else {
         <div class="table-scroll" tabindex="0" role="region" aria-label="Composição do lote">
           <table>
@@ -174,10 +173,10 @@
               <tr>
                 <th scope="col">Insumo</th>
                 <th scope="col">Apresentação</th>
-                <th scope="col">Total no lote</th>
-                <th scope="col">Saldo físico atual</th>
-                <th scope="col">Reservado atual</th>
-                <th scope="col">Disponível atual</th>
+                <th scope="col" class="number">Total no lote</th>
+                <th scope="col" class="number">Saldo físico atual</th>
+                <th scope="col" class="number">Reservado atual</th>
+                <th scope="col" class="number">Disponível atual</th>
               </tr>
             </thead>
             <tbody>

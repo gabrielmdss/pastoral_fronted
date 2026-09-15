@@ -1,13 +1,12 @@
-<header class="feature-header">
-  <div>
-    <p class="eyebrow">Assistência</p>
-    <h1>Capacidade</h1>
-    <p>Visão atual da capacidade assistencial definida pela coordenação.</p>
-  </div>
+<app-page-header
+  eyebrow="Assistência"
+  title="Capacidade"
+  description="Visão atual da capacidade assistencial definida pela coordenação."
+>
   @if (session.hasPermission('CAPACIDADE_ALTERAR') && data()) {
-    <button (click)="open()">Alterar capacidade</button>
+    <button actions (click)="open()">Alterar capacidade</button>
   }
-</header>
+</app-page-header>
 @if (feedback()) {
   <p class="notice" role="status">{{ feedback() }}</p>
 }
@@ -16,6 +15,22 @@
 } @else if (error()) {
   <app-error-state [message]="error()" (retry)="load()" />
 } @else if (data(); as cap) {
+  <section class="occupancy-panel">
+    <div class="occupancy-panel-head">
+      <span>Ocupação da capacidade</span>
+      <strong>{{ ocupacaoPercentual() }}%</strong>
+    </div>
+    <div
+      class="occupancy-bar"
+      [attr.data-status]="cap.excedente > 0 ? 'CRITICO' : cap.vagas === 0 ? 'ATENCAO' : 'OK'"
+      role="progressbar"
+      [attr.aria-valuenow]="cap.ativos"
+      [attr.aria-valuemax]="cap.capacidade"
+    >
+      <span class="occupancy-bar-fill" [style.width.%]="ocupacaoPercentual()"></span>
+    </div>
+    <small>{{ cap.ativos }} de {{ cap.capacidade }} vagas ocupadas</small>
+  </section>
   <section class="capacity-grid">
     <article>
       <span>Capacidade</span><strong>{{ cap.capacidade }}</strong>
@@ -23,10 +38,10 @@
     <article>
       <span>Beneficiários ativos</span><strong>{{ cap.ativos }}</strong>
     </article>
-    <article>
+    <article [class.is-highlight]="cap.vagas === 0">
       <span>Vagas</span><strong>{{ cap.vagas }}</strong>
     </article>
-    <article>
+    <article [class.is-highlight]="cap.excedente > 0">
       <span>Excedente</span><strong>{{ cap.excedente }}</strong>
     </article>
   </section>

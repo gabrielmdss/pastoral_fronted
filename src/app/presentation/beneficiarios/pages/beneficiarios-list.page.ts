@@ -25,6 +25,7 @@ import { userErrorMessage } from '../../../shared/errors/user-error';
 import { EmptyStateComponent } from '../../../shared/ui/empty-state.component';
 import { ErrorStateComponent } from '../../../shared/ui/error-state.component';
 import { LoadingStateComponent } from '../../../shared/ui/loading-state.component';
+import { PageHeaderComponent } from '../../../shared/ui/page-header.component';
 import { StatusBadgeComponent } from '../../../shared/ui/status-badge.component';
 import { PessoaSearchFieldComponent } from '../../shared/pessoas/pessoa-search-field.component';
 import { ListarGruposUseCase } from '../../../application/beneficiarios/catalogos.use-cases';
@@ -38,6 +39,7 @@ import type { Pessoa } from '../../../domain/pessoas/pessoa.model';
     EmptyStateComponent,
     ErrorStateComponent,
     LoadingStateComponent,
+    PageHeaderComponent,
     StatusBadgeComponent,
     PessoaSearchFieldComponent,
   ],

@@ -10,11 +10,12 @@ import { SessionFacade } from '../../../infrastructure/auth/session.facade';
 import { userErrorMessage } from '../../../shared/errors/user-error';
 import { ErrorStateComponent } from '../../../shared/ui/error-state.component';
 import { LoadingStateComponent } from '../../../shared/ui/loading-state.component';
+import { PageHeaderComponent } from '../../../shared/ui/page-header.component';
 @Component({
   selector: 'app-capacidade-page',
-  imports: [ReactiveFormsModule, ErrorStateComponent, LoadingStateComponent],
+  imports: [ReactiveFormsModule, ErrorStateComponent, LoadingStateComponent, PageHeaderComponent],
   templateUrl: './capacidade.page.html',
-
+  styleUrl: './capacidade.page.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export default class CapacidadePage implements OnInit {
@@ -49,6 +50,11 @@ export default class CapacidadePage implements OnInit {
     } finally {
       this.loading.set(false);
     }
+  }
+  ocupacaoPercentual(): number {
+    const cap = this.data();
+    if (!cap || cap.capacidade <= 0) return 0;
+    return Math.min(100, Math.round((cap.ativos / cap.capacidade) * 100));
   }
   open() {
     this.form.controls.capacidade.setValue(this.data()?.capacidade ?? null);

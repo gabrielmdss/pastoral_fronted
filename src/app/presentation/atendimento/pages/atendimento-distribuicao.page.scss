@@ -37,7 +37,8 @@
   min-width: 0;
 }
 .atendimento-search-section {
-  border-top: 3px solid var(--color-primary);
+  border-top: 4px solid var(--color-primary);
+  background: var(--color-primary-soft);
 }
 .atendimento-search {
   display: grid;
@@ -50,6 +51,13 @@
 }
 .atendimento-search__control input {
   width: 100%;
+  min-height: 3.25rem;
+  font-size: 1.0625rem;
+  padding: 0 var(--space-4);
+  border-width: 2px;
+}
+.atendimento-search__control input:focus-visible {
+  border-color: var(--color-primary);
 }
 .atendimento-search__loading {
   font-size: 0.8125rem;
@@ -61,8 +69,25 @@
   gap: var(--space-4);
   align-items: start;
 }
+.atendimento-fila {
+  border-top: 4px solid var(--color-success);
+}
+.atendimento-fila__header .atendimento-fila__count {
+  background: var(--color-success-soft);
+  color: var(--color-success);
+}
 .atendimento-fila--pendente {
-  border-top: 3px solid var(--color-warning);
+  border-top: 4px solid var(--color-warning);
+}
+.atendimento-fila--pendente .atendimento-fila__header .atendimento-fila__count {
+  background: var(--color-warning-soft);
+  color: var(--color-warning);
+}
+.atendimento-checkin-card {
+  border-left: 3px solid var(--color-success);
+}
+.atendimento-checkin-card--pendente {
+  border-left-color: var(--color-warning);
 }
 .atendimento-fila__count,
 .atendimento-checkin-card__ordem {
@@ -151,7 +176,7 @@
   text-align: left;
 }
 .atendimento-search-result:disabled {
-  background: #edf0ee;
+  background: var(--color-disabled-surface);
   opacity: 0.7;
 }
 .atendimento-search-result:hover:not(:disabled) {

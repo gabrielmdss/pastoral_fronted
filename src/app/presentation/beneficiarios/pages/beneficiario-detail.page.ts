@@ -13,6 +13,7 @@ import { SessionFacade } from '../../../infrastructure/auth/session.facade';
 import { userErrorMessage } from '../../../shared/errors/user-error';
 import { ErrorStateComponent } from '../../../shared/ui/error-state.component';
 import { LoadingStateComponent } from '../../../shared/ui/loading-state.component';
+import { PageHeaderComponent } from '../../../shared/ui/page-header.component';
 import { StatusBadgeComponent } from '../../../shared/ui/status-badge.component';
 import {
   ListarGruposUseCase,
@@ -29,6 +30,7 @@ import type {
     RouterLink,
     ErrorStateComponent,
     LoadingStateComponent,
+    PageHeaderComponent,
     StatusBadgeComponent,
   ],
   templateUrl: './beneficiario-detail.page.html',

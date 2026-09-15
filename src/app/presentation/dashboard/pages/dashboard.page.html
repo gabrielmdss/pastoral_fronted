@@ -1,32 +1,50 @@
-<header class="page-header">
-  <div>
-    <p class="eyebrow">Visão geral</p>
-    <h1>Dashboard</h1>
-    <p>Acompanhe a capacidade de atendimento e a preparação das próximas cestas.</p>
-  </div>
-  <button type="button" class="secondary" (click)="load()" [disabled]="loading()">Atualizar</button>
-</header>
+<app-page-header eyebrow="Visão geral" title="Dashboard" description="Acompanhe a capacidade de atendimento e a preparação das próximas cestas.">
+  <button actions type="button" class="secondary" (click)="load()" [disabled]="loading()">
+    @if (refreshing()) {
+      <span class="spinner-inline" aria-hidden="true"></span>
+    }
+    Atualizar
+  </button>
+</app-page-header>
+
 @if (loading()) {
   <app-loading-state label="Carregando indicadores…" />
 } @else if (error()) {
   <app-error-state [message]="error()" (retry)="load()" />
 } @else if (data(); as dashboard) {
+  @if (alertas().length) {
+    <section class="alert-stack" aria-label="Alertas do provisionamento">
+      @for (alerta of alertas(); track alerta.codigo) {
+        <div class="alert-item" [attr.data-nivel]="alerta.nivel">
+          <span class="alert-icon" aria-hidden="true">{{ alerta.icone }}</span>
+          <span class="alert-message">{{ alerta.mensagem }}</span>
+          @if (alerta.rota) {
+            <a class="alert-action" [routerLink]="alerta.rota">Resolver</a>
+          }
+        </div>
+      }
+    </section>
+  }
+
   <section class="metric-grid" aria-label="Indicadores de beneficiários">
-    <article>
-      <span>Capacidade</span><strong>{{ dashboard.beneficiarios.capacidade }}</strong>
-    </article>
-    <article>
-      <span>Beneficiários ativos</span><strong>{{ dashboard.beneficiarios.ativos }}</strong>
-    </article>
-    <article>
-      <span>Vagas</span><strong>{{ dashboard.beneficiarios.vagas }}</strong>
-    </article>
-    <article>
-      <span>Lista de espera</span><strong>{{ dashboard.beneficiarios.listaEspera }}</strong>
-    </article>
+    <app-metric-card label="Capacidade" [delayMs]="0">{{ dashboard.beneficiarios.capacidade }}</app-metric-card>
+    <app-metric-card label="Beneficiários ativos" [delayMs]="60">{{ dashboard.beneficiarios.ativos }}</app-metric-card>
+    <app-metric-card
+      label="Vagas"
+      [delayMs]="120"
+      [variant]="dashboard.beneficiarios.vagas === 0 ? 'attention' : 'default'"
+      >{{ dashboard.beneficiarios.vagas }}</app-metric-card
+    >
+    <app-metric-card
+      label="Lista de espera"
+      [delayMs]="180"
+      [variant]="dashboard.beneficiarios.listaEspera > 0 ? 'critical' : 'default'"
+      >{{ dashboard.beneficiarios.listaEspera }}</app-metric-card
+    >
   </section>
+
   <section class="detail-grid">
-    <article class="panel">
+    <article class="panel fade-in-stagger" [style.--delay.ms]="220">
       <div class="panel-title">
         <h2>Próxima distribuição</h2>
         @if (dashboard.proximaDistribuicao) {
@@ -54,25 +72,36 @@
             <dd>{{ next.cestasMontadasCompativeis }}</dd>
           </div>
         </dl>
+        <div class="assembly-progress" role="progressbar" [attr.aria-valuenow]="next.cestasMontadasCompativeis" [attr.aria-valuemax]="next.previstos">
+          <span
+            class="assembly-progress-fill"
+            [style.width.%]="next.previstos > 0 ? (next.cestasMontadasCompativeis / next.previstos) * 100 : 0"
+          ></span>
+        </div>
+        <small class="assembly-progress-label">Montagem das cestas: {{ next.cestasMontadasCompativeis }} de {{ next.previstos }}</small>
       } @else {
         <p class="empty">Nenhuma distribuição futura encontrada.</p>
       }
     </article>
-    <article class="panel">
+
+    <article class="panel fade-in-stagger" [style.--delay.ms]="280">
       <h2>Saúde da cobertura</h2>
       <div class="coverage">
-        <span
-          class="status ui-badge"
-          [attr.data-status]="dashboard.saude.proximaDistribuicao.status"
-          >{{ dashboard.saude.proximaDistribuicao.status.replace('_', ' ') }}</span
-        ><strong>{{ dashboard.saude.proximaDistribuicao.coberturaPercentual }}%</strong
-        ><small
+        <span class="status ui-badge" [attr.data-status]="dashboard.saude.proximaDistribuicao.status">{{
+          coberturaStatusLabel()
+        }}</span>
+        <strong>{{ dashboard.saude.proximaDistribuicao.coberturaPercentual }}%</strong>
+        <div class="level-bar" [attr.data-status]="dashboard.saude.proximaDistribuicao.status">
+          <span class="level-bar-fill" [style.width.%]="dashboard.saude.proximaDistribuicao.coberturaPercentual"></span>
+        </div>
+        <small
           >{{ dashboard.saude.proximaDistribuicao.capacidadeGarantida }} de
           {{ dashboard.saude.proximaDistribuicao.demanda }} cestas garantidas</small
         >
       </div>
     </article>
-    <article class="panel">
+
+    <article class="panel fade-in-stagger" [style.--delay.ms]="340">
       <h2>Estoque</h2>
       <dl>
         <div>
@@ -85,23 +114,39 @@
         </div>
         <div>
           <dt>Itens críticos</dt>
-          <dd>{{ dashboard.estoque.itensCriticos }}</dd>
+          <dd [class.is-critical-text]="dashboard.estoque.itensCriticos > 0">{{ dashboard.estoque.itensCriticos }}</dd>
         </div>
       </dl>
     </article>
-    <article class="panel">
-      <h2>Insumos críticos</h2>
-      @if (dashboard.insumosCriticos.length) {
+
+    <article class="panel fade-in-stagger" [style.--delay.ms]="400">
+      <div class="panel-title">
+        <h2>Insumos críticos</h2>
+        @if (insumosCriticos().length > 5) {
+          <app-search-field
+            label="Buscar insumo"
+            [showLabel]="false"
+            placeholder="Buscar insumo…"
+            (termChange)="onInsumoFiltroChange($event)"
+          />
+        }
+      </div>
+      @if (insumosFiltrados().length) {
         <ul>
-          @for (item of dashboard.insumosCriticos.slice(0, 5); track item.apresentacaoInsumoId) {
+          @for (item of insumosFiltrados(); track item.apresentacaoInsumoId) {
             <li>
-              <span>{{ item.nome }} — {{ item.apresentacao }}</span
-              ><strong>Déficit {{ item.deficit }}</strong>
+              <div class="insumo-row">
+                <span>{{ item.nome }} — {{ item.apresentacao }}</span>
+                <strong>Déficit {{ item.deficit }}</strong>
+              </div>
+              <div class="level-bar" [attr.data-status]="item.limitante ? 'CRITICO' : 'ATENCAO'">
+                <span class="level-bar-fill" [style.width.%]="item.nivelPercentual"></span>
+              </div>
             </li>
           }
         </ul>
       } @else {
-        <p class="empty">Nenhum insumo crítico para a próxima distribuição.</p>
+        <p class="empty">Nenhum insumo crítico encontrado.</p>
       }
     </article>
   </section>

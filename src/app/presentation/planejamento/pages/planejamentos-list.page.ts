@@ -7,9 +7,12 @@ import { ListarPlanejamentosUseCase } from '../../../application/planejamento/pl
 import type { Planejamento } from '../../../domain/planejamento/planejamento.model';
 import { SessionFacade } from '../../../infrastructure/auth/session.facade';
 import { userErrorMessage } from '../../../shared/errors/user-error';
+import { LoadingStateComponent } from '../../../shared/ui/loading-state.component';
+import { ErrorStateComponent } from '../../../shared/ui/error-state.component';
+import { EmptyStateComponent } from '../../../shared/ui/empty-state.component';
 @Component({
   selector: 'app-planejamentos-list',
-  imports: [RouterLink, DatePipe],
+  imports: [RouterLink, DatePipe, LoadingStateComponent, ErrorStateComponent, EmptyStateComponent],
   templateUrl: './planejamentos-list.page.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

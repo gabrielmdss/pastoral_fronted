@@ -1,11 +1,9 @@
 <a routerLink="/beneficiarios" class="back-link">← Voltar para beneficiários</a>
-<header class="feature-header">
-  <div>
-    <p class="eyebrow">Assistência</p>
-    <h1>Detalhe do beneficiário</h1>
-    <p>Visão operacional da situação assistencial.</p>
-  </div>
-</header>
+<app-page-header
+  eyebrow="Assistência"
+  title="Detalhe do beneficiário"
+  description="Visão operacional da situação assistencial."
+/>
 @if (feedback()) {
   <p class="notice" role="status">{{ feedback() }}</p>
 }
@@ -103,6 +101,18 @@
         </ul>
       } @else {
         <p class="hint">Nenhuma pendência atual.</p>
+      }
+    </article>
+    <article class="content-card">
+      <h2>Histórico</h2>
+      @if (b.historicoResumido.length) {
+        <ul>
+          @for (h of b.historicoResumido; track h.ocorridoEm + h.tipo) {
+            <li>{{ h.ocorridoEm.slice(0, 10) }} · {{ h.tipo }} — {{ h.descricao }}</li>
+          }
+        </ul>
+      } @else {
+        <p class="hint">Nenhum registro de histórico.</p>
       }
     </article>
   </section>

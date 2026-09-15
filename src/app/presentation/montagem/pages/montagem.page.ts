@@ -32,10 +32,22 @@ import type {
 import type { InsumoSaldo } from '../../../domain/estoque/estoque.model';
 import { SessionFacade } from '../../../infrastructure/auth/session.facade';
 import { userErrorMessage } from '../../../shared/errors/user-error';
+import { LoadingStateComponent } from '../../../shared/ui/loading-state.component';
+import { ErrorStateComponent } from '../../../shared/ui/error-state.component';
+import { EmptyStateComponent } from '../../../shared/ui/empty-state.component';
+import { StatusBadgeComponent } from '../../../shared/ui/status-badge.component';
 
 @Component({
   selector: 'app-montagem',
-  imports: [DatePipe, ReactiveFormsModule, RouterLink],
+  imports: [
+    DatePipe,
+    ReactiveFormsModule,
+    RouterLink,
+    LoadingStateComponent,
+    ErrorStateComponent,
+    EmptyStateComponent,
+    StatusBadgeComponent,
+  ],
   templateUrl: './montagem.page.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -223,14 +235,31 @@ export default class MontagemPage {
     const quantidade = lote.permiteDesmontagemParcial
       ? this.desmontagemForm.controls.quantidade.value
       : lote.quantidadeMontada;
-    if (
-      !window.confirm(
-        ajuste
-          ? `Confirmar ajuste no lote ${id}? Os itens informados serão adicionados ou removidos fisicamente do lote.`
-          : `Desmontar ${quantidade} cestas do lote ${id}? O conteúdo efetivo será devolvido ao estoque.`,
+    if (ajuste) {
+      const itens = this.ajusteForm.controls.itens.controls.map((c) => {
+        const v = c.getRawValue();
+        const insumo = this.insumoPorId().get(v.apresentacaoInsumoId);
+        const nome = insumo ? `${insumo.insumo} · ${insumo.apresentacao}` : v.apresentacaoInsumoId;
+        return `${v.operacao === 'ADICIONAR' ? '+' : '-'}${v.quantidadePorCesta} ${nome}`;
+      });
+      const cestasAfetadas = this.ajusteForm.controls.quantidadeCestasAfetadas.value;
+      if (
+        !window.confirm(
+          `Ajustar o lote ${id} em ${cestasAfetadas} cesta(s)?\n` +
+            `Itens: ${itens.join(', ')}.\n` +
+            'Isso altera fisicamente o conteúdo do lote e não pode ser desfeito.',
+        )
       )
-    )
-      return;
+        return;
+    } else {
+      if (
+        !window.confirm(
+          `Desmontar ${quantidade} de ${lote.quantidadeDisponivel} cesta(s) disponíveis do lote ${id}?\n` +
+            'Isso devolverá os insumos dessas cestas ao estoque e não pode ser desfeito.',
+        )
+      )
+        return;
+    }
     this.saving.set(true);
     this.mutationError.set('');
     this.feedback.set('');

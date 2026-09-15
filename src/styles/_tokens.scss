@@ -8,15 +8,16 @@
   font-size: 16px;
   line-height: 1.5;
   color: var(--color-text);
-  background: var(--color-surface-soft);
-  --color-primary: #25634f;
-  --color-primary-dark: #183f34;
-  --color-primary-soft: #e8f2ed;
+  background: var(--color-bg-app);
+  --color-primary: #065f46;
+  --color-primary-dark: #04422f;
+  --color-primary-soft: #e3f2ea;
+  --color-bg-app: #fbfbf9;
   --color-surface: #fff;
-  --color-surface-soft: #f4f6f5;
-  --color-text: #24352e;
-  --color-text-muted: #596960;
-  --color-border: #d8e0db;
+  --color-surface-soft: #f6f6f2;
+  --color-text: #0f172a;
+  --color-text-muted: #5b6472;
+  --color-border: #e1e4de;
   --color-input-border: #85988d;
   --color-danger: #a12b30;
   --color-danger-soft: #fceeee;
@@ -34,11 +35,36 @@
   --space-6: 2rem;
   --space-7: 2.5rem;
   --space-8: 3rem;
-  --radius-md: 0.375rem;
-  --radius-lg: 0.5rem;
-  --radius-xl: 0.75rem;
-  --shadow-sm: 0 1px 2px #183f3408;
-  --shadow-lg: 0 8px 24px #183f3424;
+  --radius-md: 0.75rem;
+  --radius-lg: 1rem;
+  --radius-xl: 1.375rem;
+  --radius-pill: 9999px;
+  --font-size-xs: 0.75rem;
+  --font-size-sm: 0.8125rem;
+  --font-size-md: 0.875rem;
+  --font-size-base: 1rem;
+  --font-size-lg: 1.125rem;
+  --font-size-xl: 1.875rem;
+  --font-size-2xl: 2rem;
+  --font-weight-bold: 700;
+  --shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.06);
+  --shadow-md: 0 4px 20px -2px rgba(15, 23, 42, 0.08);
+  --shadow-lg: 0 12px 32px -4px rgba(15, 23, 42, 0.16);
+  --color-surface-muted: #eef1ef;
+  --color-overlay: #152c2466;
+  --color-disabled-surface: #edf0ee;
+  --color-sidebar-border: #ffffff30;
+  --color-sidebar-text-muted: #c8dcd2;
+  --color-sidebar-text: #d8e8df;
+  --color-sidebar-hover: #ffffff10;
+  --color-sidebar-active: #ffffff18;
+  --color-sidebar-active-border: #b5dcc4;
+  --color-sidebar-section-label: #b8cec2;
+  --color-sidebar-button-border: #ffffff70;
+  --z-dropdown: 10;
+  --z-sidebar: 20;
+  --z-modal: 200;
+  --z-skip-link: 300;
 }
 * {
   box-sizing: border-box;
@@ -58,13 +84,18 @@ h1 {
   font-size: clamp(1.5rem, 2.3vw, 1.875rem);
   line-height: 1.25;
   letter-spacing: -0.025em;
+  font-weight: 800;
+  color: var(--color-text);
 }
 h2 {
   font-size: 1.125rem;
   line-height: 1.4;
+  font-weight: var(--font-weight-bold);
+  letter-spacing: -0.0125em;
 }
 h3 {
   font-size: 1rem;
+  font-weight: var(--font-weight-bold);
 }
 a {
   color: var(--color-primary);

@@ -10,9 +10,23 @@ import { ListarGruposUseCase } from '../../../application/beneficiarios/catalogo
 import type { GrupoDistribuicao } from '../../../application/beneficiarios/catalogos.models';
 import { SessionFacade } from '../../../infrastructure/auth/session.facade';
 import { userErrorMessage } from '../../../shared/errors/user-error';
+import { LoadingStateComponent } from '../../../shared/ui/loading-state.component';
+import { ErrorStateComponent } from '../../../shared/ui/error-state.component';
+import { EmptyStateComponent } from '../../../shared/ui/empty-state.component';
+import { StatusBadgeComponent } from '../../../shared/ui/status-badge.component';
+import { PaginationComponent } from '../../../shared/ui/pagination.component';
 @Component({
   selector: 'app-relatorios',
-  imports: [DatePipe, ReactiveFormsModule, RouterLink],
+  imports: [
+    DatePipe,
+    ReactiveFormsModule,
+    RouterLink,
+    LoadingStateComponent,
+    ErrorStateComponent,
+    EmptyStateComponent,
+    StatusBadgeComponent,
+    PaginationComponent,
+  ],
   templateUrl: './relatorios.page.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

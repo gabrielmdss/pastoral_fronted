@@ -37,61 +37,72 @@
     @if (activeMode === 'entrada') {
       <form class="form-grid" [formGroup]="entrada" (ngSubmit)="salvar()">
         <h2>Registrar entrada</h2>
-        <label
-          >Tipo<select formControlName="tipo">
-            <option value="DOACAO">Doação</option>
-            <option value="COMPRA">Compra</option>
-            <option value="SALDO_INICIAL">Saldo inicial</option>
-            <option value="AJUSTE_POSITIVO">Ajuste positivo</option>
-          </select></label
-        >
-        <label
-          >Doador (opcional)<select formControlName="doadorId">
-            <option value="">Não informado</option>
-            @for (d of doadores(); track d.id) {
-              <option [value]="d.id">{{ d.nome }}{{ d.ativo ? '' : ' (inativo)' }}</option>
+        <fieldset class="form-section">
+          <legend>Origem da entrada</legend>
+          <label
+            >Tipo<select formControlName="tipo">
+              <option value="DOACAO">Doação</option>
+              <option value="COMPRA">Compra</option>
+              <option value="SALDO_INICIAL">Saldo inicial</option>
+              <option value="AJUSTE_POSITIVO">Ajuste positivo</option>
+            </select></label
+          >
+          <label
+            >Doador (opcional)<select formControlName="doadorId">
+              <option value="">Não informado</option>
+              @for (d of doadores(); track d.id) {
+                <option [value]="d.id">{{ d.nome }}{{ d.ativo ? '' : ' (inativo)' }}</option>
+              }
+            </select></label
+          >
+          <label
+            >Data da entrada (opcional)<input type="date" formControlName="dataEntrada"
+          /></label>
+        </fieldset>
+        <fieldset class="form-section">
+          <legend>Itens recebidos</legend>
+          <div formArrayName="itens" class="form-section__items">
+            @for (row of entrada.controls.itens.controls; track row; let index = $index) {
+              <fieldset class="form-grid item-row" [formGroupName]="index">
+                <legend>Item {{ index + 1 }}</legend>
+                <label
+                  >Produto / apresentação<select formControlName="apresentacaoInsumoId">
+                    <option value="">Selecione</option>
+                    @for (i of insumos(); track i.apresentacaoId) {
+                      <option [value]="i.apresentacaoId">
+                        {{ i.insumo }} · {{ i.apresentacao }}
+                      </option>
+                    }
+                  </select></label
+                >
+                <label
+                  >Quantidade<input type="number" min="1" step="1" formControlName="quantidade"
+                /></label>
+                <label>Validade (opcional)<input type="date" formControlName="validade" /></label>
+                <button
+                  type="button"
+                  class="secondary"
+                  [disabled]="saving() || entrada.controls.itens.length === 1"
+                  (click)="entrada.controls.itens.removeAt(index)"
+                >
+                  Remover item
+                </button>
+              </fieldset>
             }
-          </select></label
-        >
-        <label>Data da entrada (opcional)<input type="date" formControlName="dataEntrada" /></label>
-        <div formArrayName="itens">
-          @for (row of entrada.controls.itens.controls; track row; let index = $index) {
-            <fieldset class="form-grid" [formGroupName]="index">
-              <legend>Item {{ index + 1 }}</legend>
-              <label
-                >Produto / apresentação<select formControlName="apresentacaoInsumoId">
-                  <option value="">Selecione</option>
-                  @for (i of insumos(); track i.apresentacaoId) {
-                    <option [value]="i.apresentacaoId">
-                      {{ i.insumo }} · {{ i.apresentacao }}
-                    </option>
-                  }
-                </select></label
-              >
-              <label
-                >Quantidade<input type="number" min="1" step="1" formControlName="quantidade"
-              /></label>
-              <label>Validade (opcional)<input type="date" formControlName="validade" /></label>
-              <button
-                type="button"
-                class="secondary"
-                [disabled]="saving() || entrada.controls.itens.length === 1"
-                (click)="entrada.controls.itens.removeAt(index)"
-              >
-                Remover item
-              </button>
-            </fieldset>
-          }
-        </div>
-        <button
-          type="button"
-          class="secondary"
-          [disabled]="saving()"
-          (click)="entrada.controls.itens.push(itemEntrada())"
-        >
-          Adicionar item
-        </button>
-        <label>Observação (opcional)<textarea formControlName="observacao"></textarea></label>
+          </div>
+          <button
+            type="button"
+            class="secondary"
+            [disabled]="saving()"
+            (click)="entrada.controls.itens.push(itemEntrada())"
+          >
+            Adicionar item
+          </button>
+        </fieldset>
+        <fieldset class="form-section">
+          <legend>Observações</legend>
+          <label>Observação (opcional)<textarea formControlName="observacao"></textarea></label>
+        </fieldset>
         <button [disabled]="entrada.invalid || saving() || loading() || !!error()">
           {{ saving() ? 'Salvando…' : 'Confirmar entrada' }}
         </button>
@@ -100,28 +111,34 @@
     @if (activeMode === 'perda') {
       <form class="form-grid" [formGroup]="perda" (ngSubmit)="salvar()">
         <h2>Registrar perda</h2>
-        <label
-          >Produto / apresentação<select formControlName="apresentacaoInsumoId">
-            <option value="">Selecione</option>
-            @for (i of insumos(); track i.apresentacaoId) {
-              <option [value]="i.apresentacaoId">{{ i.insumo }} · {{ i.apresentacao }}</option>
-            }
-          </select></label
-        >
-        <label
-          >Quantidade<input type="number" min="1" step="1" formControlName="quantidade"
-        /></label>
-        <label
-          >Código do motivo de perda<input
-            inputmode="numeric"
-            formControlName="motivoId"
-            aria-describedby="motivo-hint"
-        /></label>
-        <p class="hint" id="motivo-hint">
-          Informe o código de um motivo já cadastrado, fornecido pela coordenação. O sistema ainda
-          não disponibiliza a consulta de motivos de perda.
-        </p>
-        <label>Observação (opcional)<textarea formControlName="observacao"></textarea></label>
+        <fieldset class="form-section">
+          <legend>Item afetado</legend>
+          <label
+            >Produto / apresentação<select formControlName="apresentacaoInsumoId">
+              <option value="">Selecione</option>
+              @for (i of insumos(); track i.apresentacaoId) {
+                <option [value]="i.apresentacaoId">{{ i.insumo }} · {{ i.apresentacao }}</option>
+              }
+            </select></label
+          >
+          <label
+            >Quantidade<input type="number" min="1" step="1" formControlName="quantidade"
+          /></label>
+        </fieldset>
+        <fieldset class="form-section">
+          <legend>Motivo</legend>
+          <label
+            >Código do motivo de perda<input
+              inputmode="numeric"
+              formControlName="motivoId"
+              aria-describedby="motivo-hint"
+          /></label>
+          <p class="hint" id="motivo-hint">
+            Informe o código de um motivo já cadastrado, fornecido pela coordenação. O sistema
+            ainda não disponibiliza a consulta de motivos de perda.
+          </p>
+          <label>Observação (opcional)<textarea formControlName="observacao"></textarea></label>
+        </fieldset>
         <button class="danger" [disabled]="perda.invalid || saving() || loading() || !!error()">
           {{ saving() ? 'Salvando…' : 'Confirmar perda' }}
         </button>
@@ -192,10 +209,9 @@
   </button>
 </nav>
 @if (loading()) {
-  <p class="ui-state" role="status">Consultando estoque…</p>
+  <app-loading-state label="Consultando estoque…" />
 } @else if (error()) {
-  <p class="ui-message ui-message--error" role="alert">{{ error() }}</p>
-  <button (click)="carregar()">Tentar novamente</button>
+  <app-error-state [message]="error()" (retry)="carregar()" />
 } @else if (tab() === 'saldos') {
   <section class="filters">
     <label
@@ -206,7 +222,7 @@
     /></label>
   </section>
   @if (!filtrados().length) {
-    <p class="ui-state">Nenhum insumo encontrado.</p>
+    <app-empty-state title="Nenhum insumo" message="Nenhum insumo encontrado." />
   } @else {
     <div class="table-scroll" tabindex="0" role="region" aria-label="Saldos de estoque">
       <table>
@@ -222,7 +238,7 @@
         </thead>
         <tbody>
           @for (i of filtrados(); track i.apresentacaoId) {
-            <tr>
+            <tr [class.row--attention]="i.saldoDisponivel <= 0">
               <td>{{ i.insumo }}</td>
               <td>
                 {{ i.apresentacao }}
@@ -233,7 +249,12 @@
               <td>{{ i.categoria?.codigo || 'Sem categoria' }}</td>
               <td class="number">{{ i.saldoFisico }}</td>
               <td class="number">{{ i.saldoReservado }}</td>
-              <td class="number">{{ i.saldoDisponivel }}</td>
+              <td class="number">
+                {{ i.saldoDisponivel }}
+                @if (i.saldoDisponivel <= 0) {
+                  <span class="ui-badge ui-badge--danger" title="Sem saldo disponível para novas retiradas">Sem saldo</span>
+                }
+              </td>
             </tr>
           }
         </tbody>
@@ -246,7 +267,7 @@
   </p>
 } @else {
   @if (!doadores().length) {
-    <p class="ui-state">Nenhum doador cadastrado.</p>
+    <app-empty-state title="Nenhum doador" message="Nenhum doador cadastrado." />
   } @else {
     <div class="table-scroll" tabindex="0" role="region" aria-label="Doadores">
       <table>
@@ -266,7 +287,7 @@
               <td>{{ d.nome }}</td>
               <td>{{ d.tipo === 'PESSOA' ? 'Pessoa' : 'Instituição' }}</td>
               <td>{{ d.telefone || 'Não informado' }}</td>
-              <td>{{ d.ativo ? 'Ativo' : 'Inativo' }}</td>
+              <td><app-status-badge [status]="d.ativo ? 'ATIVO' : 'INATIVO'" /></td>
               <td>{{ d.observacao || '—' }}</td>
               <td>
                 @if (session.hasPermission('ESTOQUE_ENTRADA')) {

@@ -6,7 +6,7 @@
   </div>
 </header>
 @if (!tipos.length) {
-  <p class="ui-state">Você não possui acesso aos relatórios disponíveis.</p>
+  <app-empty-state title="Sem acesso" message="Você não possui acesso aos relatórios disponíveis." />
 } @else {
   <section class="ui-panel">
     <label
@@ -17,94 +17,99 @@
       </select></label
     >
     <form class="form-grid" [formGroup]="form" (ngSubmit)="consultar()">
-      @if (tipo.value !== 'estoque') {
-        @if (gruposLoading()) {
-          <p role="status">Consultando grupos…</p>
+      <fieldset class="form-section">
+        <legend>Filtros</legend>
+        @if (tipo.value !== 'estoque') {
+          @if (gruposLoading()) {
+            <p role="status">Consultando grupos…</p>
+          }
+          @if (gruposError()) {
+            <p role="alert" class="ui-message ui-message--error">{{ gruposError() }}</p>
+            <button type="button" class="secondary" (click)="carregarGrupos()">
+              Tentar consultar grupos novamente
+            </button>
+          }
+          <label
+            >Grupo<select formControlName="grupoId">
+              <option value="">Todos os grupos</option>
+              @for (g of grupos(); track g.id) {
+                <option [value]="g.id">{{ g.nome }} · {{ g.codigo }}</option>
+              }
+            </select></label
+          >
         }
-        @if (gruposError()) {
-          <p role="alert" class="ui-message ui-message--error">{{ gruposError() }}</p>
-          <button type="button" class="secondary" (click)="carregarGrupos()">
-            Tentar consultar grupos novamente
-          </button>
+        @if (tipo.value === 'distribuicoes') {
+          <label>Competência<input type="month" formControlName="competencia" /></label>
+          <label
+            >Estado<select formControlName="statusDistribuicao">
+              <option value="">Todos</option>
+              <option value="PLANEJADA">Planejada</option>
+              <option value="PREPARADA">Preparada</option>
+              <option value="ABERTA">Aberta</option>
+              <option value="ENCERRADA">Encerrada</option>
+            </select></label
+          >
         }
+        @if (tipo.value === 'beneficiarios') {
+          <label
+            >Situação atual<select formControlName="statusBeneficiario">
+              <option value="">Todas</option>
+              <option value="ATIVO">Ativo</option>
+              <option value="DESLIGADO">Desligado</option>
+            </select></label
+          >
+          <label>Admissão a partir de<input type="date" formControlName="dataAdmissaoInicio" /></label
+          ><label>Admissão até<input type="date" formControlName="dataAdmissaoFim" /></label>
+        } @else {
+          <label
+            >{{
+              tipo.value === 'distribuicoes'
+                ? 'Data prevista a partir de'
+                : 'Movimentações a partir de'
+            }}<input type="date" formControlName="dataInicio" /></label
+          ><label
+            >{{ tipo.value === 'distribuicoes' ? 'Data prevista até' : 'Movimentações até'
+            }}<input type="date" formControlName="dataFim"
+          /></label>
+        }
+        @if (tipo.value === 'estoque') {
+          <label
+            >Insumo ou apresentação<input type="search" formControlName="insumo" maxlength="100"
+          /></label>
+          <label
+            >Tipo de movimento<select formControlName="tipoMovimento">
+              <option value="">Todos</option>
+              @for (m of movimentos; track m) {
+                <option [value]="m">{{ m.replaceAll('_', ' ') }}</option>
+              }
+            </select></label
+          >
+        }
+      </fieldset>
+      <fieldset class="form-section">
+        <legend>Paginação</legend>
         <label
-          >Grupo<select formControlName="grupoId">
-            <option value="">Todos os grupos</option>
-            @for (g of grupos(); track g.id) {
-              <option [value]="g.id">{{ g.nome }} · {{ g.codigo }}</option>
-            }
-          </select></label
-        >
-      }
-      @if (tipo.value === 'distribuicoes') {
-        <label>Competência<input type="month" formControlName="competencia" /></label>
-        <label
-          >Estado<select formControlName="statusDistribuicao">
-            <option value="">Todos</option>
-            <option value="PLANEJADA">Planejada</option>
-            <option value="PREPARADA">Preparada</option>
-            <option value="ABERTA">Aberta</option>
-            <option value="ENCERRADA">Encerrada</option>
-          </select></label
-        >
-      }
-      @if (tipo.value === 'beneficiarios') {
-        <label
-          >Situação atual<select formControlName="statusBeneficiario">
-            <option value="">Todas</option>
-            <option value="ATIVO">Ativo</option>
-            <option value="DESLIGADO">Desligado</option>
-          </select></label
-        >
-        <label>Admissão a partir de<input type="date" formControlName="dataAdmissaoInicio" /></label
-        ><label>Admissão até<input type="date" formControlName="dataAdmissaoFim" /></label>
-      } @else {
-        <label
-          >{{
-            tipo.value === 'distribuicoes'
-              ? 'Data prevista a partir de'
-              : 'Movimentações a partir de'
-          }}<input type="date" formControlName="dataInicio" /></label
-        ><label
-          >{{ tipo.value === 'distribuicoes' ? 'Data prevista até' : 'Movimentações até'
-          }}<input type="date" formControlName="dataFim"
+          >Registros por página<input
+            type="number"
+            formControlName="limit"
+            min="1"
+            max="100"
+            step="1"
+            required
         /></label>
-      }
-      @if (tipo.value === 'estoque') {
-        <label
-          >Insumo ou apresentação<input type="search" formControlName="insumo" maxlength="100"
-        /></label>
-        <label
-          >Tipo de movimento<select formControlName="tipoMovimento">
-            <option value="">Todos</option>
-            @for (m of movimentos; track m) {
-              <option [value]="m">{{ m.replaceAll('_', ' ') }}</option>
-            }
-          </select></label
-        >
-      }
-      <label
-        >Registros por página<input
-          type="number"
-          formControlName="limit"
-          min="1"
-          max="100"
-          step="1"
-          required
-      /></label>
-      @if (form.controls.limit.touched && form.controls.limit.invalid) {
-        <p class="field-error">Informe um inteiro entre 1 e 100.</p>
-      }
+        @if (form.controls.limit.touched && form.controls.limit.invalid) {
+          <p class="field-error">Informe um inteiro entre 1 e 100.</p>
+        }
+      </fieldset>
       <button type="submit" [disabled]="form.invalid || loading()">
         {{ loading() ? 'Consultando…' : 'Consultar relatório' }}
       </button>
     </form>
   </section>
   @if (loading()) {
-    <p class="ui-state" role="status">Consultando relatório…</p>
+    <app-loading-state label="Consultando relatório…" />
   } @else if (error()) {
-    <p class="ui-message ui-message--error" role="alert">{{ error() }}</p>
-    <button type="button" (click)="retry()">Tentar novamente</button>
+    <app-error-state [message]="error()" (retry)="retry()" />
   } @else if (resultado(); as r) {
     <section class="ui-panel">
       <h2>
@@ -116,15 +121,8 @@
               : 'Estoque'
         }}
       </h2>
-      <p>
-        {{ r.pagina.meta.total }} registros encontrados · Página
-        {{ r.pagina.meta.page }}
-        @if (r.pagina.meta.totalPages) {
-          de {{ r.pagina.meta.totalPages }}
-        }
-      </p>
       @if (!r.pagina.data.length) {
-        <p class="ui-state">Nenhum registro retornado para esta página e filtros.</p>
+        <app-empty-state title="Sem registros" message="Nenhum registro retornado para esta página e filtros." />
       } @else {
         <div class="table-scroll" tabindex="0" role="region" aria-label="Resultado do relatório">
           @if (r.tipo === 'distribuicoes') {
@@ -155,7 +153,7 @@
                     <td>{{ i.mes }}/{{ i.ano }}</td>
                     <td>{{ i.grupo }}</td>
                     <td>
-                      <span class="ui-badge" [attr.data-status]="i.status">{{ i.status }}</span>
+                      <app-status-badge [status]="i.status" />
                     </td>
                     <td class="number">{{ i.previstos }}</td>
                     <td class="number">{{ i.presentes }}</td>
@@ -188,9 +186,7 @@
                       <a [routerLink]="['/beneficiarios', i.id]">{{ i.beneficiario }}</a>
                     </td>
                     <td>
-                      <span class="ui-badge" [attr.data-status]="i.situacaoAtual">{{
-                        i.situacaoAtual
-                      }}</span>
+                      <app-status-badge [status]="i.situacaoAtual" />
                     </td>
                     <td>{{ i.grupo ?? '—' }}</td>
                     <td>{{ i.dataAdmissao | date: 'dd/MM/yyyy' }}</td>
@@ -240,23 +236,13 @@
           }
         </div>
       }
-      <div class="actions">
-        <button
-          type="button"
-          class="secondary"
-          (click)="anterior()"
-          [disabled]="r.pagina.meta.page <= 1"
-        >
-          Página anterior</button
-        ><button
-          type="button"
-          class="secondary"
-          (click)="proxima()"
-          [disabled]="r.pagina.meta.page >= r.pagina.meta.totalPages"
-        >
-          Próxima página
-        </button>
-      </div>
+      <app-pagination
+        [page]="r.pagina.meta.page"
+        [totalPages]="r.pagina.meta.totalPages"
+        [total]="r.pagina.meta.total"
+        (previous)="anterior()"
+        (next)="proxima()"
+      />
     </section>
   } @else {
     <p class="ui-state">Escolha os filtros e consulte o relatório.</p>

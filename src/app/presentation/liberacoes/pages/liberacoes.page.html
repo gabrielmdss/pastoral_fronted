@@ -18,10 +18,9 @@
   <p class="ui-message ui-message--error" role="alert">{{ mutationError() }}</p>
 }
 @if (loading()) {
-  <p class="ui-state" role="status">Consultando distribuição, lotes e liberações…</p>
+  <app-loading-state label="Consultando distribuição, lotes e liberações…" />
 } @else if (error()) {
-  <p class="ui-message ui-message--error" role="alert">{{ error() }}</p>
-  <button type="button" (click)="carregar()" [disabled]="saving()">Tentar novamente</button>
+  <app-error-state [message]="error()" (retry)="carregar()" />
 } @else if (distribuicao(); as d) {
   <section class="ui-panel">
     <header class="ui-section-header">
@@ -71,7 +70,7 @@
           </select></label
         >
         @if (!utilizaveis().length) {
-          <p class="ui-state">Nenhum lote ativo com cestas disponíveis. Consulte a Montagem.</p>
+          <app-empty-state title="Sem lotes" message="Nenhum lote ativo com cestas disponíveis. Consulte a Montagem." />
         }
         @if (lotePorId().get(form.controls.loteMontagemId.value); as l) {
           <p>
@@ -106,7 +105,7 @@
   <section class="ui-panel">
     <h2>Liberações registradas</h2>
     @if (!liberacoes().length) {
-      <p class="ui-state">Nenhuma liberação registrada para esta distribuição.</p>
+      <app-empty-state title="Sem liberações" message="Nenhuma liberação registrada para esta distribuição." />
     } @else {
       <div class="table-scroll" tabindex="0" role="region" aria-label="Liberações da distribuição">
         <table>
@@ -114,10 +113,10 @@
             <tr>
               <th scope="col">Lote / modelo</th>
               <th scope="col">Data</th>
-              <th scope="col">Liberadas</th>
-              <th scope="col">Consumidas</th>
-              <th scope="col">Retornadas</th>
-              <th scope="col">Disponíveis</th>
+              <th scope="col" class="number">Liberadas</th>
+              <th scope="col" class="number">Consumidas</th>
+              <th scope="col" class="number">Retornadas</th>
+              <th scope="col" class="number">Disponíveis</th>
             </tr>
           </thead>
           <tbody>

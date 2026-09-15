@@ -4,13 +4,9 @@
   </a>
 
   @if (loading()) {
-    <div class="atendimento-state ui-state" aria-live="polite">Carregando atendimento...</div>
-  } @else if (error()) {
-    <div class="atendimento-error ui-state ui-state--error" role="alert">
-      <span>{{ error() }}</span>
-
-      <button type="button" class="btn btn-secondary" (click)="carregar()">Tentar novamente</button>
-    </div>
+    <app-loading-state label="Carregando atendimento…" />
+  } @else if (error(); as msg) {
+    <app-error-state [message]="msg" (retry)="carregar()" />
   } @else if (distribuicao(); as distribuicao) {
     <header class="atendimento-header ui-header">
       <div>
@@ -141,9 +137,7 @@
         }
 
         @if (busca().trim() && !buscando() && resultadosBusca().length === 0 && !buscaError()) {
-          <div class="atendimento-search__empty ui-state">
-            Nenhum beneficiário ativo encontrado.
-          </div>
+          <app-empty-state title="Nenhum resultado" message="Nenhum beneficiário ativo encontrado." />
         }
 
         @if (resultadosBusca().length > 0) {
@@ -221,11 +215,9 @@
         </header>
 
         @if (loadingFilas()) {
-          <div class="atendimento-fila__empty ui-state">Carregando fila principal...</div>
+          <app-loading-state label="Carregando fila principal…" />
         } @else if (filaRegular().length === 0) {
-          <div class="atendimento-fila__empty ui-state">
-            Nenhum beneficiário regular aguardando.
-          </div>
+          <app-empty-state title="Fila vazia" message="Nenhum beneficiário regular aguardando." />
         } @else {
           <div class="atendimento-fila__list">
             @for (checkIn of filaRegular(); track checkIn.id; let index = $index) {
@@ -323,11 +315,9 @@
         </header>
 
         @if (loadingFilas()) {
-          <div class="atendimento-fila__empty ui-state">Carregando fila secundária...</div>
+          <app-loading-state label="Carregando fila secundária…" />
         } @else if (filaPendente().length === 0) {
-          <div class="atendimento-fila__empty ui-state">
-            Nenhum beneficiário pendente aguardando.
-          </div>
+          <app-empty-state title="Fila vazia" message="Nenhum beneficiário pendente aguardando." />
         } @else {
           <div class="atendimento-fila__list">
             @for (checkIn of filaPendente(); track checkIn.id; let index = $index) {
@@ -518,18 +508,27 @@
             {{ historicoCheckInsError() }}
           </div>
         } @else if (loadingHistoricoCheckIns()) {
-          <div class="atendimento-retiradas__empty ui-state">Carregando histórico...</div>
+          <app-loading-state label="Carregando histórico…" />
         } @else if (historicoCheckIns().length === 0) {
-          <div class="atendimento-retiradas__empty ui-state">Nenhum check-in registrado.</div>
+          <app-empty-state title="Sem registros" message="Nenhum check-in registrado." />
         } @else {
           <div class="atendimento-retiradas__list">
             @for (checkIn of historicoCheckIns(); track checkIn.id) {
               <article class="atendimento-retirada">
                 <div>
                   <strong>{{ checkIn.beneficiario.nomeCompleto }}</strong>
-                  <span>{{ checkIn.classificacao }} · {{ checkIn.situacaoOperacional }}</span>
+                  <span
+                    ><span
+                      class="ui-badge"
+                      [attr.data-status]="checkIn.classificacao === 'REGULAR' ? 'REGULAR' : 'ATENCAO'"
+                      >{{ checkIn.classificacao === 'REGULAR' ? 'Regular' : 'Pendente' }}</span
+                    ></span
+                  >
                 </div>
                 <div class="atendimento-retirada__meta">
+                  <span class="ui-badge" [attr.data-status]="checkIn.situacaoOperacional">{{
+                    situacaoOperacionalLabel(checkIn.situacaoOperacional)
+                  }}</span>
                   <span>{{ horaLabel(checkIn.ocorridoEm) }}</span>
                 </div>
               </article>
@@ -570,9 +569,9 @@
         </header>
 
         @if (loadingRetiradas()) {
-          <div class="atendimento-retiradas__empty ui-state">Carregando retiradas...</div>
+          <app-loading-state label="Carregando retiradas…" />
         } @else if (retiradas().length === 0) {
-          <div class="atendimento-retiradas__empty ui-state">Nenhuma retirada registrada.</div>
+          <app-empty-state title="Sem registros" message="Nenhuma retirada registrada." />
         } @else {
           <div class="atendimento-retiradas__list">
             @for (retirada of retiradas(); track retirada.id) {

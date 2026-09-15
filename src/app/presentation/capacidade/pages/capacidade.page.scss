@@ -1,0 +1,50 @@
+// Scoped to the capacity page only; grid/card styles stay in assistencia.scss.
+.occupancy-panel {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+  margin-bottom: var(--space-5);
+  display: grid;
+  gap: var(--space-3);
+}
+
+.occupancy-panel-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.occupancy-panel-head span {
+  color: var(--color-text-muted);
+  font-size: 0.875rem;
+}
+
+.occupancy-panel-head strong {
+  font-size: 1.5rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-primary-dark);
+}
+
+.occupancy-bar {
+  height: 0.75rem;
+  border-radius: var(--radius-full, 999px);
+  background: var(--color-border);
+  overflow: hidden;
+}
+
+.occupancy-bar-fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--color-primary);
+  transition: width 0.4s ease;
+}
+
+.occupancy-bar[data-status='ATENCAO'] .occupancy-bar-fill {
+  background: var(--color-warning);
+}
+
+.occupancy-bar[data-status='CRITICO'] .occupancy-bar-fill {
+  background: var(--color-danger);
+}

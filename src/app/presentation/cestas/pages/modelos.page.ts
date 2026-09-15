@@ -12,9 +12,12 @@ import type {
 import type { InsumoSaldo } from '../../../domain/estoque/estoque.model';
 import { SessionFacade } from '../../../infrastructure/auth/session.facade';
 import { userErrorMessage } from '../../../shared/errors/user-error';
+import { LoadingStateComponent } from '../../../shared/ui/loading-state.component';
+import { ErrorStateComponent } from '../../../shared/ui/error-state.component';
+import { EmptyStateComponent } from '../../../shared/ui/empty-state.component';
 @Component({
   selector: 'app-modelos-page',
-  imports: [ReactiveFormsModule, DatePipe],
+  imports: [ReactiveFormsModule, DatePipe, LoadingStateComponent, ErrorStateComponent, EmptyStateComponent],
   templateUrl: './modelos.page.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

@@ -70,7 +70,13 @@
         (click)="menuOpen.set(!menuOpen())"
       >
         ☰</button
-      ><span>Pastoral de Distribuição de Cestas</span>
+      ><nav class="breadcrumbs" aria-label="Localização atual">
+        <span>Pastoral de Distribuição de Cestas</span>
+        @if (breadcrumbLabel()) {
+          <span class="breadcrumbs-separator" aria-hidden="true">/</span>
+          <span class="breadcrumbs-current">{{ breadcrumbLabel() }}</span>
+        }
+      </nav>
       <div class="user-dot" aria-hidden="true">
         {{ session.currentUser()?.login?.charAt(0)?.toUpperCase() }}
       </div>

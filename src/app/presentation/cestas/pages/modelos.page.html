@@ -31,13 +31,12 @@
   </form>
 }
 @if (loading()) {
-  <p class="ui-state" role="status">Consultando modelos…</p>
+  <app-loading-state label="Consultando modelos…" />
 } @else if (error()) {
-  <p class="ui-message ui-message--error" role="alert">{{ error() }}</p>
-  <button (click)="carregar()">Tentar novamente</button>
+  <app-error-state [message]="error()" (retry)="carregar()" />
 } @else {
   @if (!modelos().length) {
-    <p class="ui-state">Nenhum modelo cadastrado.</p>
+    <app-empty-state title="Nenhum modelo" message="Nenhum modelo cadastrado." />
   } @else {
     <div class="table-scroll" tabindex="0" role="region" aria-label="Modelos">
       <table>
@@ -70,7 +69,7 @@
     <section class="ui-panel">
       <h2>{{ d.nome }} · Composição</h2>
       @if (!d.versoes.length) {
-        <p class="ui-state">Nenhuma versão cadastrada.</p>
+        <app-empty-state title="Sem versões" message="Nenhuma versão cadastrada." />
       }
       @for (v of d.versoes; track v.id) {
         <h3>Versão {{ v.numeroVersao }} · Meta: {{ v.metaItens }} itens</h3>
@@ -86,7 +85,7 @@
               <tr>
                 <th>Produto</th>
                 <th>Apresentação</th>
-                <th>Quantidade</th>
+                <th class="number">Quantidade por cesta</th>
               </tr>
             </thead>
             <tbody>
@@ -94,7 +93,7 @@
                 <tr>
                   <td>{{ i.insumo || 'Produto indisponível' }}</td>
                   <td>{{ i.apresentacao || 'Apresentação indisponível' }}</td>
-                  <td>{{ i.quantidade }}</td>
+                  <td class="number">{{ i.quantidade }}</td>
                 </tr>
               }
             </tbody>
@@ -157,6 +156,6 @@
       </p>
     }
   } @else if (selectedId()) {
-    <p class="ui-state">Modelo não encontrado.</p>
+    <app-empty-state title="Não encontrado" message="Modelo não encontrado." />
   }
 }

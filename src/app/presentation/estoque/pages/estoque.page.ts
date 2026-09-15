@@ -11,10 +11,20 @@ import type {
 } from '../../../domain/estoque/estoque.model';
 import { SessionFacade } from '../../../infrastructure/auth/session.facade';
 import { userErrorMessage } from '../../../shared/errors/user-error';
+import { LoadingStateComponent } from '../../../shared/ui/loading-state.component';
+import { ErrorStateComponent } from '../../../shared/ui/error-state.component';
+import { EmptyStateComponent } from '../../../shared/ui/empty-state.component';
+import { StatusBadgeComponent } from '../../../shared/ui/status-badge.component';
 
 @Component({
   selector: 'app-estoque-page',
-  imports: [ReactiveFormsModule],
+  imports: [
+    ReactiveFormsModule,
+    LoadingStateComponent,
+    ErrorStateComponent,
+    EmptyStateComponent,
+    StatusBadgeComponent,
+  ],
   templateUrl: './estoque.page.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

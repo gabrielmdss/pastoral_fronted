@@ -27,10 +27,9 @@
   <p class="ui-message ui-message--error" role="alert">{{ mutationError() }}</p>
 }
 @if (loading()) {
-  <p class="ui-state" role="status">Consultando planejamento…</p>
+  <app-loading-state label="Consultando planejamento…" />
 } @else if (error()) {
-  <p class="ui-message ui-message--error" role="alert">{{ error() }}</p>
-  <button type="button" (click)="carregar()">Tentar novamente</button>
+  <app-error-state [message]="error()" (retry)="carregar()" />
 } @else {
   @if (detalhe(); as p) {
     <section class="ui-panel">
@@ -57,7 +56,7 @@
       </div>
     </section>
     @if (!p.versoes.length) {
-      <p class="ui-state">Nenhuma versão retornada para este planejamento.</p>
+      <app-empty-state title="Sem versões" message="Nenhuma versão retornada para este planejamento." />
     }
     @for (v of p.versoes; track v.id) {
       <section class="ui-panel">
@@ -71,7 +70,7 @@
               <p>Motivo da revisão: {{ v.motivoRevisao }}</p>
             }
           </div>
-          <span class="ui-badge" [attr.data-status]="v.status">{{ v.status }}</span>
+          <app-status-badge [status]="v.status" />
         </header>
         <div
           class="table-scroll"
@@ -84,10 +83,10 @@
               <tr>
                 <th scope="col">Produto</th>
                 <th scope="col">Apresentação</th>
-                <th scope="col">Por cesta</th>
-                <th scope="col">Reservado</th>
-                <th scope="col">Consumido</th>
-                <th scope="col">Disponível agora</th>
+                <th scope="col" class="number">Por cesta</th>
+                <th scope="col" class="number">Reservado</th>
+                <th scope="col" class="number">Consumido</th>
+                <th scope="col" class="number">Disponível agora</th>
               </tr>
             </thead>
             <tbody>
@@ -254,12 +253,12 @@
             <thead>
               <tr>
                 <th scope="col">Produto / apresentação</th>
-                <th scope="col">Por cesta</th>
-                <th scope="col">Necessário</th>
-                <th scope="col">Físico</th>
-                <th scope="col">Reservado</th>
-                <th scope="col">Disponível</th>
-                <th scope="col">Falta</th>
+                <th scope="col" class="number">Por cesta</th>
+                <th scope="col" class="number">Necessário</th>
+                <th scope="col" class="number">Físico</th>
+                <th scope="col" class="number">Reservado</th>
+                <th scope="col" class="number">Disponível</th>
+                <th scope="col" class="number">Falta</th>
                 <th scope="col">Situação</th>
               </tr>
             </thead>

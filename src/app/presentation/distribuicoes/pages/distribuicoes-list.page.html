@@ -13,20 +13,14 @@
   </header>
 
   @if (loading()) {
-    <div class="distribuicoes-state ui-state" aria-live="polite">
-      <span>Carregando distribuições...</span>
-    </div>
-  } @else if (error()) {
-    <div class="distribuicoes-error ui-state ui-state--error" role="alert">
-      <span>{{ error() }}</span>
-
-      <button type="button" class="btn btn-secondary" (click)="carregar()">Tentar novamente</button>
-    </div>
+    <app-loading-state label="Carregando distribuições…" />
+  } @else if (error(); as msg) {
+    <app-error-state [message]="msg" (retry)="carregar()" />
   } @else if (distribuicoes().length === 0) {
-    <div class="distribuicoes-state ui-state">
-      <strong>Nenhuma distribuição encontrada.</strong>
-      <span> Quando uma competência possuir distribuições, elas aparecerão aqui. </span>
-    </div>
+    <app-empty-state
+      title="Nenhuma distribuição encontrada"
+      message="Quando uma competência possuir distribuições, elas aparecerão aqui."
+    />
   } @else {
     <div class="distribuicoes-grid">
       @for (distribuicao of distribuicoes(); track distribuicao.id) {

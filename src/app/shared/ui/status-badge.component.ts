@@ -8,6 +8,22 @@ const labels: Record<string, string> = {
   NAO_LOCALIZADO: 'Não localizado',
   DESISTIU: 'Desistiu',
   CANCELADO: 'Cancelado',
+  // Distribuição (domain/distribuicoes/distribuicao.model.ts)
+  PLANEJADA: 'Planejada',
+  PREPARADA: 'Preparada',
+  ABERTA: 'Aberta',
+  ENCERRADA: 'Encerrada',
+  // Planejamento (domain/planejamento/planejamento.model.ts)
+  SIMULACAO: 'Simulação',
+  APROVADA: 'Aprovada',
+  SUBSTITUIDA: 'Substituída',
+  CONCLUIDA: 'Concluída',
+  // Montagem (domain/montagem/montagem.model.ts)
+  ESGOTADO: 'Esgotado',
+  DESMONTADO: 'Desmontado',
+  // Inventário (domain/estoque/inventario.model.ts)
+  ABERTO: 'Aberto',
+  CONCLUIDO: 'Concluído',
 };
 @Component({
   selector: 'app-status-badge',

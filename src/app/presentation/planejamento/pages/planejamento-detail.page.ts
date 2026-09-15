@@ -29,10 +29,23 @@ import type {
 } from '../../../domain/planejamento/planejamento.model';
 import { SessionFacade } from '../../../infrastructure/auth/session.facade';
 import { userErrorMessage } from '../../../shared/errors/user-error';
+import { LoadingStateComponent } from '../../../shared/ui/loading-state.component';
+import { ErrorStateComponent } from '../../../shared/ui/error-state.component';
+import { EmptyStateComponent } from '../../../shared/ui/empty-state.component';
+import { StatusBadgeComponent } from '../../../shared/ui/status-badge.component';
 
 @Component({
   selector: 'app-planejamento-detail',
-  imports: [ReactiveFormsModule, RouterLink, DatePipe, PercentPipe],
+  imports: [
+    ReactiveFormsModule,
+    RouterLink,
+    DatePipe,
+    PercentPipe,
+    LoadingStateComponent,
+    ErrorStateComponent,
+    EmptyStateComponent,
+    StatusBadgeComponent,
+  ],
   templateUrl: './planejamento-detail.page.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

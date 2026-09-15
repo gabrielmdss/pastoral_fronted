@@ -18,10 +18,22 @@ import type { Inventario } from '../../../domain/estoque/inventario.model';
 import type { InsumoSaldo } from '../../../domain/estoque/estoque.model';
 import { SessionFacade } from '../../../infrastructure/auth/session.facade';
 import { userErrorMessage } from '../../../shared/errors/user-error';
+import { LoadingStateComponent } from '../../../shared/ui/loading-state.component';
+import { ErrorStateComponent } from '../../../shared/ui/error-state.component';
+import { EmptyStateComponent } from '../../../shared/ui/empty-state.component';
+import { StatusBadgeComponent } from '../../../shared/ui/status-badge.component';
 
 @Component({
   selector: 'app-inventarios',
-  imports: [DatePipe, ReactiveFormsModule, RouterLink],
+  imports: [
+    DatePipe,
+    ReactiveFormsModule,
+    RouterLink,
+    LoadingStateComponent,
+    ErrorStateComponent,
+    EmptyStateComponent,
+    StatusBadgeComponent,
+  ],
   templateUrl: './inventarios.page.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

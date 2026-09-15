@@ -12,12 +12,11 @@
   </div>
 </header>
 @if (loading()) {
-  <p class="ui-state" role="status">Consultando planejamentos…</p>
+  <app-loading-state label="Consultando planejamentos…" />
 } @else if (error()) {
-  <p class="ui-message ui-message--error" role="alert">{{ error() }}</p>
-  <button (click)="carregar()">Tentar novamente</button>
+  <app-error-state [message]="error()" (retry)="carregar()" />
 } @else if (!items().length) {
-  <p class="ui-state">Nenhum planejamento encontrado.</p>
+  <app-empty-state title="Nenhum planejamento" message="Nenhum planejamento encontrado." />
 } @else {
   <div class="table-scroll" tabindex="0" role="region" aria-label="Planejamentos">
     <table>

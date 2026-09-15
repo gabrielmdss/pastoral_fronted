@@ -1,19 +1,19 @@
-<header class="feature-header">
-  <div>
-    <p class="eyebrow">Assistência</p>
-    <h1>Beneficiários</h1>
-    <p>Busque por nome ou documento. A consulta é realizada diretamente na API.</p>
-  </div>
+<app-page-header
+  eyebrow="Assistência"
+  title="Beneficiários"
+  description="Busque por nome ou documento. A consulta é realizada diretamente na API."
+>
   @if (session.hasPermission('BENEFICIARIO_ADMITIR')) {
-    <button type="button" (click)="openAdmission()">Novo beneficiário</button>
+    <button actions type="button" (click)="openAdmission()">Novo beneficiário</button>
   }
-</header>
+</app-page-header>
 @if (feedback()) {
   <p class="notice" role="status">{{ feedback() }}</p>
 }
 <section class="filters">
-  <label class="search-label"
-    >Buscar por nome ou documento<input
+  <label class="search-label search-hero"
+    ><span>Buscar por nome ou documento</span
+    ><input
       type="search"
       [formControl]="search"
       placeholder="Digite o nome ou documento"
@@ -45,7 +45,7 @@
     message="Altere os termos ou filtros da busca."
   />
 } @else {
-  <div class="responsive-list" tabindex="0" role="region" aria-label="Lista de benefici?rios">
+  <div class="responsive-list" tabindex="0" role="region" aria-label="Lista de beneficiários">
     <table>
       <thead>
         <tr>
@@ -57,16 +57,16 @@
         </tr>
       </thead>
       <tbody>
-        @for (item of items(); track item.id) {
-          <tr>
+        @for (item of items(); track item.id; let i = $index) {
+          <tr class="fade-in-stagger" [style.--delay.ms]="i * 30">
             <td>
               <div class="person">
                 <span class="avatar">{{ item.nomeCompleto.charAt(0) }}</span
                 ><strong>{{ item.nomeCompleto }}</strong>
               </div>
             </td>
-            <td>{{ item.documentos[0]?.numeroMascarado || 'Não informado' }}</td>
-            <td>{{ item.grupo?.codigo || 'Sem grupo' }}</td>
+            <td class="muted">{{ item.documentos[0]?.numeroMascarado || 'Não informado' }}</td>
+            <td class="muted">{{ item.grupo?.codigo || 'Sem grupo' }}</td>
             <td><app-status-badge [status]="item.status" /></td>
             <td><a class="button-link" [routerLink]="['/beneficiarios', item.id]">Ver</a></td>
           </tr>

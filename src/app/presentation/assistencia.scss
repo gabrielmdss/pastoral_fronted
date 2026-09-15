@@ -30,6 +30,19 @@
 .search-label input {
   width: min(100%, 36rem);
 }
+.search-hero {
+  gap: var(--space-2);
+}
+.search-hero span {
+  font-weight: 600;
+}
+.search-hero input {
+  font-size: 1rem;
+  padding: var(--space-3) var(--space-4);
+}
+.responsive-list td.muted {
+  color: var(--color-text-muted);
+}
 .responsive-list {
   overflow-x: auto;
   background: var(--color-surface);
@@ -61,11 +74,11 @@
 .dialog-backdrop {
   position: fixed;
   inset: 0;
-  background: #152c2466;
+  background: var(--color-overlay);
   display: grid;
   place-items: center;
   padding: var(--space-4);
-  z-index: 50;
+  z-index: var(--z-modal);
 }
 .dialog {
   background: var(--color-surface);
@@ -148,6 +161,12 @@
   font-variant-numeric: tabular-nums;
   color: var(--color-primary-dark);
 }
+.capacity-grid article.is-highlight {
+  border-color: var(--color-warning);
+}
+.capacity-grid article.is-highlight strong {
+  color: var(--color-warning);
+}
 .candidate-list {
   display: grid;
   gap: var(--space-4);
@@ -163,10 +182,21 @@
 }
 .candidate-list article.priority {
   border-left: 3px solid var(--color-warning);
+  background: var(--color-warning-soft, var(--color-surface));
 }
 .candidate-list h2 {
   font-size: 1rem;
   margin: 0;
+}
+.candidate-list .person {
+  gap: var(--space-2);
+}
+.priority-flag {
+  color: var(--color-warning);
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
 }
 .candidate-list p {
   color: var(--color-text-muted);

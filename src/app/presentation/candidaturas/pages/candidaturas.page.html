@@ -1,13 +1,12 @@
-<header class="feature-header">
-  <div>
-    <p class="eyebrow">Assistência</p>
-    <h1>Lista de espera</h1>
-    <p>A ordem apresentada é exatamente a devolvida pela API.</p>
-  </div>
+<app-page-header
+  eyebrow="Assistência"
+  title="Lista de espera"
+  description="A ordem apresentada é exatamente a devolvida pela API."
+>
   @if (session.hasPermission('CANDIDATURA_CADASTRAR')) {
-    <button (click)="open('nova')">Nova candidatura</button>
+    <button actions (click)="open('nova')">Nova candidatura</button>
   }
-</header>
+</app-page-header>
 @if (feedback()) {
   <p class="notice" role="status">{{ feedback() }}</p>
 }
@@ -35,12 +34,19 @@
   />
 } @else {
   <section class="candidate-list">
-    @for (c of items(); track c.id) {
-      <article [class.priority]="c.prioridadeExcepcional">
+    @for (c of items(); track c.id; let i = $index) {
+      <article
+        class="fade-in-stagger"
+        [style.--delay.ms]="i * 30"
+        [class.priority]="c.prioridadeExcepcional"
+      >
         <div>
           <div class="person">
             <span class="avatar">{{ c.nome.charAt(0) }}</span>
             <h2>{{ c.nome }}</h2>
+            @if (c.prioridadeExcepcional) {
+              <span class="priority-flag" title="Prioridade excepcional">⚠ Prioridade</span>
+            }
           </div>
           <p>
             {{ c.documentos[0]?.tipo }}
@@ -49,9 +55,6 @@
           </p>
         </div>
         <div class="candidate-meta">
-          @if (c.prioridadeExcepcional) {
-            <strong>Prioridade excepcional</strong>
-          }
           <app-status-badge [status]="c.status" /><span
             >{{ c.tentativasContato }} tentativa(s) de contato</span
           >

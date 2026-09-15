@@ -25,10 +25,13 @@ import type { Planejamento } from '../../../domain/planejamento/planejamento.mod
 import type { LiberacaoCestas } from '../../../domain/liberacoes/liberacao.model';
 import { SessionFacade } from '../../../infrastructure/auth/session.facade';
 import { userErrorMessage } from '../../../shared/errors/user-error';
+import { LoadingStateComponent } from '../../../shared/ui/loading-state.component';
+import { ErrorStateComponent } from '../../../shared/ui/error-state.component';
+import { EmptyStateComponent } from '../../../shared/ui/empty-state.component';
 
 @Component({
   selector: 'app-liberacoes',
-  imports: [DatePipe, ReactiveFormsModule, RouterLink],
+  imports: [DatePipe, ReactiveFormsModule, RouterLink, LoadingStateComponent, ErrorStateComponent, EmptyStateComponent],
   templateUrl: './liberacoes.page.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

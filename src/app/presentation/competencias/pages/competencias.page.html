@@ -1,11 +1,9 @@
 <section class="competencias-page">
-  <header class="ui-header">
-    <div>
-      <p class="eyebrow">Organização das distribuições</p>
-      <h1>{{ id ? 'Detalhe da competência' : 'Competências' }}</h1>
-      <p>Consulte os períodos e os totais de distribuições e direitos.</p>
-    </div>
-  </header>
+  <app-page-header
+    eyebrow="Organização das distribuições"
+    [title]="id ? 'Detalhe da competência' : 'Competências'"
+    description="Consulte os períodos e os totais de distribuições e direitos."
+  />
   @if (id) {
     <a class="back-link" routerLink="/competencias">Voltar para competências</a>
   }
@@ -60,64 +58,67 @@
     <p class="ui-message ui-message--error" role="alert">{{ mutationError() }}</p>
   }
   @if (loading()) {
-    <p class="ui-state" role="status">Carregando competências...</p>
+    <app-loading-state label="Carregando competências…" />
   } @else if (error()) {
-    <p class="ui-message ui-message--error" role="alert">{{ error() }}</p>
-    <button type="button" (click)="carregar()">Tentar novamente</button>
+    <app-error-state [message]="error()" (retry)="carregar()" />
   } @else if (detalhe(); as item) {
     <h2>{{ item.mes }}/{{ item.ano }}</h2>
-    <dl class="ui-panel competencia-details">
-      <div>
-        <dt>ID</dt>
-        <dd>{{ item.id }}</dd>
-      </div>
-      <div>
-        <dt>Status</dt>
-        <dd>
-          <span class="ui-badge" [attr.data-status]="item.status">{{ item.status }}</span>
-        </dd>
-      </div>
-      <div>
-        <dt>Distribuições</dt>
-        <dd>{{ item.distribuicoes }}</dd>
-      </div>
-      <div>
-        <dt>Direitos</dt>
-        <dd>{{ item.direitos }}</dd>
-      </div>
-    </dl>
+    <section class="metric-grid" aria-label="Indicadores da competência">
+      <app-metric-card label="Status" [delayMs]="0">
+        <span class="ui-badge" [attr.data-status]="item.status"
+          ><span aria-hidden="true">{{ statusIcone(item.status) }}</span> {{ item.status }}</span
+        >
+      </app-metric-card>
+      <app-metric-card label="Distribuições" [delayMs]="60">{{ item.distribuicoes }}</app-metric-card>
+      <app-metric-card label="Direitos" [delayMs]="120">{{ item.direitos }}</app-metric-card>
+      <app-metric-card label="ID" [delayMs]="180" [mono]="true">{{ item.id }}</app-metric-card>
+    </section>
   } @else if (!items().length) {
-    <p class="ui-state">Nenhuma competência encontrada.</p>
+    <app-empty-state title="Nenhuma competência" message="Nenhuma competência encontrada." />
   } @else {
-    <div class="table-scroll" tabindex="0" role="region" aria-label="Lista de competências">
-      <table>
-        <thead>
-          <tr>
-            <th scope="col">Competência</th>
-            <th scope="col">Status</th>
-            <th scope="col" class="number">Distribuições</th>
-            <th scope="col" class="number">Direitos</th>
-            <th scope="col">Consulta</th>
-          </tr>
-        </thead>
-        <tbody>
-          @for (item of items(); track item.id) {
+    @if (items().length > 5) {
+      <app-search-field
+        label="Buscar competência"
+        [showLabel]="false"
+        placeholder="Buscar por período ou status…"
+        (termChange)="onFiltroChange($event)"
+      />
+    }
+    @if (itemsFiltrados().length) {
+      <div class="table-scroll" tabindex="0" role="region" aria-label="Lista de competências">
+        <table>
+          <thead>
             <tr>
-              <td>{{ item.mes }}/{{ item.ano }}</td>
-              <td>
-                <span class="ui-badge" [attr.data-status]="item.status">{{ item.status }}</span>
-              </td>
-              <td class="number">{{ item.distribuicoes }}</td>
-              <td class="number">{{ item.direitos }}</td>
-              <td>
-                <a [routerLink]="['/competencias', item.id]"
-                  >Consultar {{ item.mes }}/{{ item.ano }}</a
-                >
-              </td>
+              <th scope="col">Competência</th>
+              <th scope="col">Status</th>
+              <th scope="col" class="number">Distribuições</th>
+              <th scope="col" class="number">Direitos</th>
+              <th scope="col">Consulta</th>
             </tr>
-          }
-        </tbody>
-      </table>
-    </div>
+          </thead>
+          <tbody>
+            @for (item of itemsFiltrados(); track item.id) {
+              <tr class="row-in">
+                <td>{{ item.mes }}/{{ item.ano }}</td>
+                <td>
+                  <span class="ui-badge" [attr.data-status]="item.status"
+                    ><span aria-hidden="true">{{ statusIcone(item.status) }}</span> {{ item.status }}</span
+                  >
+                </td>
+                <td class="number">{{ item.distribuicoes }}</td>
+                <td class="number">{{ item.direitos }}</td>
+                <td>
+                  <a [routerLink]="['/competencias', item.id]"
+                    >Consultar {{ item.mes }}/{{ item.ano }}</a
+                  >
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    } @else {
+      <app-empty-state title="Nenhum resultado" message="Nenhuma competência corresponde à busca." />
+    }
   }
 </section>

@@ -17,6 +17,7 @@ import { ListarCheckInsUseCase } from '../../../application/atendimento/use-case
 import type {
     CheckIn,
     CheckInMotivoBloqueio,
+    CheckInSituacaoOperacional,
 } from '../../../domain/atendimento/check-in.model';
 import { RegistrarCheckInUseCase } from '../../../application/atendimento/use-cases/registrar-check-in.use-case';
 import { BuscarBeneficiariosUseCase } from '../../../application/beneficiarios/beneficiarios.use-cases';
@@ -35,11 +36,14 @@ import { ListarAusenciasBeneficiarioUseCase } from '../../../application/atendim
 import { RegistrarJustificativaUseCase } from '../../../application/atendimento/use-cases/registrar-justificativa.use-case';
 import { AvaliarJustificativaUseCase } from '../../../application/atendimento/use-cases/avaliar-justificativa.use-case';
 import type { AusenciaAtendimento, DecisaoJustificativa, MomentoJustificativa } from '../../../domain/atendimento/justificativa.model';
+import { LoadingStateComponent } from '../../../shared/ui/loading-state.component';
+import { ErrorStateComponent } from '../../../shared/ui/error-state.component';
+import { EmptyStateComponent } from '../../../shared/ui/empty-state.component';
 
 @Component({
     selector: 'app-atendimento-distribuicao-page',
     standalone: true,
-    imports: [CommonModule, RouterLink, CheckInFeedbackComponent],
+    imports: [CommonModule, RouterLink, CheckInFeedbackComponent, LoadingStateComponent, ErrorStateComponent, EmptyStateComponent],
     templateUrl: './atendimento-distribuicao.page.html',
     styleUrl: './atendimento-distribuicao.page.scss',
     changeDetection: ChangeDetectionStrategy.OnPush,
@@ -692,6 +696,16 @@ export default class AtendimentoDistribuicaoPage {
             hour: '2-digit',
             minute: '2-digit',
         }).format(data);
+    }
+
+    situacaoOperacionalLabel(situacao: CheckInSituacaoOperacional): string {
+        const labels: Record<CheckInSituacaoOperacional, string> = {
+            AGUARDANDO: 'Aguardando',
+            ATENDIDO: 'Atendido',
+            NAO_ATENDIDO_ESTOQUE: 'Não atendido — estoque',
+            NAO_ATENDIDO_IRREGULARIDADE: 'Não atendido — irregularidade',
+        };
+        return labels[situacao];
     }
 
     motivoBloqueioLabel(motivo: CheckInMotivoBloqueio | null): string {

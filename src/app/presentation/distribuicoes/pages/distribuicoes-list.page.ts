@@ -9,6 +9,9 @@ import { RouterLink } from '@angular/router';
 
 import type { Distribuicao } from '../../../domain/distribuicoes/distribuicao.model';
 import { ListarDistribuicoesUseCase } from '../../../application/distribuicoes/listar-distribuicoes.use-case';
+import { LoadingStateComponent } from '../../../shared/ui/loading-state.component';
+import { ErrorStateComponent } from '../../../shared/ui/error-state.component';
+import { EmptyStateComponent } from '../../../shared/ui/empty-state.component';
 
 @Component({
   selector: 'app-distribuicoes-list-page',
@@ -16,6 +19,9 @@ import { ListarDistribuicoesUseCase } from '../../../application/distribuicoes/l
   imports: [
     CommonModule,
     RouterLink,
+    LoadingStateComponent,
+    ErrorStateComponent,
+    EmptyStateComponent,
   ],
   templateUrl: './distribuicoes-list.page.html',
   styleUrl: './distribuicoes-list.page.scss',

@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, DestroyRef, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
@@ -7,12 +7,25 @@ import { GerarCompetenciaUseCase, ListarCompetenciasUseCase, ObterCompetenciaUse
 import type { Competencia } from '../../../domain/competencias/competencia.model';
 import { SessionFacade } from '../../../infrastructure/auth/session.facade';
 import { userErrorMessage } from '../../../shared/errors/user-error';
+import { EmptyStateComponent } from '../../../shared/ui/empty-state.component';
+import { ErrorStateComponent } from '../../../shared/ui/error-state.component';
+import { LoadingStateComponent } from '../../../shared/ui/loading-state.component';
+import { PageHeaderComponent } from '../../../shared/ui/page-header.component';
+import { SearchFieldComponent } from '../../../shared/ui/search-field.component';
+import { MetricCardComponent } from '../../../shared/ui/metric-card.component';
+
+const STATUS_ICONE: Record<string, string> = {
+  ABERTA: '🟢',
+  PREPARADA: '🟡',
+  ENCERRADA: '⚪',
+  CANCELADA: '⛔',
+};
 
 @Component({
   selector: 'app-competencias-page',
-  imports: [ReactiveFormsModule, RouterLink],
+  imports: [ReactiveFormsModule, RouterLink, LoadingStateComponent, ErrorStateComponent, EmptyStateComponent, PageHeaderComponent, SearchFieldComponent, MetricCardComponent],
   templateUrl: './competencias.page.html',
-
+  styleUrl: './competencias.page.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export default class CompetenciasPage {
@@ -30,10 +43,20 @@ export default class CompetenciasPage {
   readonly error = signal('');
   readonly mutationError = signal('');
   readonly feedback = signal('');
+  readonly filtro = signal('');
   readonly form = new FormGroup({
     ano: new FormControl<number | null>(null, [Validators.required, Validators.min(2000), Validators.max(2200), Validators.pattern(/^\d+$/)]),
     mes: new FormControl<number | null>(null, [Validators.required, Validators.min(1), Validators.max(12), Validators.pattern(/^\d+$/)]),
   });
+
+  readonly itemsFiltrados = computed(() => {
+    const termo = this.filtro().toLowerCase().trim();
+    if (!termo) return this.items();
+    return this.items().filter((item) =>
+      [`${item.mes}/${item.ano}`, item.status].some((campo) => campo.toLowerCase().includes(termo)),
+    );
+  });
+
   constructor() {
     this.refreshRequested.pipe(
       startWith(undefined),
@@ -49,6 +72,15 @@ export default class CompetenciasPage {
       takeUntilDestroyed(this.destroy),
     ).subscribe(items => { this.items.set(items); this.detalhe.set(this.id ? items[0] ?? null : null); });
   }
+
+  statusIcone(status: string): string {
+    return STATUS_ICONE[status] ?? '⚪';
+  }
+
+  onFiltroChange(termo: string): void {
+    this.filtro.set(termo);
+  }
+
   carregar() { this.refreshRequested.next(); }
   gerarCompetencia() {
     if (!this.podeGerar || this.saving() || this.form.invalid) return;

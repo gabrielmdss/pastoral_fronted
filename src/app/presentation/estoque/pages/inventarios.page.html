@@ -46,10 +46,9 @@
   </section>
 }
 @if (loading()) {
-  <p class="ui-state" role="status">Consultando inventário…</p>
+  <app-loading-state label="Consultando inventário…" />
 } @else if (error()) {
-  <p class="ui-message ui-message--error" role="alert">{{ error() }}</p>
-  <button type="button" (click)="carregar()" [disabled]="saving()">Tentar novamente</button>
+  <app-error-state [message]="error()" (retry)="carregar()" />
 } @else if (inventario(); as inv) {
   <section class="ui-panel">
     <header class="ui-section-header">
@@ -63,7 +62,7 @@
           <p>Concluído em {{ inv.concluidoEm | date: 'dd/MM/yyyy HH:mm' }}</p>
         }
       </div>
-      <span class="ui-badge" [attr.data-status]="inv.status">{{ inv.status }}</span>
+      <app-status-badge [status]="inv.status" />
     </header>
     <p>{{ inv.itens.length }} itens retornados · {{ divergentes() }} com divergência registrada.</p>
     <p class="hint">
@@ -86,7 +85,7 @@
   <section class="ui-panel">
     <h2>Contagens e divergências</h2>
     @if (!inv.itens.length) {
-      <p class="ui-state">Nenhum item retornado para este inventário.</p>
+      <app-empty-state title="Sem itens" message="Nenhum item retornado para este inventário." />
     } @else {
       <div class="table-scroll" tabindex="0" role="region" aria-label="Contagens do inventário">
         <table>
@@ -107,15 +106,22 @@
           </thead>
           <tbody>
             @for (i of inv.itens; track i.apresentacaoId) {
-              <tr>
+              <tr [class.row--attention]="i.diferenca !== 0">
                 <td>{{ i.insumo }}</td>
                 <td>{{ i.apresentacao }}</td>
                 <td class="number">{{ i.saldoSistema }}</td>
                 <td class="number">{{ i.saldoFisico }}</td>
                 <td class="number">
-                  <span class="ui-badge" [class.ui-badge--warning]="i.diferenca !== 0">{{
-                    i.diferenca
-                  }}</span>
+                  <span
+                    class="ui-badge"
+                    [class.ui-badge--warning]="i.diferenca !== 0"
+                    [title]="
+                      i.diferenca !== 0
+                        ? 'Contagem diferente do saldo esperado pelo sistema'
+                        : 'Contagem confere com o saldo esperado'
+                    "
+                    >{{ i.diferenca > 0 ? '+' : '' }}{{ i.diferenca }}</span
+                  >
                 </td>
                 @if (podeEstoque) {
                   <td class="number">
