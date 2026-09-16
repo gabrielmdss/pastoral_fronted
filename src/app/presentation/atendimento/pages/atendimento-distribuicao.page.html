@@ -201,7 +201,7 @@
       </div>
     }
 
-    <section class="atendimento-filas">
+    <section class="atendimento-filas" [class.atendimento-filas--com-entrega]="podeAcessarRetiradas">
       <article class="atendimento-fila ui-panel">
         <header class="atendimento-fila__header ui-section-header">
           <div>
@@ -221,7 +221,13 @@
         } @else {
           <div class="atendimento-fila__list">
             @for (checkIn of filaRegular(); track checkIn.id; let index = $index) {
-              <article class="atendimento-checkin-card">
+              <article
+                class="atendimento-checkin-card"
+                [class.is-dragging]="arrastandoCheckInId() === checkIn.id"
+                [attr.draggable]="podeAcessarRetiradas && !retiradaEmAndamentoId()"
+                (dragstart)="onDragStartCheckIn($event, checkIn)"
+                (dragend)="onDragEndCheckIn()"
+              >
                 <div class="atendimento-checkin-card__ordem">
                   {{ index + 1 }}
                 </div>
@@ -321,7 +327,13 @@
         } @else {
           <div class="atendimento-fila__list">
             @for (checkIn of filaPendente(); track checkIn.id; let index = $index) {
-              <article class="atendimento-checkin-card atendimento-checkin-card--pendente">
+              <article
+                class="atendimento-checkin-card atendimento-checkin-card--pendente"
+                [class.is-dragging]="arrastandoCheckInId() === checkIn.id"
+                [attr.draggable]="podeAcessarRetiradas && !retiradaEmAndamentoId()"
+                (dragstart)="onDragStartCheckIn($event, checkIn)"
+                (dragend)="onDragEndCheckIn()"
+              >
                 <div class="atendimento-checkin-card__ordem">
                   {{ index + 1 }}
                 </div>
@@ -492,6 +504,33 @@
           </div>
         }
       </article>
+
+      @if (podeAcessarRetiradas) {
+        <article
+          class="atendimento-fila atendimento-fila--entrega ui-panel"
+          [class.is-dragover]="dragOverEntrega()"
+          [class.is-rejected]="!!dropRejeitado()"
+          (dragover)="onDragOverEntrega($event)"
+          (dragleave)="onDragLeaveEntrega()"
+          (drop)="onDropEntrega($event)"
+        >
+          <header class="atendimento-fila__header ui-section-header">
+            <div>
+              <h2>Entregar cesta</h2>
+              <p>Arraste um beneficiário da fila até aqui para registrar a retirada.</p>
+            </div>
+          </header>
+          <div class="atendimento-dropzone" role="button" tabindex="0" aria-label="Soltar beneficiário aqui para registrar a retirada">
+            <span class="atendimento-dropzone__icon" aria-hidden="true">🧺</span>
+            <span class="atendimento-dropzone__label">Solte aqui para entregar a cesta</span>
+          </div>
+          @if (dropRejeitado()) {
+            <div class="atendimento-dropzone__rejeicao ui-message ui-message--error" role="alert">
+              {{ dropRejeitado() }}
+            </div>
+          }
+        </article>
+      }
     </section>
 
     @if (distribuicao.status === 'ENCERRADA') {

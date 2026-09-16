@@ -18,34 +18,86 @@
   color: var(--color-text-muted);
   font-size: 0.875rem;
 }
-.distribuicao-detail-actions {
+.distribuicao-detail-header__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+}
+.distribuicao-detail-status {
   display: flex;
   align-items: center;
-  flex-wrap: wrap;
   gap: var(--space-3);
+}
+.distribuicao-detail-status__message {
+  color: var(--color-text-muted);
+  font-size: 0.875rem;
+}
+.distribuicao-detail-kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 11rem), 1fr));
+  gap: var(--space-4);
+}
+.distribuicao-detail-columns {
+  display: grid;
+  gap: var(--space-5);
+  grid-template-columns: 2fr 1fr;
+}
+.distribuicao-detail-progress {
+  display: grid;
+  gap: var(--space-2);
+}
+.distribuicao-detail-progress__labels {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+.distribuicao-detail-progress__labels .muted {
+  font-weight: 400;
+  color: var(--color-text-muted);
+}
+.distribuicao-detail-atalhos {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+.distribuicao-detail-remarcar {
+  margin-top: var(--space-4);
   padding-top: var(--space-4);
   border-top: 1px solid var(--color-border);
 }
-.distribuicao-detail-actions__title {
-  flex-basis: 100%;
-  margin: 0;
-  font-size: 1rem;
-  color: var(--color-text-muted);
-}
-.distribuicao-detail-actions form {
-  flex-basis: 100%;
-}
-.distribuicao-detail-actions__message {
-  color: var(--color-text-muted);
-  font-size: 0.875rem;
+.distribuicao-detail-metrics--resultado {
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--color-border);
 }
 .distribuicao-detail-section {
   display: grid;
   gap: var(--space-5);
+  align-content: start;
 }
 .distribuicao-detail-metric {
   padding-left: var(--space-4);
   border-left: 2px solid var(--color-border);
+}
+.level-bar {
+  height: 0.5rem;
+  border-radius: var(--radius-full, 999px);
+  background: var(--color-border);
+  overflow: hidden;
+}
+.level-bar-fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--color-primary);
+  transition: width 0.4s ease;
+}
+@media (max-width: 900px) {
+  .distribuicao-detail-columns {
+    grid-template-columns: 1fr;
+  }
 }
 @media (max-width: 600px) {
   .distribuicao-detail-metrics {

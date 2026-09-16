@@ -12,7 +12,7 @@
   top: 0;
   height: 100dvh;
   overflow-y: auto;
-  background: var(--color-primary-dark);
+  background: var(--color-sidebar-bg);
   color: white;
   padding: var(--space-4);
   display: flex;
@@ -35,7 +35,7 @@
   flex-shrink: 0;
   border-radius: var(--radius-md);
   background: white;
-  color: var(--color-primary-dark);
+  color: var(--color-sidebar-bg);
   font-weight: 750;
 }
 .brand div {
@@ -144,6 +144,26 @@ nav a:focus-visible,
 .breadcrumbs-current {
   color: var(--color-text);
   font-weight: 650;
+}
+.theme-toggle {
+  display: grid;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  min-height: 0;
+  padding: 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-size: 1rem;
+  flex-shrink: 0;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+.theme-toggle:hover:not(:disabled) {
+  background: var(--color-primary-soft);
+  border-color: var(--color-primary);
+  color: var(--color-primary-dark);
 }
 .user-dot {
   display: grid;

@@ -11,9 +11,16 @@ import { userErrorMessage } from '../../../shared/errors/user-error';
 import { ErrorStateComponent } from '../../../shared/ui/error-state.component';
 import { LoadingStateComponent } from '../../../shared/ui/loading-state.component';
 import { PageHeaderComponent } from '../../../shared/ui/page-header.component';
+import { MetricCardComponent } from '../../../shared/ui/metric-card.component';
 @Component({
   selector: 'app-capacidade-page',
-  imports: [ReactiveFormsModule, ErrorStateComponent, LoadingStateComponent, PageHeaderComponent],
+  imports: [
+    ReactiveFormsModule,
+    ErrorStateComponent,
+    LoadingStateComponent,
+    PageHeaderComponent,
+    MetricCardComponent,
+  ],
   templateUrl: './capacidade.page.html',
   styleUrl: './capacidade.page.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

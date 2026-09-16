@@ -12,6 +12,8 @@ import { ListarDistribuicoesUseCase } from '../../../application/distribuicoes/l
 import { LoadingStateComponent } from '../../../shared/ui/loading-state.component';
 import { ErrorStateComponent } from '../../../shared/ui/error-state.component';
 import { EmptyStateComponent } from '../../../shared/ui/empty-state.component';
+import { PageHeaderComponent } from '../../../shared/ui/page-header.component';
+import { StatusBadgeComponent } from '../../../shared/ui/status-badge.component';
 
 @Component({
   selector: 'app-distribuicoes-list-page',
@@ -22,9 +24,10 @@ import { EmptyStateComponent } from '../../../shared/ui/empty-state.component';
     LoadingStateComponent,
     ErrorStateComponent,
     EmptyStateComponent,
+    PageHeaderComponent,
+    StatusBadgeComponent,
   ],
   templateUrl: './distribuicoes-list.page.html',
-  styleUrl: './distribuicoes-list.page.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export default class DistribuicoesListPage {
@@ -74,19 +77,5 @@ export default class DistribuicoesListPage {
     }
 
     return `${dia}/${mes}/${ano}`;
-  }
-
-  statusLabel(status: Distribuicao['status']): string {
-    const labels: Record<
-      Distribuicao['status'],
-      string
-    > = {
-      PLANEJADA: 'Planejada',
-      PREPARADA: 'Preparada',
-      ABERTA: 'Aberta',
-      ENCERRADA: 'Encerrada',
-    };
-
-    return labels[status];
   }
 }

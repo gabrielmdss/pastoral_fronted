@@ -2,7 +2,7 @@
   <div>
     <p class="eyebrow">Preparação</p>
     <h1>Estoque</h1>
-    <p>Saldos por apresentação informados pelo estoque.</p>
+    <p>Insumos disponíveis para a montagem das cestas.</p>
   </div>
   <button class="secondary" (click)="carregar()" [disabled]="loading() || saving()">
     Atualizar
@@ -197,6 +197,18 @@
     <button class="btn-text" [disabled]="saving()" (click)="mode.set(null)">Cancelar</button>
   </section>
 }
+@if (!loading() && !error()) {
+  <section class="metric-grid" aria-label="Indicadores de estoque">
+    <app-metric-card label="Itens em estoque" [delayMs]="0">{{ totalFisico() }}</app-metric-card>
+    <app-metric-card label="Reservados" [delayMs]="60">{{ totalReservado() }}</app-metric-card>
+    <app-metric-card
+      label="Insumos críticos"
+      [delayMs]="120"
+      [variant]="itensCriticos() > 0 ? 'attention' : 'default'"
+      >{{ itensCriticos() }}</app-metric-card
+    >
+  </section>
+}
 <nav class="actions" aria-label="Consultas de estoque">
   <button class="secondary" (click)="tab.set('saldos')" [attr.aria-pressed]="tab() === 'saldos'">
     Saldos</button
@@ -224,6 +236,23 @@
   @if (!filtrados().length) {
     <app-empty-state title="Nenhum insumo" message="Nenhum insumo encontrado." />
   } @else {
+    <div class="estoque-silo-grid" aria-hidden="true">
+      @for (i of filtrados(); track i.apresentacaoId) {
+        <div class="estoque-silo" [class.is-empty]="i.saldoDisponivel <= 0">
+          <div class="estoque-silo__vessel">
+            <div class="estoque-silo__fill" [style.height.%]="nivelPercentual(i)"></div>
+          </div>
+          <div class="estoque-silo__info">
+            <strong class="estoque-silo__nome">{{ i.insumo }}</strong>
+            <span class="estoque-silo__apresentacao">{{ i.apresentacao }}</span>
+            <span class="estoque-silo__percentual">{{ nivelPercentual(i) }}%</span>
+            <span class="estoque-silo__detalhe">
+              Reservado {{ i.saldoReservado }} · Disponível {{ i.saldoDisponivel }}
+            </span>
+          </div>
+        </div>
+      }
+    </div>
     <div class="table-scroll" tabindex="0" role="region" aria-label="Saldos de estoque">
       <table>
         <thead>

@@ -21,11 +21,12 @@ import { SessionFacade } from '../../../infrastructure/auth/session.facade';
 import { userErrorMessage } from '../../../shared/errors/user-error';
 import { LoadingStateComponent } from '../../../shared/ui/loading-state.component';
 import { ErrorStateComponent } from '../../../shared/ui/error-state.component';
+import { MetricCardComponent } from '../../../shared/ui/metric-card.component';
 
 @Component({
     selector: 'app-distribuicao-detail-page',
     standalone: true,
-    imports: [CommonModule, RouterLink, ReactiveFormsModule, CestasAdicionaisComponent, LoadingStateComponent, ErrorStateComponent],
+    imports: [CommonModule, RouterLink, ReactiveFormsModule, CestasAdicionaisComponent, LoadingStateComponent, ErrorStateComponent, MetricCardComponent],
     templateUrl: './distribuicao-detail.page.html',
     styleUrl: './distribuicao-detail.page.scss',
     changeDetection: ChangeDetectionStrategy.OnPush,

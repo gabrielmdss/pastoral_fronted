@@ -31,67 +31,146 @@
       }
     </div>
   </section>
-  <section class="detail-sections">
-    <article class="content-card">
-      <h2>Identificação</h2>
-      <dl>
-        <div>
-          <dt>Nascimento</dt>
-          <dd>{{ b.pessoa.dataNascimento || 'Não informado' }}</dd>
-        </div>
-        <div>
-          <dt>Telefone</dt>
-          <dd>{{ b.pessoa.telefone || 'Não informado' }}</dd>
-        </div>
-        @for (d of b.pessoa.documentos; track d.tipo) {
-          <div>
-            <dt>{{ d.tipo }}</dt>
-            <dd>{{ d.numeroMascarado }}</dd>
+  <nav class="tabs" role="tablist" aria-label="Seções do beneficiário">
+    <button
+      role="tab"
+      class="secondary"
+      [attr.aria-selected]="tab() === 'dados'"
+      (click)="tab.set('dados')"
+    >
+      Dados
+    </button>
+    <button
+      role="tab"
+      class="secondary"
+      [attr.aria-selected]="tab() === 'retiradas'"
+      (click)="tab.set('retiradas')"
+    >
+      Retiradas
+    </button>
+    <button
+      role="tab"
+      class="secondary"
+      [attr.aria-selected]="tab() === 'pendencias'"
+      (click)="tab.set('pendencias')"
+    >
+      Pendências
+    </button>
+  </nav>
+  @if (tab() === 'dados') {
+    <section class="detail-sections">
+      <article class="ui-panel">
+        <h2>Identificação</h2>
+        <dl class="field-grid">
+          <div class="field">
+            <dt>Nascimento</dt>
+            <dd>{{ b.pessoa.dataNascimento || 'Não informado' }}</dd>
           </div>
+          <div class="field">
+            <dt>Telefone</dt>
+            <dd>{{ b.pessoa.telefone || 'Não informado' }}</dd>
+          </div>
+          @for (d of b.pessoa.documentos; track d.tipo) {
+            <div class="field">
+              <dt>{{ d.tipo }}</dt>
+              <dd>{{ d.numeroMascarado }}</dd>
+            </div>
+          }
+        </dl>
+        @if (b.pessoa.enderecoPrincipal; as e) {
+          <p>
+            {{ e.logradouro }}, {{ e.numero }} {{ e.complemento }} — {{ e.bairro }}, {{
+              e.cidade
+            }}/{{ e.uf }}
+            · {{ e.cep }}
+          </p>
         }
-      </dl>
-      @if (b.pessoa.enderecoPrincipal; as e) {
-        <p>
-          {{ e.logradouro }}, {{ e.numero }} {{ e.complemento }} — {{ e.bairro }}, {{ e.cidade }}/{{
-            e.uf
-          }}
-          · {{ e.cep }}
-        </p>
-      }
-      @if (b.pessoa.fotoPrincipal) {
-        <p class="hint">Foto cadastrada, aguardando endpoint seguro de mídia.</p>
-      }
-    </article>
-    <article class="content-card">
-      <h2>Direitos</h2>
-      @if (b.direitoAtual; as d) {
-        <p>
-          <strong>Atual:</strong> {{ d.competencia }} · {{ d.status }}
-          @if (d.dataPrevista) {
-            · {{ d.dataPrevista }}
+        @if (b.pessoa.fotoPrincipal) {
+          <p class="hint">Foto cadastrada, aguardando endpoint seguro de mídia.</p>
+        }
+      </article>
+      <article class="ui-panel">
+        <h2>Direitos</h2>
+        <dl class="field-grid">
+          @if (b.direitoAtual; as d) {
+            <div class="field">
+              <dt>Direito atual</dt>
+              <dd>
+                {{ d.competencia }} · {{ d.status }}
+                @if (d.dataPrevista) {
+                  · {{ d.dataPrevista }}
+                }
+              </dd>
+            </div>
+          } @else {
+            <div class="field">
+              <dt>Direito atual</dt>
+              <dd class="hint">Sem direito atual.</dd>
+            </div>
           }
-        </p>
-      } @else {
-        <p class="hint">Sem direito atual.</p>
-      }
-      @if (b.proximoDireito; as d) {
-        <p>
-          <strong>Próximo:</strong> {{ d.competencia }} · {{ d.status }}
-          @if (d.dataPrevista) {
-            · {{ d.dataPrevista }}
+          @if (b.proximoDireito; as d) {
+            <div class="field">
+              <dt>Próximo direito</dt>
+              <dd>
+                {{ d.competencia }} · {{ d.status }}
+                @if (d.dataPrevista) {
+                  · {{ d.dataPrevista }}
+                }
+              </dd>
+            </div>
           }
-        </p>
-      }
-    </article>
-    <article class="content-card">
-      <h2>Última retirada</h2>
+        </dl>
+      </article>
+    </section>
+  } @else if (tab() === 'retiradas') {
+    <section class="ui-panel">
+      <div class="ui-section-header">
+        <h2>Última retirada</h2>
+      </div>
       @if (b.ultimaRetirada; as r) {
-        <p>{{ r.ocorridoEm.slice(0, 10) }} · {{ r.tipo }}</p>
+        <dl class="field-grid">
+          <div class="field">
+            <dt>Data</dt>
+            <dd>{{ r.ocorridoEm.slice(0, 10) }}</dd>
+          </div>
+          <div class="field">
+            <dt>Tipo</dt>
+            <dd>{{ r.tipo }}</dd>
+          </div>
+        </dl>
       } @else {
         <p class="hint">Nenhuma retirada registrada.</p>
       }
-    </article>
-    <article class="content-card">
+      <div class="ui-section-header" style="margin-top: var(--space-5)">
+        <h2>Histórico</h2>
+      </div>
+      @if (b.historicoResumido.length) {
+        <div class="table-scroll" tabindex="0" role="region" aria-label="Histórico do beneficiário">
+          <table>
+            <thead>
+              <tr>
+                <th scope="col">Data</th>
+                <th scope="col">Tipo</th>
+                <th scope="col">Descrição</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (h of b.historicoResumido; track h.ocorridoEm + h.tipo) {
+                <tr>
+                  <td>{{ h.ocorridoEm.slice(0, 10) }}</td>
+                  <td>{{ h.tipo }}</td>
+                  <td>{{ h.descricao }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      } @else {
+        <p class="hint">Nenhum registro de histórico.</p>
+      }
+    </section>
+  } @else {
+    <section class="ui-panel">
       <h2>Pendências</h2>
       @if (b.pendenciasAtuais.length) {
         <ul>
@@ -102,20 +181,8 @@
       } @else {
         <p class="hint">Nenhuma pendência atual.</p>
       }
-    </article>
-    <article class="content-card">
-      <h2>Histórico</h2>
-      @if (b.historicoResumido.length) {
-        <ul>
-          @for (h of b.historicoResumido; track h.ocorridoEm + h.tipo) {
-            <li>{{ h.ocorridoEm.slice(0, 10) }} · {{ h.tipo }} — {{ h.descricao }}</li>
-          }
-        </ul>
-      } @else {
-        <p class="hint">Nenhum registro de histórico.</p>
-      }
-    </article>
-  </section>
+    </section>
+  }
 }
 @if (mode()) {
   <div class="dialog-backdrop">

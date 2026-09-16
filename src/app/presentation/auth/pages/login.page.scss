@@ -1,79 +1,87 @@
 :host {
   display: block;
   min-height: 100dvh;
-  background: var(--color-surface-soft);
 }
 .login-shell {
   min-height: 100dvh;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 28rem);
-  align-items: center;
-  gap: clamp(2rem, 5vw, 5rem);
-  max-width: 75rem;
-  margin: auto;
-  padding: var(--space-8);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
 }
 .identity {
-  max-width: 34rem;
-  h1 {
-    font-size: clamp(2rem, 4vw, 3.25rem);
-    margin: 0.25rem 0 var(--space-4);
-    color: var(--color-primary-dark);
-  }
-  p:last-child {
-    font-size: 1.15rem;
-    line-height: 1.7;
-    color: var(--color-text-muted);
-  }
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: clamp(2rem, 5vw, 4rem);
+  background: var(--color-sidebar-bg);
+  color: var(--color-sidebar-text);
+}
+.identity-brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+.identity-brand__name {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: white;
+}
+.identity-message {
+  max-width: 28rem;
+}
+.identity-message h2 {
+  font-size: clamp(1.5rem, 3vw, 2rem);
+  line-height: 1.25;
+  margin: var(--space-5) 0 var(--space-4);
+  color: white;
+}
+.identity-message p:last-child {
+  color: var(--color-sidebar-text-muted);
+  line-height: 1.6;
 }
 .brand-mark {
   display: grid;
   place-items: center;
-  width: 3.5rem;
-  height: 3.5rem;
-  border-radius: var(--radius-lg);
-  background: var(--color-primary);
-  color: white;
+  width: 2.5rem;
+  height: 2.5rem;
+  flex-shrink: 0;
+  border-radius: var(--radius-md);
+  background: var(--color-sidebar-primary, white);
+  color: var(--color-sidebar-bg);
   font-weight: 800;
 }
 .eyebrow {
-  color: var(--color-primary);
+  color: var(--color-sidebar-text-muted);
   font-size: 0.78rem;
   font-weight: 800;
   letter-spacing: 0.12em;
   text-transform: uppercase;
 }
-.identity.fade-in-stagger:hover,
-.login-card.fade-in-stagger:hover {
-  box-shadow: none;
-  transform: none;
-}
 .login-card {
-  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: clamp(1.5rem, 5vw, 3rem);
   background: var(--color-surface);
-  padding: clamp(1.5rem, 5vw, 2.5rem);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-xl);
-  box-shadow: var(--shadow-lg);
-  overflow: hidden;
-  &::before {
-    content: '';
-    position: absolute;
-    inset: 0 0 auto 0;
-    height: 0.25rem;
-    background: linear-gradient(90deg, var(--color-primary), var(--color-primary-dark));
-  }
-  h2 {
-    margin: 0.25rem 0;
-  }
-  .hint {
-    color: var(--color-text-muted);
-    margin-bottom: var(--space-6);
-  }
+}
+.login-card__inner {
+  width: 100%;
+  max-width: 24rem;
+}
+.identity-brand--mobile {
+  display: none;
+  margin-bottom: var(--space-6);
+}
+.login-card h1 {
+  margin: 0;
+}
+.login-card .hint {
+  margin: 0.25rem 0 0;
+  color: var(--color-text-muted);
 }
 form {
   display: grid;
   gap: var(--space-3);
+  margin-top: var(--space-6);
   label {
     font-weight: 700;
     margin-top: var(--space-2);
@@ -95,19 +103,14 @@ form {
   padding: var(--space-3);
   border-radius: var(--radius-md);
 }
-@media (max-width: 700px) {
+@media (max-width: 900px) {
   .login-shell {
-    grid-template-columns: 1fr;
-    padding: var(--space-5);
-    gap: var(--space-6);
+    grid-template-columns: minmax(0, 1fr);
   }
-  .identity p:last-child {
+  .identity {
     display: none;
   }
-  .identity h1 {
-    font-size: 2rem;
-  }
-  .login-card {
-    padding: var(--space-6);
+  .identity-brand--mobile {
+    display: flex;
   }
 }

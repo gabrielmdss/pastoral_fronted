@@ -12,6 +12,7 @@ import {
 import { SessionFacade } from '../../../infrastructure/auth/session.facade';
 import CandidaturasPage from './candidaturas.page';
 import { ListarGruposUseCase } from '../../../application/beneficiarios/catalogos.use-cases';
+import { ObterCapacidadeUseCase } from '../../../application/capacidade/capacidade.use-cases';
 const candidate = {
   id: '1',
   pessoaId: '2',
@@ -38,6 +39,7 @@ describe('CandidaturasPage', () => {
         { provide: AdmitirCandidaturaUseCase, useValue: { execute: admitir } },
         { provide: SessionFacade, useValue: { hasPermission: () => true } },
         {provide:ListarGruposUseCase,useValue:{execute:()=>of([{id:'2',codigo:'B',nome:'Grupo B',regraCalendario:'MANUAL'}])}},
+        { provide: ObterCapacidadeUseCase, useValue: { execute: () => of({ capacidade: 10, ativos: 5, vagas: 5, excedente: 0 }) } },
       ],
     });
     const page = TestBed.createComponent(CandidaturasPage).componentInstance;

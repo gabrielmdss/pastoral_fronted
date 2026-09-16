@@ -4,8 +4,8 @@
 <header class="ui-header">
   <div>
     <p class="eyebrow">Preparação</p>
-    <h1>{{ id() ? 'Lote de cestas ' + id() : 'Montagem de cestas' }}</h1>
-    <p>Consulte os lotes e monte cestas a partir de um planejamento aprovado.</p>
+    <h1>{{ id() ? 'Lote de cestas ' + id() : 'Montagem e lotes' }}</h1>
+    <p>Cada lote consome insumos do estoque e registra a versão do modelo usada.</p>
   </div>
   <div class="actions">
     <button type="button" class="secondary" (click)="carregar()" [disabled]="loading() || saving()">
@@ -259,6 +259,51 @@
               required
           /></label>
           <label>Motivo<textarea formControlName="motivo" required></textarea></label>
+
+          <div class="dnd-layout">
+            <div class="dnd-source" aria-label="Insumos disponíveis para arrastar até a cesta">
+              <p class="dnd-hint">
+                Arraste um insumo até a cesta para adicioná-lo, ou use o formulário abaixo.
+              </p>
+              <div class="dnd-source__list">
+                @for (insumo of estoque(); track insumo.apresentacaoId) {
+                  <div
+                    class="dnd-card"
+                    [class.is-dragging]="arrastandoInsumoId() === insumo.apresentacaoId"
+                    [attr.draggable]="!saving()"
+                    tabindex="0"
+                    role="button"
+                    [attr.aria-label]="'Adicionar ' + insumo.insumo + ' · ' + insumo.apresentacao + ' à cesta'"
+                    (dragstart)="onDragStartInsumo($event, insumo)"
+                    (dragend)="onDragEndInsumo()"
+                    (keydown.enter)="adicionarItemArrastado(insumo.apresentacaoId)"
+                    (keydown.space)="$event.preventDefault(); adicionarItemArrastado(insumo.apresentacaoId)"
+                  >
+                    <span class="dnd-card__grip" aria-hidden="true">⠿⠿</span>
+                    <span class="dnd-card__label">{{ insumo.insumo }} · {{ insumo.apresentacao }}</span>
+                  </div>
+                }
+              </div>
+            </div>
+            <div
+              class="dnd-basket"
+              [class.is-dragover]="dragOverDropzone()"
+              [class.is-dropped]="!!ultimoItemEncaixado()"
+              role="button"
+              tabindex="0"
+              aria-label="Soltar insumo aqui para adicionar à composição do lote"
+              (dragover)="onDragOverDropzone($event)"
+              (dragleave)="onDragLeaveDropzone()"
+              (drop)="onDropInsumo($event)"
+            >
+              <span class="dnd-basket__icon" aria-hidden="true">🧺</span>
+              <span class="dnd-basket__label">Solte aqui para adicionar à cesta</span>
+            </div>
+          </div>
+          @if (ultimoItemEncaixado()) {
+            <p class="dnd-toast" role="status">{{ ultimoItemEncaixado() }} adicionado à cesta.</p>
+          }
+
           <div formArrayName="itens">
             @for (item of ajusteForm.controls.itens.controls; track item; let index = $index) {
               <fieldset class="form-grid" [formGroupName]="index">

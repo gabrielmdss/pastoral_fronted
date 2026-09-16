@@ -1,29 +1,30 @@
 // Scoped to the capacity page only; grid/card styles stay in assistencia.scss.
-.occupancy-panel {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  padding: var(--space-5);
-  margin-bottom: var(--space-5);
+.metric-grid {
   display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-4);
+  margin-bottom: var(--space-5);
+}
+
+.capacidade-columns {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: var(--space-5);
+}
+
+.capacidade-columns .ui-panel {
+  display: grid;
+  align-content: start;
   gap: var(--space-3);
 }
 
-.occupancy-panel-head {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-}
-
-.occupancy-panel-head span {
-  color: var(--color-text-muted);
-  font-size: 0.875rem;
-}
-
-.occupancy-panel-head strong {
-  font-size: 1.5rem;
-  font-variant-numeric: tabular-nums;
-  color: var(--color-primary-dark);
+@media (max-width: 900px) {
+  .metric-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .capacidade-columns {
+    grid-template-columns: 1fr;
+  }
 }
 
 .occupancy-bar {

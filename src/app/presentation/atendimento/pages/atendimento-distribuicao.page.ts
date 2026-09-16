@@ -93,6 +93,10 @@ export default class AtendimentoDistribuicaoPage {
     readonly justificativaLoadingId = signal<string | null>(null);
     readonly justificativaError = signal<string | null>(null);
     readonly justificativaFeedback = signal<string | null>(null);
+    readonly arrastandoCheckInId = signal<string | null>(null);
+    readonly dragOverEntrega = signal(false);
+    readonly dropRejeitado = signal<string | null>(null);
+    private rejeicaoTimeout: ReturnType<typeof setTimeout> | null = null;
 
     readonly buscaInput =
         viewChild<ElementRef<HTMLInputElement>>('buscaInput');
@@ -318,6 +322,52 @@ export default class AtendimentoDistribuicaoPage {
         return this.podeAcessarRetiradas && this.distribuicao()?.status === 'ABERTA'
             && checkIn.situacaoOperacional === 'AGUARDANDO'
             && checkIn.podeRetirar;
+    }
+
+    onDragStartCheckIn(event: DragEvent, checkIn: CheckIn): void {
+        if (this.retiradaEmAndamentoId()) {
+            event.preventDefault();
+            return;
+        }
+        event.dataTransfer?.setData('text/plain', checkIn.id);
+        if (event.dataTransfer) event.dataTransfer.effectAllowed = 'move';
+        this.arrastandoCheckInId.set(checkIn.id);
+    }
+
+    onDragEndCheckIn(): void {
+        this.arrastandoCheckInId.set(null);
+    }
+
+    onDragOverEntrega(event: DragEvent): void {
+        if (this.retiradaEmAndamentoId()) return;
+        event.preventDefault();
+        this.dragOverEntrega.set(true);
+    }
+
+    onDragLeaveEntrega(): void {
+        this.dragOverEntrega.set(false);
+    }
+
+    onDropEntrega(event: DragEvent): void {
+        event.preventDefault();
+        this.dragOverEntrega.set(false);
+        const id = event.dataTransfer?.getData('text/plain');
+        this.arrastandoCheckInId.set(null);
+        if (!id) return;
+        const checkIn = this.filaRegular().find((c) => c.id === id)
+            ?? this.filaPendente().find((c) => c.id === id);
+        if (!checkIn) return;
+        if (this.podeRegistrarRetirada(checkIn)) {
+            this.registrarRetiradaTitular(checkIn);
+            return;
+        }
+        this.dropRejeitado.set(
+            checkIn.podeRetirar
+                ? 'Este beneficiário não está apto para retirada neste momento.'
+                : this.motivoBloqueioLabel(checkIn.motivoBloqueio),
+        );
+        if (this.rejeicaoTimeout) clearTimeout(this.rejeicaoTimeout);
+        this.rejeicaoTimeout = setTimeout(() => this.dropRejeitado.set(null), 2400);
     }
 
     encerrar(): void {

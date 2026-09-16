@@ -218,6 +218,40 @@
   border-top: 1px solid var(--color-border);
   padding-top: var(--space-3);
 }
+.tabs {
+  display: flex;
+  gap: var(--space-2);
+  margin-bottom: var(--space-4);
+  border-bottom: 1px solid var(--color-border);
+}
+.tabs button {
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-md) var(--radius-md) 0 0;
+  color: var(--color-text-muted);
+  box-shadow: none;
+}
+.tabs button[aria-selected='true'] {
+  color: var(--color-primary-dark);
+  background: var(--color-primary-soft);
+}
+.field-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr));
+  gap: var(--space-4);
+  margin: 0 0 var(--space-4);
+}
+.field dt {
+  color: var(--color-text-muted);
+  font-size: 0.75rem;
+  font-weight: 650;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+.field dd {
+  margin: 0.25rem 0 0;
+  font-weight: 650;
+}
 .competencias-page {
   display: grid;
   gap: var(--space-5);

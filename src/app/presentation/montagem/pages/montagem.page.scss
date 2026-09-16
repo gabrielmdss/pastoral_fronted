@@ -1,0 +1,154 @@
+.dnd-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+  gap: var(--space-4);
+  align-items: stretch;
+}
+.dnd-source {
+  display: grid;
+  gap: var(--space-3);
+  align-content: start;
+}
+.dnd-hint {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 0.8125rem;
+}
+.dnd-source__list {
+  display: grid;
+  gap: var(--space-2);
+  max-height: 16rem;
+  overflow-y: auto;
+  padding-right: var(--space-1);
+}
+.dnd-card {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--color-input-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  cursor: grab;
+  user-select: none;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+}
+.dnd-card:hover {
+  border-color: var(--color-primary);
+  box-shadow: var(--shadow-sm);
+}
+.dnd-card:focus-visible {
+  outline: 3px solid var(--color-info);
+  outline-offset: 2px;
+}
+.dnd-card.is-dragging {
+  transform: scale(1.03) rotate(2deg);
+  box-shadow: var(--shadow-lg);
+  border-color: var(--color-primary);
+  cursor: grabbing;
+}
+.dnd-card__grip {
+  color: var(--color-text-muted);
+  letter-spacing: -0.15em;
+  font-size: 0.875rem;
+  line-height: 1;
+}
+.dnd-card__label {
+  font-size: 0.875rem;
+  overflow-wrap: anywhere;
+}
+.dnd-basket {
+  display: grid;
+  place-content: center;
+  gap: var(--space-2);
+  justify-items: center;
+  min-height: 8rem;
+  padding: var(--space-5);
+  border: 3px dashed var(--color-primary-soft);
+  border-radius: var(--radius-lg);
+  background: var(--color-primary-soft);
+  color: var(--color-primary-dark);
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.15s ease;
+}
+.dnd-basket__icon {
+  font-size: 2rem;
+  line-height: 1;
+}
+.dnd-basket__label {
+  font-size: 0.8125rem;
+  font-weight: 650;
+}
+.dnd-basket:focus-visible {
+  outline: 3px solid var(--color-info);
+  outline-offset: 3px;
+}
+.dnd-basket.is-dragover {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 6px var(--color-primary-soft), 0 0 24px 4px color-mix(in srgb, var(--color-primary) 45%, transparent);
+  animation: dnd-pulse 1s ease-in-out infinite;
+}
+@keyframes dnd-pulse {
+  0%,
+  100% {
+    border-color: var(--color-primary);
+  }
+  50% {
+    border-color: var(--color-primary-dark);
+  }
+}
+.dnd-basket.is-dropped {
+  animation: dnd-bounce 0.4s ease;
+}
+@keyframes dnd-bounce {
+  0% {
+    transform: scale(1);
+  }
+  35% {
+    transform: scale(1.06);
+  }
+  60% {
+    transform: scale(0.97);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+.dnd-toast {
+  margin: 0;
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-pill);
+  background: var(--color-success-soft);
+  color: var(--color-success);
+  font-size: 0.8125rem;
+  font-weight: 650;
+  width: fit-content;
+  animation: dnd-toast-in 0.2s ease-out both;
+}
+@keyframes dnd-toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .dnd-card,
+  .dnd-basket,
+  .dnd-toast {
+    animation: none;
+    transition: none;
+  }
+  .dnd-card.is-dragging {
+    transform: none;
+  }
+}
+@media (max-width: 700px) {
+  .dnd-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

@@ -15,6 +15,7 @@ import { LoadingStateComponent } from '../../../shared/ui/loading-state.componen
 import { ErrorStateComponent } from '../../../shared/ui/error-state.component';
 import { EmptyStateComponent } from '../../../shared/ui/empty-state.component';
 import { StatusBadgeComponent } from '../../../shared/ui/status-badge.component';
+import { MetricCardComponent } from '../../../shared/ui/metric-card.component';
 
 @Component({
   selector: 'app-estoque-page',
@@ -24,8 +25,10 @@ import { StatusBadgeComponent } from '../../../shared/ui/status-badge.component'
     ErrorStateComponent,
     EmptyStateComponent,
     StatusBadgeComponent,
+    MetricCardComponent,
   ],
   templateUrl: './estoque.page.html',
+  styleUrl: './estoque.page.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export default class EstoquePage {
@@ -57,6 +60,17 @@ export default class EstoquePage {
       (i.insumo + ' ' + i.apresentacao).toLocaleLowerCase('pt-BR').includes(term),
     );
   });
+  readonly totalFisico = computed(() => this.insumos().reduce((soma, i) => soma + i.saldoFisico, 0));
+  readonly totalReservado = computed(() =>
+    this.insumos().reduce((soma, i) => soma + i.saldoReservado, 0),
+  );
+  readonly itensCriticos = computed(
+    () => this.insumos().filter((i) => i.saldoDisponivel <= 0).length,
+  );
+  nivelPercentual(i: InsumoSaldo): number {
+    if (i.saldoFisico <= 0) return 0;
+    return Math.max(0, Math.min(100, Math.round((i.saldoDisponivel / i.saldoFisico) * 100)));
+  }
   readonly positive = [Validators.required, Validators.min(1), Validators.pattern(/^\d+$/)];
   readonly entrada = this.fb.group({
     tipo: this.fb.control<EntradaInput['tipo']>('DOACAO'),

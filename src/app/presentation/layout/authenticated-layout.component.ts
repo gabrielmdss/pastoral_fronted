@@ -3,6 +3,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { filter } from 'rxjs';
 import { SessionFacade } from '../../infrastructure/auth/session.facade';
+import { ThemeService } from '../../shared/theme/theme.service';
 interface MenuItem {
   label: string;
   route?: string;
@@ -20,20 +21,20 @@ export default class AuthenticatedLayoutComponent {
   readonly podeRelatorios = computed(() => this.session.hasPermission('BENEFICIARIO_VISUALIZAR') || this.session.hasPermission('ESTOQUE_VISUALIZAR'));
   private readonly allItems: MenuItem[] = [
     { label: 'Dashboard', route: '/dashboard' },
-    { label: 'Competências', route: '/competencias', permission: 'BENEFICIARIO_VISUALIZAR' },
     { label: 'Distribuições', route: '/distribuicoes', permission: 'BENEFICIARIO_VISUALIZAR' },
   ];
   private readonly assistanceItems: MenuItem[] = [
     { label: 'Beneficiários', route: '/beneficiarios', permission: 'BENEFICIARIO_VISUALIZAR' },
-    { label: 'Lista de espera', route: '/candidaturas', permission: 'CANDIDATURA_VISUALIZAR' },
+    { label: 'Candidaturas', route: '/candidaturas', permission: 'CANDIDATURA_VISUALIZAR' },
     { label: 'Capacidade', route: '/capacidade', permission: 'BENEFICIARIO_VISUALIZAR' },
+    { label: 'Competências', route: '/competencias', permission: 'BENEFICIARIO_VISUALIZAR' },
   ];
   private readonly preparationItems: MenuItem[] = [
     { label: 'Estoque', route: '/estoque', permission: 'ESTOQUE_VISUALIZAR' },
-    { label: 'Inventários', route: '/inventarios', permission: 'ESTOQUE_INVENTARIO' },
     { label: 'Modelos de cesta', route: '/modelos-cesta', permission: 'CESTA_MODELO_GERENCIAR' },
     { label: 'Planejamento', route: '/planejamentos', permission: 'ESTOQUE_VISUALIZAR' },
-    { label: 'Montagem', route: '/montagem', permission: 'ESTOQUE_VISUALIZAR' },
+    { label: 'Montagem e lotes', route: '/montagem', permission: 'ESTOQUE_VISUALIZAR' },
+    { label: 'Inventários', route: '/inventarios', permission: 'ESTOQUE_INVENTARIO' },
   ];
   private readonly relatoriosItem: MenuItem = { label: 'Relatórios', route: '/relatorios' };
   readonly menuItems = computed(() =>
@@ -59,6 +60,7 @@ export default class AuthenticatedLayoutComponent {
     const todos = [...this.allItems, ...this.assistanceItems, ...this.preparationItems, this.relatoriosItem];
     return todos.find((item) => item.route === rota)?.label ?? '';
   });
+  readonly theme = inject(ThemeService);
   constructor(
     readonly session: SessionFacade,
     private readonly router: Router,

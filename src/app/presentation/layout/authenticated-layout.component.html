@@ -77,6 +77,15 @@
           <span class="breadcrumbs-current">{{ breadcrumbLabel() }}</span>
         }
       </nav>
+      <button
+        type="button"
+        class="theme-toggle"
+        (click)="theme.toggle()"
+        [attr.aria-label]="theme.theme() === 'dark' ? 'Usar tema claro' : 'Usar tema escuro'"
+        [attr.aria-pressed]="theme.theme() === 'dark'"
+      >
+        {{ theme.theme() === 'dark' ? '☾' : '☀' }}
+      </button>
       <div class="user-dot" aria-hidden="true">
         {{ session.currentUser()?.login?.charAt(0)?.toUpperCase() }}
       </div>

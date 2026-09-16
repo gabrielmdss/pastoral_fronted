@@ -6,6 +6,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { AdmitirBeneficiarioUseCase, BuscarBeneficiariosUseCase } from '../../../application/beneficiarios/beneficiarios.use-cases';
 import { ListarGruposUseCase } from '../../../application/beneficiarios/catalogos.use-cases';
 import { AdmitirCandidaturaUseCase, CriarCandidaturaUseCase, ListarCandidaturasUseCase, MarcarNaoLocalizadoUseCase, PriorizarCandidaturaUseCase, RegistrarContatoUseCase } from '../../../application/candidaturas/candidaturas.use-cases';
+import { ObterCapacidadeUseCase } from '../../../application/capacidade/capacidade.use-cases';
 import { BuscarPessoasUseCase, CriarPessoaUseCase } from '../../../application/pessoas/pessoas.use-cases';
 import { SessionFacade } from '../../../infrastructure/auth/session.facade';
 import BeneficiariosListPage from '../../beneficiarios/pages/beneficiarios-list.page';
@@ -30,6 +31,7 @@ function setup(kind: 'beneficiarios' | 'candidaturas') {
       { provide: RegistrarContatoUseCase, useValue: { execute: salvar } },
       { provide: MarcarNaoLocalizadoUseCase, useValue: { execute: salvar } },
       { provide: AdmitirCandidaturaUseCase, useValue: { execute: salvar } },
+      { provide: ObterCapacidadeUseCase, useValue: { execute: () => of(null) } },
       { provide: BuscarPessoasUseCase, useValue: { execute: () => of([]) } },
       { provide: CriarPessoaUseCase, useValue: { execute: () => of(pessoa) } },
     ],

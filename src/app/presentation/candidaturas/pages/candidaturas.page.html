@@ -10,6 +10,12 @@
 @if (feedback()) {
   <p class="notice" role="status">{{ feedback() }}</p>
 }
+@if (capacidade(); as cap) {
+  <p class="ui-message" role="status">
+    <strong>Vagas disponíveis:</strong> {{ cap.vagas }} vaga(s) livre(s) na capacidade atual.
+    A admissão só é possível enquanto houver vaga ou mediante autorização de exceção.
+  </p>
+}
 <section class="filters">
   <label class="search-label"
     >Buscar por nome ou documento<input type="search" [formControl]="search" /></label

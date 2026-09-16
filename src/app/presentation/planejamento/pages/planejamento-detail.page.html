@@ -2,7 +2,7 @@
 <header class="ui-header">
   <div>
     <p class="eyebrow">Preparação</p>
-    <h1>{{ id() ? 'Detalhe do planejamento' : 'Simular planejamento' }}</h1>
+    <h1>{{ id() ? 'Planejamento ' + id() : 'Simular planejamento' }}</h1>
     <p>
       {{
         id()
@@ -59,7 +59,11 @@
       <app-empty-state title="Sem versões" message="Nenhuma versão retornada para este planejamento." />
     }
     @for (v of p.versoes; track v.id) {
-      <section class="ui-panel">
+      <section
+        class="ui-panel plano-panel"
+        [class.plano-panel--aprovada]="v.status === 'APROVADA'"
+        [class.plano-panel--concluida]="v.status === 'CONCLUIDA'"
+      >
         <header class="ui-section-header">
           <div>
             <h2>Versão {{ v.numeroVersao }} · {{ v.quantidadePlanejada }} cestas</h2>
@@ -87,11 +91,12 @@
                 <th scope="col" class="number">Reservado</th>
                 <th scope="col" class="number">Consumido</th>
                 <th scope="col" class="number">Disponível agora</th>
+                <th scope="col">Balanço para {{ v.quantidadePlanejada }} cestas</th>
               </tr>
             </thead>
             <tbody>
               @for (i of v.itens; track i.apresentacaoInsumoId) {
-                <tr>
+                <tr class="balanco-row">
                   <td>
                     {{
                       insumoPorId().get(i.apresentacaoInsumoId)?.insumo ||
@@ -109,6 +114,34 @@
                   <td class="number">{{ i.consumido ?? '—' }}</td>
                   <td class="number">
                     {{ insumoPorId().get(i.apresentacaoInsumoId)?.saldoDisponivel ?? '—' }}
+                  </td>
+                  <td>
+                    <div
+                      class="balanco-bar"
+                      [class.is-alerta]="
+                        !balancoSuficiente(
+                          i.quantidadePorCesta * v.quantidadePlanejada,
+                          insumoPorId().get(i.apresentacaoInsumoId)?.saldoDisponivel
+                        )
+                      "
+                    >
+                      <span
+                        class="balanco-bar__fill"
+                        [style.width.%]="
+                          balancoPercentual(
+                            i.quantidadePorCesta * v.quantidadePlanejada,
+                            insumoPorId().get(i.apresentacaoInsumoId)?.saldoDisponivel
+                          )
+                        "
+                      ></span>
+                    </div>
+                    <span class="balanco-row__detalhe">
+                      Restante projetado:
+                      {{
+                        (insumoPorId().get(i.apresentacaoInsumoId)?.saldoDisponivel ?? 0) -
+                          i.quantidadePorCesta * v.quantidadePlanejada
+                      }}
+                    </span>
                   </td>
                 </tr>
               }
@@ -239,13 +272,29 @@
     }
     @if (simulacao(); as s) {
       <section class="ui-panel">
-        <header class="ui-section-header">
+        <header class="ui-section-header termometro-header">
           <div>
             <h2>{{ s.quantidade }} cestas pretendidas</h2>
             <p>
               Capacidade máxima informada: {{ s.capacidadeMaxima }} cestas · Cobertura:
               {{ s.cobertura | percent: '1.0-2' }}
             </p>
+          </div>
+          <div
+            class="termometro"
+            role="img"
+            [attr.aria-label]="'Cobertura de estoque: ' + coberturaPercentual() + ' por cento da quantidade planejada'"
+          >
+            <svg viewBox="0 0 120 68" class="termometro__svg">
+              <path class="termometro__trilho" d="M10,63 A50,50 0 0 1 110,63"></path>
+              <path
+                class="termometro__arco"
+                d="M10,63 A50,50 0 0 1 110,63"
+                [style.stroke-dasharray]="157"
+                [style.stroke-dashoffset]="157 - (157 * dialValue()) / 100"
+              ></path>
+            </svg>
+            <div class="termometro__valor">{{ dialValue() }}%</div>
           </div>
         </header>
         <div class="table-scroll" tabindex="0" role="region" aria-label="Resultado da simulação">
@@ -264,7 +313,7 @@
             </thead>
             <tbody>
               @for (i of s.itens; track i.apresentacaoInsumoId) {
-                <tr>
+                <tr class="balanco-row">
                   <td>{{ i.insumo }} · {{ i.apresentacao }}</td>
                   <td class="number">{{ i.quantidadePorCesta }}</td>
                   <td class="number">{{ i.necessidade }}</td>
@@ -273,6 +322,12 @@
                   <td class="number">{{ i.saldoDisponivel }}</td>
                   <td class="number">{{ i.deficit }}</td>
                   <td>
+                    <div class="balanco-bar" [class.is-alerta]="i.deficit > 0">
+                      <span
+                        class="balanco-bar__fill"
+                        [style.width.%]="balancoPercentual(i.necessidade, i.saldoDisponivel)"
+                      ></span>
+                    </div>
                     <span
                       class="ui-badge"
                       [class.ui-badge--warning]="i.deficit > 0"

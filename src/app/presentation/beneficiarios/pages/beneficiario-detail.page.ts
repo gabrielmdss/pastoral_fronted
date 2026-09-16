@@ -41,6 +41,7 @@ export default class BeneficiarioDetailPage implements OnInit {
   readonly item = signal<BeneficiarioDetalhe | null>(null);
   readonly loading = signal(true);
   readonly error = signal('');
+  readonly tab = signal<'dados' | 'retiradas' | 'pendencias'>('dados');
   readonly mode = signal<'grupo' | 'desligar' | 'reativar' | null>(null);
   readonly mutation = signal(false);
   readonly feedback = signal('');

@@ -1,0 +1,93 @@
+.plano-panel {
+  transition: box-shadow 0.4s ease, border-color 0.4s ease;
+}
+.plano-panel--aprovada {
+  border-color: var(--color-success);
+  box-shadow: 0 0 0 1px var(--color-success-soft), var(--shadow-sm);
+}
+.plano-panel--concluida {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 1px var(--color-primary-soft), var(--shadow-sm);
+}
+
+.termometro-header {
+  align-items: center;
+}
+.termometro {
+  display: grid;
+  place-items: center;
+  position: relative;
+  width: 7.5rem;
+}
+.termometro__svg {
+  width: 100%;
+  overflow: visible;
+}
+.termometro__trilho,
+.termometro__arco {
+  fill: none;
+  stroke-width: 10;
+  stroke-linecap: round;
+}
+.termometro__trilho {
+  stroke: var(--color-surface-muted);
+}
+.termometro__arco {
+  stroke: var(--color-primary);
+  transition: stroke-dashoffset 1s ease-out;
+}
+.termometro__valor {
+  position: absolute;
+  bottom: 0.25rem;
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: var(--color-primary-dark);
+  font-variant-numeric: tabular-nums;
+}
+
+.balanco-row td {
+  vertical-align: middle;
+}
+.balanco-bar {
+  width: 100%;
+  min-width: 6rem;
+  height: 0.5rem;
+  border-radius: var(--radius-pill);
+  background: var(--color-surface-muted);
+  overflow: hidden;
+  margin-bottom: 0.375rem;
+  transition: box-shadow 0.15s ease;
+}
+.balanco-bar__fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--color-success);
+  transition: width 0.8s ease-out, background-color 0.2s ease;
+}
+.balanco-bar.is-alerta .balanco-bar__fill {
+  background: var(--color-warning);
+}
+.balanco-row__detalhe {
+  display: block;
+  font-size: 0.6875rem;
+  color: var(--color-text-muted);
+  transition: color 0.15s ease, font-weight 0.15s ease;
+}
+.balanco-row:hover .balanco-bar {
+  box-shadow: 0 0 0 3px var(--color-primary-soft);
+}
+.balanco-row:hover .balanco-row__detalhe {
+  color: var(--color-text);
+  font-weight: 650;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .plano-panel,
+  .termometro__arco,
+  .balanco-bar__fill,
+  .balanco-bar,
+  .balanco-row__detalhe {
+    transition: none;
+  }
+}

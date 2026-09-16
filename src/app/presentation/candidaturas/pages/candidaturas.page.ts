@@ -22,6 +22,8 @@ import {
   PriorizarCandidaturaUseCase,
   RegistrarContatoUseCase,
 } from '../../../application/candidaturas/candidaturas.use-cases';
+import { ObterCapacidadeUseCase } from '../../../application/capacidade/capacidade.use-cases';
+import type { Capacidade } from '../../../application/capacidade/capacidade.model';
 import type { Candidatura } from '../../../domain/candidaturas/candidatura.model';
 import { SessionFacade } from '../../../infrastructure/auth/session.facade';
 import { userErrorMessage } from '../../../shared/errors/user-error';
@@ -59,6 +61,7 @@ export default class CandidaturasPage {
   readonly feedback = signal('');
   readonly grupos = signal<GrupoDistribuicao[]>([]);
   readonly pessoa = signal<Pessoa | null>(null);
+  readonly capacidade = signal<Capacidade | null>(null);
   readonly search = new FormControl('', { nonNullable: true });
   readonly status = new FormControl('', { nonNullable: true });
   readonly prioridade = new FormControl('', {
@@ -87,6 +90,7 @@ export default class CandidaturasPage {
     private readonly naoLocalizado: MarcarNaoLocalizadoUseCase,
     private readonly admitir: AdmitirCandidaturaUseCase,
     grupos: ListarGruposUseCase,
+    capacidade: ObterCapacidadeUseCase,
     readonly session: SessionFacade,
   ) {
     this.connect();
@@ -94,6 +98,13 @@ export default class CandidaturasPage {
       .execute()
       .pipe(takeUntilDestroyed(this.destroy))
       .subscribe((items) => this.grupos.set(items));
+    capacidade
+      .execute()
+      .pipe(
+        catchError(() => of(null)),
+        takeUntilDestroyed(this.destroy),
+      )
+      .subscribe((c) => this.capacidade.set(c));
   }
   private connect() {
     merge(

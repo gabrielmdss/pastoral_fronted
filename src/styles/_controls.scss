@@ -67,7 +67,7 @@ button,
   border: 1px solid transparent;
   border-radius: var(--radius-md);
   background: var(--color-primary);
-  color: white;
+  color: var(--color-on-primary);
   font-size: 0.875rem;
   font-weight: 650;
   line-height: 1.4;
@@ -79,7 +79,7 @@ button,
 button:hover:not(:disabled),
 .btn:hover:not(:disabled) {
   background: var(--color-primary-dark);
-  color: white;
+  color: var(--color-on-primary);
   box-shadow: var(--shadow-sm);
 }
 button:active:not(:disabled),

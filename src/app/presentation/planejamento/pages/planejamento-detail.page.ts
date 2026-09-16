@@ -3,6 +3,7 @@ import {
   Component,
   DestroyRef,
   computed,
+  effect,
   inject,
   signal,
 } from '@angular/core';
@@ -47,6 +48,7 @@ import { StatusBadgeComponent } from '../../../shared/ui/status-badge.component'
     StatusBadgeComponent,
   ],
   templateUrl: './planejamento-detail.page.html',
+  styleUrl: './planejamento-detail.page.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export default class PlanejamentoDetailPage {
@@ -91,6 +93,10 @@ export default class PlanejamentoDetailPage {
     () => this.detalhe()?.versoes.some((v) => v.status === 'SIMULACAO') ?? false,
   );
   readonly insumoPorId = computed(() => new Map(this.insumos().map((i) => [i.apresentacaoId, i])));
+  readonly coberturaPercentual = computed(() =>
+    Math.max(0, Math.min(100, Math.round((this.simulacao()?.cobertura ?? 0) * 100))),
+  );
+  readonly dialValue = signal(0);
   readonly form = this.fb.group({
     competenciaId: ['', Validators.required],
     modeloId: ['', Validators.required],
@@ -103,6 +109,15 @@ export default class PlanejamentoDetailPage {
   private simulationVersion = 0;
   private catalogVersion = 0;
   constructor() {
+    effect(() => {
+      const alvo = this.simulacao() ? this.coberturaPercentual() : 0;
+      this.dialValue.set(0);
+      if (alvo > 0) {
+        setTimeout(() => {
+          if (!this.destroy.destroyed) this.dialValue.set(alvo);
+        }, 30);
+      }
+    });
     this.form.valueChanges
       .pipe(takeUntilDestroyed(this.destroy))
       .subscribe(() => this.invalidateSimulation());
@@ -132,6 +147,13 @@ export default class PlanejamentoDetailPage {
       this.versoesModelo.set([]);
       void this.carregar();
     });
+  }
+  balancoPercentual(necessario: number, disponivel: number | null | undefined): number {
+    if (necessario <= 0) return 100;
+    return Math.max(0, Math.min(100, Math.round(((disponivel ?? 0) / necessario) * 100)));
+  }
+  balancoSuficiente(necessario: number, disponivel: number | null | undefined): boolean {
+    return (disponivel ?? 0) >= necessario;
   }
   invalidateSimulation() {
     this.simulationVersion++;

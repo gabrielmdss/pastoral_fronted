@@ -49,6 +49,7 @@ import { StatusBadgeComponent } from '../../../shared/ui/status-badge.component'
     StatusBadgeComponent,
   ],
   templateUrl: './montagem.page.html',
+  styleUrl: './montagem.page.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export default class MontagemPage {
@@ -81,6 +82,10 @@ export default class MontagemPage {
   readonly feedback = signal('');
   readonly criando = signal(false);
   readonly acao = signal<'ajuste' | 'desmontagem' | null>(null);
+  readonly dragOverDropzone = signal(false);
+  readonly arrastandoInsumoId = signal<string | null>(null);
+  readonly ultimoItemEncaixado = signal<string | null>(null);
+  private encaixeTimeout: ReturnType<typeof setTimeout> | null = null;
   readonly podeAjustar = computed(
     () => this.session.hasPermission('CESTA_AJUSTAR_LOTE') && this.lote()?.podeAjustar === true,
   );
@@ -202,6 +207,53 @@ export default class MontagemPage {
   removerItemAjuste(index: number) {
     if (!this.saving() && this.ajusteForm.controls.itens.length > 1)
       this.ajusteForm.controls.itens.removeAt(index);
+  }
+  onDragStartInsumo(event: DragEvent, insumo: InsumoSaldo) {
+    if (this.saving()) {
+      event.preventDefault();
+      return;
+    }
+    event.dataTransfer?.setData('text/plain', insumo.apresentacaoId);
+    if (event.dataTransfer) event.dataTransfer.effectAllowed = 'copy';
+    this.arrastandoInsumoId.set(insumo.apresentacaoId);
+  }
+  onDragEndInsumo() {
+    this.arrastandoInsumoId.set(null);
+  }
+  onDragOverDropzone(event: DragEvent) {
+    if (this.saving()) return;
+    event.preventDefault();
+    this.dragOverDropzone.set(true);
+  }
+  onDragLeaveDropzone() {
+    this.dragOverDropzone.set(false);
+  }
+  onDropInsumo(event: DragEvent) {
+    event.preventDefault();
+    this.dragOverDropzone.set(false);
+    const apresentacaoInsumoId = event.dataTransfer?.getData('text/plain');
+    this.arrastandoInsumoId.set(null);
+    if (apresentacaoInsumoId) this.adicionarItemArrastado(apresentacaoInsumoId);
+  }
+  adicionarItemArrastado(apresentacaoInsumoId: string) {
+    if (this.saving()) return;
+    const existente = this.ajusteForm.controls.itens.controls.find(
+      (c) =>
+        c.controls.apresentacaoInsumoId.value === apresentacaoInsumoId &&
+        c.controls.operacao.value === 'ADICIONAR',
+    );
+    if (existente) {
+      const atual = existente.controls.quantidadePorCesta.value ?? 0;
+      existente.controls.quantidadePorCesta.setValue(atual + 1);
+    } else {
+      this.adicionarItemAjuste();
+      const novo = this.ajusteForm.controls.itens.controls.at(-1);
+      novo?.patchValue({ apresentacaoInsumoId, operacao: 'ADICIONAR', quantidadePorCesta: 1 });
+    }
+    const nome = this.insumoPorId().get(apresentacaoInsumoId)?.insumo ?? 'Item';
+    this.ultimoItemEncaixado.set(nome);
+    if (this.encaixeTimeout) clearTimeout(this.encaixeTimeout);
+    this.encaixeTimeout = setTimeout(() => this.ultimoItemEncaixado.set(null), 1800);
   }
   abrirAcao(acao: 'ajuste' | 'desmontagem') {
     if (

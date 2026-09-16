@@ -15,36 +15,52 @@
 } @else if (error()) {
   <app-error-state [message]="error()" (retry)="load()" />
 } @else if (data(); as cap) {
-  <section class="occupancy-panel">
-    <div class="occupancy-panel-head">
-      <span>Ocupação da capacidade</span>
-      <strong>{{ ocupacaoPercentual() }}%</strong>
-    </div>
-    <div
-      class="occupancy-bar"
-      [attr.data-status]="cap.excedente > 0 ? 'CRITICO' : cap.vagas === 0 ? 'ATENCAO' : 'OK'"
-      role="progressbar"
-      [attr.aria-valuenow]="cap.ativos"
-      [attr.aria-valuemax]="cap.capacidade"
+  <section class="metric-grid" aria-label="Indicadores de capacidade">
+    <app-metric-card label="Capacidade total" [delayMs]="0">{{ cap.capacidade }}</app-metric-card>
+    <app-metric-card label="Ocupação" [delayMs]="60">{{ ocupacaoPercentual() }}%</app-metric-card>
+    <app-metric-card
+      label="Vagas disponíveis"
+      [delayMs]="120"
+      [variant]="cap.vagas === 0 ? 'attention' : 'default'"
+      >{{ cap.vagas }}</app-metric-card
     >
-      <span class="occupancy-bar-fill" [style.width.%]="ocupacaoPercentual()"></span>
-    </div>
-    <small>{{ cap.ativos }} de {{ cap.capacidade }} vagas ocupadas</small>
+    <app-metric-card
+      label="Excedente"
+      [delayMs]="180"
+      [variant]="cap.excedente > 0 ? 'critical' : 'default'"
+      >{{ cap.excedente }}</app-metric-card
+    >
   </section>
-  <section class="capacity-grid">
-    <article>
-      <span>Capacidade</span><strong>{{ cap.capacidade }}</strong>
-    </article>
-    <article>
-      <span>Beneficiários ativos</span><strong>{{ cap.ativos }}</strong>
-    </article>
-    <article [class.is-highlight]="cap.vagas === 0">
-      <span>Vagas</span><strong>{{ cap.vagas }}</strong>
-    </article>
-    <article [class.is-highlight]="cap.excedente > 0">
-      <span>Excedente</span><strong>{{ cap.excedente }}</strong>
-    </article>
-  </section>
+  <div class="capacidade-columns">
+    <section class="ui-panel">
+      <div class="ui-section-header">
+        <h2>Ocupação da capacidade</h2>
+      </div>
+      <div
+        class="occupancy-bar"
+        [attr.data-status]="cap.excedente > 0 ? 'CRITICO' : cap.vagas === 0 ? 'ATENCAO' : 'OK'"
+        role="progressbar"
+        [attr.aria-valuenow]="cap.ativos"
+        [attr.aria-valuemax]="cap.capacidade"
+      >
+        <span class="occupancy-bar-fill" [style.width.%]="ocupacaoPercentual()"></span>
+      </div>
+      <small>{{ cap.ativos }} de {{ cap.capacidade }} vagas ocupadas</small>
+    </section>
+    <section class="ui-panel">
+      <div class="ui-section-header">
+        <h2>Regras aplicadas</h2>
+      </div>
+      <p class="ui-message">
+        Cada beneficiário conta uma vez contra a capacidade enquanto estiver ativo. A API é a
+        autoridade sobre o cálculo de vagas e excedente.
+      </p>
+      <p class="ui-message ui-message--warning">
+        Novas admissões acima da capacidade exigem autorização e justificativa registrada;
+        nenhum beneficiário é desligado automaticamente ao reduzir a capacidade.
+      </p>
+    </section>
+  </div>
 }
 @if (dialog()) {
   <div class="dialog-backdrop">

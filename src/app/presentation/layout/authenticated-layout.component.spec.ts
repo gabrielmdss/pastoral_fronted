@@ -7,8 +7,8 @@ describe('visibilidade por permissão', () => {
   it.each([
     [[], []],
     [['ESTOQUE_VISUALIZAR'], ['/relatorios']],
-    [['BENEFICIARIO_VISUALIZAR'], ['/competencias', '/distribuicoes', '/relatorios']],
-    [['BENEFICIARIO_VISUALIZAR', 'ESTOQUE_VISUALIZAR'], ['/dashboard', '/competencias', '/distribuicoes', '/relatorios']],
+    [['BENEFICIARIO_VISUALIZAR'], ['/distribuicoes', '/relatorios']],
+    [['BENEFICIARIO_VISUALIZAR', 'ESTOQUE_VISUALIZAR'], ['/dashboard', '/distribuicoes', '/relatorios']],
   ])('renderiza navegação autorizada para %j', (permissions, links) => {
     TestBed.configureTestingModule({
       providers: [provideRouter([]), {
@@ -40,6 +40,10 @@ describe('visibilidade por permissão', () => {
       ],
     });
     const page = TestBed.createComponent(AuthenticatedLayoutComponent).componentInstance;
-    expect(page.assistanceMenu().map((x) => x.label)).toEqual(['Beneficiários', 'Capacidade']);
+    expect(page.assistanceMenu().map((x) => x.label)).toEqual([
+      'Beneficiários',
+      'Capacidade',
+      'Competências',
+    ]);
   });
 });
