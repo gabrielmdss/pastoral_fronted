@@ -1,0 +1,18 @@
+services:
+  - type: web
+    name: pastoral-frontend-homolog
+    runtime: static
+    branch: main
+    buildCommand: node scripts/write-runtime-config.mjs && npm run build
+    staticPublishPath: dist/pastoral-frontend/browser
+    envVars:
+      - key: API_BASE_URL
+        sync: false
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    headers:
+      - path: /config.json
+        name: Cache-Control
+        value: no-store

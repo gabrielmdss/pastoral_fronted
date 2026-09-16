@@ -1,0 +1,11 @@
+{
+  "buildCommand": "node scripts/write-runtime-config.mjs && npm run build",
+  "outputDirectory": "dist/pastoral-frontend/browser",
+  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }],
+  "headers": [
+    {
+      "source": "/config.json",
+      "headers": [{ "key": "Cache-Control", "value": "no-store" }]
+    }
+  ]
+}

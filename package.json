@@ -8,7 +8,14 @@
     "lint": "eslint .",
     "typecheck": "tsc -p tsconfig.app.json --noEmit && tsc -p tsconfig.spec.json --noEmit",
     "watch": "ng build --watch --configuration development",
-    "test": "ng test"
+    "test": "ng test",
+    "build:homolog": "node scripts/write-runtime-config.mjs && ng build",
+    "build:producao": "node scripts/write-runtime-config.mjs && ng build",
+    "serve:static": "node scripts/static-server.mjs",
+    "pm2:start": "pm2 start ecosystem.config.cjs --env homologacao",
+    "pm2:restart": "pm2 restart pastoral-frontend",
+    "pm2:stop": "pm2 stop pastoral-frontend",
+    "pm2:logs": "pm2 logs pastoral-frontend"
   },
   "private": true,
   "packageManager": "npm@10.9.3",
