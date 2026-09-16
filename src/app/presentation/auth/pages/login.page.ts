@@ -12,6 +12,7 @@ import { userErrorMessage } from '../../../shared/errors/user-error';
 })
 export default class LoginPage {
   readonly errorMessage = signal('');
+  readonly mostrarSenha = signal(false);
   readonly form = new FormGroup({
     login: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
     senha: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
