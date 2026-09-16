@@ -26,6 +26,7 @@ import { SESSION_STORAGE } from '../application/auth/ports/session-storage.port'
 import { GetCurrentUserUseCase } from '../application/auth/use-cases/get-current-user.use-case';
 import { LoginUseCase } from '../application/auth/use-cases/login.use-case';
 import { LogoutUseCase } from '../application/auth/use-cases/logout.use-case';
+import { AlterarSenhaUseCase } from '../application/auth/use-cases/alterar-senha.use-case';
 import { DASHBOARD_API } from '../application/dashboard/dashboard-api.port';
 import { GetDashboardUseCase } from '../application/dashboard/get-dashboard.use-case';
 import { BENEFICIARIOS_API } from '../application/beneficiarios/beneficiarios-api.port';
@@ -119,6 +120,7 @@ export function providePastoralApplication(): Array<Provider | EnvironmentProvid
     LoginUseCase,
     GetCurrentUserUseCase,
     LogoutUseCase,
+    AlterarSenhaUseCase,
     GetDashboardUseCase,
     BuscarBeneficiariosUseCase,
     ObterBeneficiarioUseCase,

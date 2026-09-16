@@ -1,0 +1,55 @@
+<app-page-header
+  eyebrow="Minha conta"
+  title="Alterar senha"
+  description="A alteração não afeta sua sessão atual — você continua conectado até o token expirar."
+/>
+
+@if (feedback()) {
+  <p class="ui-message ui-message--success" role="status">{{ feedback() }}</p>
+}
+@if (errorMessage()) {
+  <p class="ui-message ui-message--error" role="alert">{{ errorMessage() }}</p>
+}
+
+<form class="form-grid ui-panel" [formGroup]="form" (ngSubmit)="submit()" novalidate>
+  <label for="senhaAtual">Senha atual</label>
+  <app-password-field
+    id="senhaAtual"
+    formControlName="senhaAtual"
+    autocomplete="current-password"
+    [ariaInvalid]="form.controls.senhaAtual.invalid && form.controls.senhaAtual.touched"
+  />
+  @if (form.controls.senhaAtual.invalid && form.controls.senhaAtual.touched) {
+    <small class="field-error">Informe sua senha atual.</small>
+  }
+
+  <label for="novaSenha">Nova senha</label>
+  <app-password-field
+    id="novaSenha"
+    formControlName="novaSenha"
+    autocomplete="new-password"
+    [ariaInvalid]="form.controls.novaSenha.invalid && form.controls.novaSenha.touched"
+  />
+  @if (form.controls.novaSenha.touched && form.controls.novaSenha.hasError('required')) {
+    <small class="field-error">Informe a nova senha.</small>
+  } @else if (form.controls.novaSenha.touched && form.controls.novaSenha.hasError('minlength')) {
+    <small class="field-error">A nova senha deve ter no mínimo 8 caracteres.</small>
+  }
+
+  <label for="confirmarNovaSenha">Confirmar nova senha</label>
+  <app-password-field
+    id="confirmarNovaSenha"
+    formControlName="confirmarNovaSenha"
+    autocomplete="new-password"
+    [ariaInvalid]="form.controls.confirmarNovaSenha.invalid && form.controls.confirmarNovaSenha.touched"
+  />
+  @if (form.controls.confirmarNovaSenha.touched && form.controls.confirmarNovaSenha.hasError('required')) {
+    <small class="field-error">Confirme a nova senha.</small>
+  } @else if (form.controls.confirmarNovaSenha.touched && form.hasError('senhasDiferentes')) {
+    <small class="field-error">As senhas não coincidem.</small>
+  }
+
+  <button type="submit" [disabled]="saving()">
+    {{ saving() ? 'Salvando…' : 'Salvar nova senha' }}
+  </button>
+</form>

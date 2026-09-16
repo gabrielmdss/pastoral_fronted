@@ -3,6 +3,7 @@ import { Inject, Injectable } from '@angular/core';
 import { map, type Observable } from 'rxjs';
 import type { AuthApiPort } from '../../../application/auth/ports/auth-api.port';
 import type { LoginInput, LoginResult } from '../../../application/auth/models/login.model';
+import type { AlterarSenhaInput } from '../../../application/auth/models/alterar-senha.model';
 import type { AuthenticatedUser } from '../../../domain/auth/authenticated-user.model';
 import { APP_CONFIG, type AppConfig } from '../../config/app-config';
 import type { LoginResponseDto, MeResponseDto } from './auth-api.contracts';
@@ -25,5 +26,8 @@ export class AuthApiService implements AuthApiPort {
     return this.http
       .get<MeResponseDto>(`${this.config.apiBaseUrl}/auth/me`)
       .pipe(map(({ data }) => mapAuthenticatedUser(data)));
+  }
+  alterarSenha(input: AlterarSenhaInput): Observable<void> {
+    return this.http.post<void>(`${this.config.apiBaseUrl}/auth/senha`, input);
   }
 }

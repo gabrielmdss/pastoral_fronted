@@ -45,6 +45,10 @@ export const appRoutes: Routes = [
         loadComponent: () => import('../shared/ui/access-denied.component'),
       },
       {
+        path: 'perfil/senha',
+        loadComponent: () => import('../presentation/auth/pages/alterar-senha.page'),
+      },
+      {
         path: 'beneficiarios',
         canActivate: [permissionGuard('BENEFICIARIO_VISUALIZAR')],
         loadComponent: () => import('../presentation/beneficiarios/pages/beneficiarios-list.page'),

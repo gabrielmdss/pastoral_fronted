@@ -9,6 +9,7 @@ describe('LoginUseCase', () => {
     const api: AuthApiPort = {
       login: vi.fn(() => of({ accessToken: 'jwt', usuario: user })),
       me: vi.fn(() => of(user)),
+      alterarSenha: vi.fn(() => of(undefined)),
     };
     const storage: SessionStoragePort = {
       getAccessToken: vi.fn(),

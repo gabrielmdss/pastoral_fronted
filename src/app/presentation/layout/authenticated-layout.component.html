@@ -86,9 +86,14 @@
       >
         {{ theme.theme() === 'dark' ? '☾' : '☀' }}
       </button>
-      <div class="user-dot" aria-hidden="true">
+      <a
+        class="user-dot"
+        routerLink="/perfil/senha"
+        [attr.aria-label]="'Alterar senha (' + (session.currentUser()?.login ?? 'usuário') + ')'"
+        title="Alterar senha"
+      >
         {{ session.currentUser()?.login?.charAt(0)?.toUpperCase() }}
-      </div>
+      </a>
     </header>
     <main class="page" id="main-content" tabindex="-1"><router-outlet /></main>
   </div>

@@ -37,24 +37,12 @@
           <small class="field-error">Informe o login.</small>
         }
         <label for="senha">Senha</label>
-        <div class="password-field">
-          <input
-            id="senha"
-            [type]="mostrarSenha() ? 'text' : 'password'"
-            formControlName="senha"
-            autocomplete="current-password"
-            [attr.aria-invalid]="form.controls.senha.invalid && form.controls.senha.touched"
-          />
-          <button
-            type="button"
-            class="password-field__toggle"
-            (click)="mostrarSenha.set(!mostrarSenha())"
-            [attr.aria-label]="mostrarSenha() ? 'Ocultar senha' : 'Mostrar senha'"
-            [attr.aria-pressed]="mostrarSenha()"
-          >
-            {{ mostrarSenha() ? '🙈' : '👁' }}
-          </button>
-        </div>
+        <app-password-field
+          id="senha"
+          formControlName="senha"
+          autocomplete="current-password"
+          [ariaInvalid]="form.controls.senha.invalid && form.controls.senha.touched"
+        />
         @if (form.controls.senha.invalid && form.controls.senha.touched) {
           <small class="field-error">Informe a senha.</small>
         }
