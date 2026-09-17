@@ -16,3 +16,17 @@ export class CriarPessoaUseCase {
     return this.api.criar(i).pipe(switchMap(({ id }) => this.api.obter(id)));
   }
 }
+@Injectable()
+export class ObterFotoPessoaUseCase {
+  constructor(@Inject(PESSOAS_API) private readonly api: PessoasApiPort) {}
+  execute(id: string) {
+    return this.api.obterFoto(id);
+  }
+}
+@Injectable()
+export class EnviarFotoPessoaUseCase {
+  constructor(@Inject(PESSOAS_API) private readonly api: PessoasApiPort) {}
+  execute(id: string, arquivo: File) {
+    return this.api.enviarFoto(id, arquivo);
+  }
+}

@@ -78,6 +78,9 @@ const messages: Record<string, string> = {
   DESCRICAO_OBRIGATORIA: 'Informe a descrição da justificativa.',
   JUSTIFICATIVA_NAO_ENCONTRADA: 'A justificativa não foi encontrada.',
   JUSTIFICATIVA_JA_AVALIADA: 'Esta justificativa já foi avaliada.',
+  TIPO_ARQUIVO_INVALIDO: 'Formato de imagem não suportado. Envie um arquivo JPEG, PNG ou WEBP.',
+  ARQUIVO_INVALIDO: 'A imagem é muito grande. O tamanho máximo permitido é 5MB.',
+  FOTO_NAO_ENCONTRADA: 'Este beneficiário ainda não possui foto cadastrada.',
 };
 export function userErrorMessage(
   error: unknown,

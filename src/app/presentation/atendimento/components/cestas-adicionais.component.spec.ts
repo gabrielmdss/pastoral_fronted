@@ -67,6 +67,7 @@ async function setup(permissions = all) {
       of([
         {
           id: '1',
+          pessoaId: '1p',
           nomeCompleto: 'Ana Silva',
           status: 'ATIVO',
           documentos: [{ tipo: 'CPF', numeroMascarado: '***123' }],

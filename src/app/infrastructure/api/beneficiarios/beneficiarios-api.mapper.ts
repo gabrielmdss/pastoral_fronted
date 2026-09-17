@@ -7,10 +7,11 @@ import type { BeneficiarioDetalheDto, BeneficiarioResumoDto } from './beneficiar
 export function mapBeneficiarioResumo(d: BeneficiarioResumoDto): BeneficiarioResumo {
   return {
     id: String(d.id),
+    pessoaId: String(d.pessoaId),
     nomeCompleto: d.nomeCompleto,
     status: d.status as BeneficiarioStatus,
     grupo: d.grupo ? { id: String(d.grupo.id), codigo: d.grupo.codigo } : null,
-    fotoPrincipal: d.fotoPrincipal,
+    fotoPrincipal: d.fotoPrincipal ? { ...d.fotoPrincipal } : null,
     documentos: d.documentos.map((x) => ({ ...x })),
   };
 }

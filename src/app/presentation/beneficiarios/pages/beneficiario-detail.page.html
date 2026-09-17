@@ -13,13 +13,51 @@
   <app-error-state [message]="error()" (retry)="load()" />
 } @else if (item(); as b) {
   <section class="detail-card profile">
-    <div class="avatar large">{{ b.pessoa.nomeCompleto.charAt(0) }}</div>
+    <button
+      type="button"
+      class="avatar large"
+      [class.avatar-clickable]="!!fotoUrl()"
+      [disabled]="!fotoUrl()"
+      (click)="fotoUrl() && fotoExpandida.set(true)"
+      [attr.aria-label]="fotoUrl() ? 'Ampliar foto de ' + b.pessoa.nomeCompleto : b.pessoa.nomeCompleto"
+    >
+      @if (fotoUrl(); as url) {
+        <img [src]="url" [alt]="'Foto de ' + b.pessoa.nomeCompleto" class="avatar-photo" />
+      } @else if (!fotoCarregando()) {
+        {{ b.pessoa.nomeCompleto.charAt(0) }}
+      }
+    </button>
+    @if (fotoExpandida() && fotoUrl(); as url) {
+      <app-image-lightbox
+        [src]="url"
+        [alt]="'Foto de ' + b.pessoa.nomeCompleto"
+        [caption]="b.pessoa.nomeCompleto"
+        (close)="fotoExpandida.set(false)"
+      />
+    }
     <div>
       <h2>{{ b.pessoa.nomeCompleto }}</h2>
       <app-status-badge [status]="b.status" />
       <p>{{ b.grupo?.nome || 'Sem grupo' }} · Admissão {{ b.dataAdmissao }}</p>
+      @if (fotoErro()) {
+        <p class="ui-message ui-message--error" role="alert">{{ fotoErro() }}</p>
+      }
     </div>
     <div class="actions">
+      @if (session.hasPermission('BENEFICIARIO_EDITAR')) {
+        <label
+          class="btn secondary photo-upload-label"
+          [attr.aria-disabled]="fotoEnviando() ? 'true' : null"
+        >
+          {{ fotoEnviando() ? 'Enviando...' : fotoUrl() ? 'Alterar foto' : 'Adicionar foto' }}
+          <input
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            [disabled]="fotoEnviando()"
+            (change)="onFotoSelecionada($event)"
+          />
+        </label>
+      }
       @if (b.status === 'ATIVO' && session.hasPermission('BENEFICIARIO_EDITAR')) {
         <button class="secondary" (click)="mode.set('grupo')">Alterar grupo</button>
       }
@@ -84,9 +122,6 @@
             }}/{{ e.uf }}
             · {{ e.cep }}
           </p>
-        }
-        @if (b.pessoa.fotoPrincipal) {
-          <p class="hint">Foto cadastrada, aguardando endpoint seguro de mídia.</p>
         }
       </article>
       <article class="ui-panel">

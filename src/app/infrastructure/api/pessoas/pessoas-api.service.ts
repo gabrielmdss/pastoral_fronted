@@ -29,4 +29,13 @@ export class PessoasApiService implements PessoasApiPort {
   criar(i: CriarPessoaInput) {
     return this.http.post<Data<{ id: string }>>(this.url, i).pipe(map((r) => r.data));
   }
+  obterFoto(id: string) {
+    const params = new HttpParams().set('_', Date.now().toString());
+    return this.http.get(`${this.url}/${id}/foto`, { params, responseType: 'blob' });
+  }
+  enviarFoto(id: string, arquivo: File) {
+    const form = new FormData();
+    form.append('foto', arquivo);
+    return this.http.post<void>(`${this.url}/${id}/foto`, form);
+  }
 }

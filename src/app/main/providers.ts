@@ -45,7 +45,12 @@ import {
 } from '../application/capacidade/capacidade.use-cases';
 import { CANDIDATURAS_API } from '../application/candidaturas/candidaturas-api.port';
 import { PESSOAS_API } from '../application/pessoas/pessoas-api.port';
-import { BuscarPessoasUseCase, CriarPessoaUseCase } from '../application/pessoas/pessoas.use-cases';
+import {
+  BuscarPessoasUseCase,
+  CriarPessoaUseCase,
+  ObterFotoPessoaUseCase,
+  EnviarFotoPessoaUseCase,
+} from '../application/pessoas/pessoas.use-cases';
 import { CATALOGOS_API } from '../application/beneficiarios/catalogos-api.port';
 import { ListarGruposUseCase, ListarMotivosUseCase } from '../application/beneficiarios/catalogos.use-cases';
 import {
@@ -140,7 +145,7 @@ export function providePastoralApplication(): Array<Provider | EnvironmentProvid
     RegistrarContatoUseCase,
     MarcarNaoLocalizadoUseCase,
     AdmitirCandidaturaUseCase,
-    BuscarPessoasUseCase, CriarPessoaUseCase, ListarGruposUseCase, ListarMotivosUseCase,
+    BuscarPessoasUseCase, CriarPessoaUseCase, ObterFotoPessoaUseCase, EnviarFotoPessoaUseCase, ListarGruposUseCase, ListarMotivosUseCase,
     SessionStateService,
     AtendimentoApiService,
     ListarCheckInsUseCase,

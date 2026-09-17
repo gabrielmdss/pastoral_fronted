@@ -1,9 +1,10 @@
 export interface BeneficiarioResumoDto {
   id: string;
+  pessoaId: string;
   nomeCompleto: string;
   status: string;
   grupo: { id: string; codigo: string | null } | null;
-  fotoPrincipal: string | null;
+  fotoPrincipal: { storageKey: string; mimeType: string | null } | null;
   documentos: Array<{ tipo: string; numeroMascarado: string }>;
 }
 export interface BeneficiarioDetalheDto {

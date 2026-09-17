@@ -61,15 +61,52 @@
   flex: 0 0 auto;
   width: 2.3rem;
   height: 2.3rem;
+  min-height: 0;
+  padding: 0;
+  border: none;
   border-radius: 50%;
   background: var(--color-primary-soft);
   color: var(--color-primary-dark);
   font-weight: 700;
+  cursor: default;
+}
+button.avatar:disabled {
+  background: var(--color-primary-soft);
+  color: var(--color-primary-dark);
+  cursor: default;
+}
+.avatar-clickable {
+  cursor: zoom-in;
 }
 .avatar.large {
   width: 4rem;
   height: 4rem;
   font-size: 1.4rem;
+  overflow: hidden;
+}
+.avatar-photo {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.photo-upload-label {
+  position: relative;
+  cursor: pointer;
+}
+.photo-upload-label[aria-disabled='true'] {
+  pointer-events: none;
+  background: #e4e9e6;
+  border-color: var(--color-border);
+  color: #637168;
+  cursor: not-allowed;
+}
+.photo-upload-label input[type='file'] {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
 }
 .dialog-backdrop {
   position: fixed;

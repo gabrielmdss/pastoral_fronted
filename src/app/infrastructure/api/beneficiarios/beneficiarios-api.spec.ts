@@ -26,6 +26,7 @@ describe('BeneficiariosApiService e mapper', () => {
     expect(
       mapBeneficiarioResumo({
         id: '1',
+        pessoaId: '2',
         nomeCompleto: 'Ana',
         status: 'ATIVO',
         grupo: null,

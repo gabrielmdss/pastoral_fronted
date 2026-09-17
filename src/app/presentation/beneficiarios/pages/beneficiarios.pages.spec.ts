@@ -10,6 +10,10 @@ import {
   ObterBeneficiarioUseCase,
   ReativarBeneficiarioUseCase,
 } from '../../../application/beneficiarios/beneficiarios.use-cases';
+import {
+  EnviarFotoPessoaUseCase,
+  ObterFotoPessoaUseCase,
+} from '../../../application/pessoas/pessoas.use-cases';
 import { SessionFacade } from '../../../infrastructure/auth/session.facade';
 import BeneficiarioDetailPage from './beneficiario-detail.page';
 import BeneficiariosListPage from './beneficiarios-list.page';
@@ -75,6 +79,8 @@ describe('páginas de beneficiários', () => {
         { provide: DesligarBeneficiarioUseCase, useValue: { execute: desligar } },
         { provide: AlterarGrupoBeneficiarioUseCase, useValue: {} },
         { provide: ReativarBeneficiarioUseCase, useValue: {} },
+        { provide: ObterFotoPessoaUseCase, useValue: { execute: () => throwError(() => new Error()) } },
+        { provide: EnviarFotoPessoaUseCase, useValue: {} },
         { provide: SessionFacade, useValue: session },
         groups,{provide:ListarMotivosUseCase,useValue:{execute:()=>of([])}},
       ],

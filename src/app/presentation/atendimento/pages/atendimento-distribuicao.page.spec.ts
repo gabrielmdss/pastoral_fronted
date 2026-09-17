@@ -120,7 +120,7 @@ function setup(options?: {
 }
 
 describe('AtendimentoDistribuicaoPage', () => {
-  const pessoa: BeneficiarioResumo = { id: '8', nomeCompleto: 'Maria', status: 'ATIVO', grupo: null, fotoPrincipal: null, documentos: [] };
+  const pessoa: BeneficiarioResumo = { id: '8', pessoaId: '8p', nomeCompleto: 'Maria', status: 'ATIVO', grupo: null, fotoPrincipal: null, documentos: [] };
 
   it('mantém a rodada mais recente das filas mesmo quando a anterior responde depois', () => {
     const requests = Array.from({ length: 4 }, () => new Subject<CheckIn[]>());
@@ -363,7 +363,7 @@ describe('AtendimentoDistribuicaoPage', () => {
     expect(fixture.nativeElement.textContent).toContain('Histórico de check-ins');
     expect(listar).toHaveBeenCalledWith('1');
     expect(listarRetiradas).toHaveBeenCalledOnce();
-    page.registrarChegada({ id: '8', nomeCompleto: 'Ana', status: 'ATIVO', grupo: null, fotoPrincipal: null, documentos: [] });
+    page.registrarChegada({ id: '8', pessoaId: '8p', nomeCompleto: 'Ana', status: 'ATIVO', grupo: null, fotoPrincipal: null, documentos: [] });
     page.registrarRetiradaTitular(checkIn({ id: '8' }));
     page.registrarRetiradaRepresentante(checkIn({ id: '8' }));
     expect(registrar).not.toHaveBeenCalled();
@@ -445,7 +445,7 @@ describe('AtendimentoDistribuicaoPage', () => {
 
   it('permite uma nova busca depois de erro', async () => {
     vi.useFakeTimers();
-    const beneficiario: BeneficiarioResumo = { id: '2', nomeCompleto: 'Maria', status: 'ATIVO', grupo: null, fotoPrincipal: null, documentos: [] };
+    const beneficiario: BeneficiarioResumo = { id: '2', pessoaId: '2p', nomeCompleto: 'Maria', status: 'ATIVO', grupo: null, fotoPrincipal: null, documentos: [] };
     const buscar = vi
       .fn()
       .mockReturnValueOnce(throwError(() => new Error('falha')))
@@ -466,7 +466,7 @@ describe('AtendimentoDistribuicaoPage', () => {
     const registrado = checkIn({ id: 'novo' });
     const registrar = vi.fn().mockReturnValue(of(registrado));
     const { page, listar, obter } = setup({ registrar });
-    const beneficiario: BeneficiarioResumo = { id: '8', nomeCompleto: 'José', status: 'ATIVO', grupo: null, fotoPrincipal: null, documentos: [] };
+    const beneficiario: BeneficiarioResumo = { id: '8', pessoaId: '8p', nomeCompleto: 'José', status: 'ATIVO', grupo: null, fotoPrincipal: null, documentos: [] };
 
     page.registrarChegada(beneficiario);
 

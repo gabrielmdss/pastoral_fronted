@@ -5,10 +5,11 @@ export interface DocumentoResumo {
 }
 export interface BeneficiarioResumo {
   id: string;
+  pessoaId: string;
   nomeCompleto: string;
   status: BeneficiarioStatus;
   grupo: { id: string; codigo: string | null } | null;
-  fotoPrincipal: string | null;
+  fotoPrincipal: { storageKey: string; mimeType: string | null } | null;
   documentos: DocumentoResumo[];
 }
 export interface BeneficiarioDetalhe {

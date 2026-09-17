@@ -61,8 +61,8 @@
           <tr class="fade-in-stagger" [style.--delay.ms]="i * 30">
             <td>
               <div class="person">
-                <span class="avatar">{{ item.nomeCompleto.charAt(0) }}</span
-                ><strong>{{ item.nomeCompleto }}</strong>
+                <app-beneficiario-avatar [pessoaId]="item.pessoaId" [nome]="item.nomeCompleto" />
+                <strong>{{ item.nomeCompleto }}</strong>
               </div>
             </td>
             <td class="muted">{{ item.documentos[0]?.numeroMascarado || 'Não informado' }}</td>

@@ -28,6 +28,7 @@ import { LoadingStateComponent } from '../../../shared/ui/loading-state.componen
 import { PageHeaderComponent } from '../../../shared/ui/page-header.component';
 import { StatusBadgeComponent } from '../../../shared/ui/status-badge.component';
 import { PessoaSearchFieldComponent } from '../../shared/pessoas/pessoa-search-field.component';
+import { BeneficiarioAvatarComponent } from '../../shared/beneficiarios/beneficiario-avatar.component';
 import { ListarGruposUseCase } from '../../../application/beneficiarios/catalogos.use-cases';
 import type { GrupoDistribuicao } from '../../../application/beneficiarios/catalogos.models';
 import type { Pessoa } from '../../../domain/pessoas/pessoa.model';
@@ -42,6 +43,7 @@ import type { Pessoa } from '../../../domain/pessoas/pessoa.model';
     PageHeaderComponent,
     StatusBadgeComponent,
     PessoaSearchFieldComponent,
+    BeneficiarioAvatarComponent,
   ],
   templateUrl: './beneficiarios-list.page.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
