@@ -24,6 +24,8 @@ const messages: Record<string, string> = {
   COMPETENCIA_NAO_ENCONTRADA: 'Competência não encontrada.',
   DISTRIBUICAO_NAO_REMARCAVEL: 'Esta distribuição não pode ser remarcada no status atual. Atualize a consulta.',
   VALIDACAO_INVALIDA: 'Verifique os dados informados.',
+  LOGIN_JA_EXISTE: 'Já existe um usuário com esse login.',
+  PERFIL_NAO_ENCONTRADO: 'Um dos perfis selecionados não está mais disponível. Atualize a lista de perfis.',
   REGISTRO_DUPLICADO: 'Já existe um registro com os dados informados.',
   REFERENCIA_INVALIDA: 'Um registro relacionado não está disponível. Atualize a consulta.',
   REGRA_DE_INTEGRIDADE: 'Os dados não atendem às regras permitidas pelo servidor.',

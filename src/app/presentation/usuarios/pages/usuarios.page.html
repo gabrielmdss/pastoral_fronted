@@ -1,0 +1,128 @@
+<app-page-header
+  eyebrow="Gestão"
+  title="Usuários"
+  description="Cadastre pessoas que vão acessar o sistema e defina os perfis de acesso de cada uma."
+/>
+
+@if (ultimoCriado(); as criado) {
+  <p class="ui-message ui-message--success" role="status">
+    Usuário <strong>{{ criado.login }}</strong> cadastrado com
+    {{ criado.perfis.length === 1 ? 'o perfil' : 'os perfis' }} {{ nomesPerfis(criado.perfis) }}.
+    Entregue a senha à pessoa por um canal seguro.
+  </p>
+}
+
+<app-section-card title="Novo usuário" description="O login precisa ser único. A senha deve ter no mínimo 8 caracteres.">
+  <span actions class="ui-tone ui-tone--primary"><app-icon name="user-plus" /></span>
+  <form class="ui-stack" [formGroup]="form" (ngSubmit)="submit()" novalidate>
+    @if (errorMessage()) {
+      <p class="ui-message ui-message--error" role="alert">{{ errorMessage() }}</p>
+    }
+
+    <div class="ui-field">
+      <label class="ui-field__label" for="login">Login</label>
+      <input
+        id="login"
+        type="text"
+        formControlName="login"
+        autocomplete="off"
+        autocapitalize="off"
+        spellcheck="false"
+        [attr.aria-invalid]="campoInvalido('login')"
+      />
+      @if (campoInvalido('login') && form.controls.login.hasError('required')) {
+        <small class="ui-field__error">Informe o login.</small>
+      } @else if (campoInvalido('login') && form.controls.login.hasError('minlength')) {
+        <small class="ui-field__error">O login deve ter no mínimo 3 caracteres.</small>
+      } @else if (campoInvalido('login') && form.controls.login.hasError('maxlength')) {
+        <small class="ui-field__error">O login deve ter no máximo 100 caracteres.</small>
+      } @else {
+        <small class="ui-field__hint">Usado para entrar no sistema.</small>
+      }
+    </div>
+
+    <div class="ui-form-row">
+      <div class="ui-field">
+        <label class="ui-field__label" for="senha">Senha</label>
+        <app-password-field
+          id="senha"
+          formControlName="senha"
+          autocomplete="new-password"
+          [ariaInvalid]="campoInvalido('senha')"
+        />
+        @if (campoInvalido('senha') && form.controls.senha.hasError('required')) {
+          <small class="ui-field__error">Informe a senha.</small>
+        } @else if (campoInvalido('senha') && form.controls.senha.hasError('minlength')) {
+          <small class="ui-field__error">A senha deve ter no mínimo 8 caracteres.</small>
+        } @else if (campoInvalido('senha') && form.controls.senha.hasError('maxlength')) {
+          <small class="ui-field__error">A senha deve ter no máximo 200 caracteres.</small>
+        } @else {
+          <small class="ui-field__hint">Mínimo de 8 caracteres.</small>
+        }
+      </div>
+
+      <div class="ui-field">
+        <label class="ui-field__label" for="confirmarSenha">Confirmar senha</label>
+        <app-password-field
+          id="confirmarSenha"
+          formControlName="confirmarSenha"
+          autocomplete="new-password"
+          [ariaInvalid]="campoInvalido('confirmarSenha')"
+        />
+        @if (campoInvalido('confirmarSenha') && form.controls.confirmarSenha.hasError('required')) {
+          <small class="ui-field__error">Confirme a senha.</small>
+        } @else if (form.controls.confirmarSenha.touched && form.hasError('senhasDiferentes')) {
+          <small class="ui-field__error">As senhas não coincidem.</small>
+        }
+      </div>
+    </div>
+
+    <fieldset class="ui-fieldset--plain ui-stack ui-stack--sm" aria-describedby="perfis-ajuda">
+      <legend class="ui-field__label">Perfis de acesso</legend>
+      <small id="perfis-ajuda" class="ui-field__hint">
+        As permissões do usuário serão a soma dos perfis marcados.
+      </small>
+      @if (perfisLoading()) {
+        <app-loading-state label="Carregando perfis…" variant="lines" [rows]="3" />
+      } @else if (perfisError()) {
+        <app-error-state
+          title="Perfis indisponíveis"
+          [message]="perfisError()"
+          retryLabel="Tentar novamente"
+          (retry)="carregarPerfis()"
+        />
+      } @else {
+        @for (perfil of perfis(); track perfil.id) {
+          <label class="ui-check">
+            <input
+              type="checkbox"
+              [checked]="perfilSelecionado(perfil.id)"
+              (change)="alternarPerfil(perfil.id, $event)"
+              [attr.data-perfil]="perfil.codigo"
+            />
+            <span>{{ perfil.nome }}</span>
+            @if (perfil.codigo === 'ADMINISTRADOR') {
+              <span class="ui-badge ui-badge--warning">Acesso total</span>
+            }
+          </label>
+        } @empty {
+          <p class="text-muted text-sm">Nenhum perfil ativo disponível.</p>
+        }
+      }
+      @if (campoInvalido('perfilIds')) {
+        <small class="ui-field__error">Selecione pelo menos um perfil.</small>
+      }
+    </fieldset>
+
+    <div class="ui-actions ui-actions--end">
+      <button
+        type="submit"
+        [disabled]="saving() || perfisLoading() || !!perfisError()"
+        [class.is-loading]="saving()"
+      >
+        <app-icon name="user-plus" />
+        {{ saving() ? 'Cadastrando…' : 'Cadastrar usuário' }}
+      </button>
+    </div>
+  </form>
+</app-section-card>

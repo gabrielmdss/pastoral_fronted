@@ -1,3 +1,6 @@
+import { USUARIOS_API } from '../application/usuarios/usuarios-api.port';
+import { CriarUsuarioUseCase, ListarPerfisUseCase } from '../application/usuarios/usuarios.use-cases';
+import { UsuariosApiService } from '../infrastructure/api/usuarios/usuarios-api.service';
 import { AUDITORIA_API } from '../application/auditoria/auditoria-api.port';
 import { ListarAuditoriaUseCase, ObterAuditoriaUseCase } from '../application/auditoria/auditoria.use-cases';
 import { AuditoriaApiService } from '../infrastructure/api/auditoria/auditoria-api.service';
@@ -97,6 +100,8 @@ export function providePastoralApplication(): Array<Provider | EnvironmentProvid
   return [
     AuditoriaApiService, ListarAuditoriaUseCase, ObterAuditoriaUseCase,
     { provide: AUDITORIA_API, useExisting: AuditoriaApiService },
+    UsuariosApiService, ListarPerfisUseCase, CriarUsuarioUseCase,
+    { provide: USUARIOS_API, useExisting: UsuariosApiService },
     RelatoriosApiService,RelatorioDistribuicoesUseCase,RelatorioBeneficiariosUseCase,RelatorioEstoqueUseCase,
     {provide:RELATORIOS_API,useExisting:RelatoriosApiService},
     InventariosApiService, CriarInventarioUseCase, ObterInventarioUseCase, ContarInventarioUseCase, ConcluirInventarioUseCase,

@@ -100,6 +100,7 @@ export const NAVIGATION: NavGroup[] = [
         visible: (can) => can('BENEFICIARIO_VISUALIZAR') || can('ESTOQUE_VISUALIZAR'),
       },
       { id: 'auditoria', label: 'Auditoria', icon: 'scroll-text', route: '/auditoria', visible: perm('AUDITORIA_VISUALIZAR') },
+      { id: 'usuarios', label: 'Usuários', icon: 'shield', route: '/usuarios', visible: perm('PERFIL_GERENCIAR') },
     ],
   },
 ];
