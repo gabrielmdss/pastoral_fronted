@@ -8,7 +8,7 @@ import {
   signal,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { DatePipe, PercentPipe } from '@angular/common';
+import { DecimalPipe, PercentPipe } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
@@ -34,14 +34,32 @@ import { LoadingStateComponent } from '../../../shared/ui/loading-state.componen
 import { ErrorStateComponent } from '../../../shared/ui/error-state.component';
 import { EmptyStateComponent } from '../../../shared/ui/empty-state.component';
 import { StatusBadgeComponent } from '../../../shared/ui/status-badge.component';
+import { PageHeaderComponent } from '../../../shared/ui/page-header.component';
+import { SectionCardComponent } from '../../../shared/ui/section-card.component';
+import { MetricCardComponent } from '../../../shared/ui/metric-card.component';
+import { IconComponent } from '../../../shared/ui/icon.component';
+import { ToastService } from '../../../shared/ui/toast.service';
+import { DataBrPipe } from '../../../shared/pipes/data-br.pipe';
+import { CompetenciaPipe } from '../../../shared/pipes/competencia.pipe';
+import { MeterComponent } from '../../../shared/ui/meter.component';
+import { Confirmacao, ConfirmDialogComponent } from '../../../shared/ui/confirm-dialog.component';
 
 @Component({
   selector: 'app-planejamento-detail',
+  host: { class: 'ui-page' },
   imports: [
+    ConfirmDialogComponent,
+    MeterComponent,
     ReactiveFormsModule,
     RouterLink,
-    DatePipe,
+    DecimalPipe,
     PercentPipe,
+    DataBrPipe,
+    CompetenciaPipe,
+    PageHeaderComponent,
+    SectionCardComponent,
+    MetricCardComponent,
+    IconComponent,
     LoadingStateComponent,
     ErrorStateComponent,
     EmptyStateComponent,
@@ -66,6 +84,7 @@ export default class PlanejamentoDetailPage {
   private readonly modeloUC = inject(ObterModeloUseCase);
   private readonly insumosUC = inject(ListarInsumosUseCase);
   readonly session = inject(SessionFacade);
+  private readonly toast = inject(ToastService);
   readonly id = signal<string | null>(null);
   readonly detalhe = signal<PlanejamentoDetalhe | null>(null);
   readonly competencias = signal<Competencia[]>([]);
@@ -76,6 +95,8 @@ export default class PlanejamentoDetailPage {
   readonly catalogLoading = signal(false);
   readonly modelLoading = signal(false);
   readonly saving = signal(false);
+  /** Confirmação das operações irreversíveis (substitui window.confirm). */
+  readonly confirmacao = new Confirmacao();
   readonly simulating = signal(false);
   readonly editing = signal(false);
   readonly error = signal('');
@@ -89,8 +110,17 @@ export default class PlanejamentoDetailPage {
   readonly podeModelos = this.session.hasPermission('CESTA_MODELO_GERENCIAR');
   readonly podeCompetencias = this.session.hasPermission('BENEFICIARIO_VISUALIZAR');
   readonly podeConsultar = this.session.hasPermission('ESTOQUE_VISUALIZAR');
+  readonly podeMontar = this.session.hasPermission('CESTA_MONTAR');
+  readonly semPermissaoAprovar =
+    'Salvar, revisar e aprovar planejamentos exige a permissão de aprovar planejamento de cestas. A simulação continua disponível apenas para consulta.';
   readonly temPendente = computed(
     () => this.detalhe()?.versoes.some((v) => v.status === 'SIMULACAO') ?? false,
+  );
+  /** Apenas apresentação: alguma versão já aprovada/concluída avança o indicador de etapas. */
+  readonly aprovado = computed(
+    () =>
+      this.detalhe()?.versoes.some((v) => v.status === 'APROVADA' || v.status === 'CONCLUIDA') ??
+      false,
   );
   readonly insumoPorId = computed(() => new Map(this.insumos().map((i) => [i.apresentacaoId, i])));
   readonly coberturaPercentual = computed(() =>
@@ -141,6 +171,7 @@ export default class PlanejamentoDetailPage {
           ? 'Planejamento criado. A aprovação ainda precisa ser confirmada.'
           : '',
       );
+      if (this.feedback()) this.toast.success(this.feedback());
       this.mutationError.set('');
       this.invalidateSimulation();
       this.form.reset({}, { emitEvent: false });
@@ -335,6 +366,7 @@ export default class PlanejamentoDetailPage {
             .pipe(takeUntilDestroyed(this.destroy)),
         );
         this.feedback.set('Revisão registrada. A aprovação ainda precisa ser confirmada.');
+        this.toast.success(this.feedback());
         this.editing.set(false);
         this.invalidateSimulation();
         await this.carregar();
@@ -368,12 +400,13 @@ export default class PlanejamentoDetailPage {
       this.simulating()
     )
       return;
-    if (
-      !window.confirm(
+    const confirmado = await this.confirmacao.pedir({
+      title: 'Aprovar planejamento',
+      message:
         'Aprovar a versão pendente mais recente e reservar os insumos? A disponibilidade será verificada novamente pelo estoque.',
-      )
-    )
-      return;
+      confirmLabel: 'Aprovar e reservar',
+    });
+    if (!confirmado || this.saving()) return;
     this.saving.set(true);
     this.feedback.set('');
     this.mutationError.set('');
@@ -385,6 +418,7 @@ export default class PlanejamentoDetailPage {
       this.feedback.set(
         'Aprovação confirmada. Consulte abaixo o estado e as reservas retornados pelo estoque.',
       );
+      this.toast.success(this.feedback());
     } catch (e) {
       if (!this.destroy.destroyed) {
         this.mutationError.set(this.operationError(e));

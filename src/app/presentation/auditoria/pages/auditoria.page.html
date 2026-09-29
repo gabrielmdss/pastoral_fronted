@@ -1,0 +1,151 @@
+<app-page-header
+  eyebrow="Administração"
+  title="Auditoria"
+  description="Tudo o que acontece na operação fica registrado com autor e data. Dados sensíveis são omitidos pela API."
+>
+  <button actions type="button" class="secondary" (click)="carregar()" [disabled]="loading()" [class.is-loading]="loading()">
+    <app-icon name="refresh" /> Atualizar
+  </button>
+</app-page-header>
+
+<div class="ui-stack">
+  <form class="ui-toolbar" [formGroup]="form" (ngSubmit)="filtrar()" aria-label="Filtros da auditoria">
+    <label class="ui-field">
+      <span class="ui-field__label">Entidade</span>
+      <input formControlName="entidade" placeholder="Ex.: BENEFICIARIO" />
+    </label>
+    <label class="ui-field">
+      <span class="ui-field__label">ID da entidade</span>
+      <input formControlName="entidadeId" inputmode="numeric" />
+    </label>
+    <label class="ui-field">
+      <span class="ui-field__label">Operação</span>
+      <input formControlName="operacao" placeholder="Ex.: CRIACAO" />
+    </label>
+    <label class="ui-field">
+      <span class="ui-field__label">ID do usuário</span>
+      <input formControlName="usuarioId" inputmode="numeric" />
+    </label>
+    <label class="ui-field">
+      <span class="ui-field__label">Data inicial</span>
+      <input type="date" formControlName="dataInicio" />
+    </label>
+    <label class="ui-field">
+      <span class="ui-field__label">Data final</span>
+      <input type="date" formControlName="dataFim" />
+    </label>
+    <div class="ui-toolbar__end ui-actions">
+      <button type="button" class="secondary" (click)="limpar()" [disabled]="loading()">Limpar filtros</button>
+      <button type="submit" [disabled]="loading()"><app-icon name="filter" /> Filtrar</button>
+    </div>
+  </form>
+  @if (filtroError()) {
+    <p class="ui-message ui-message--error" role="alert">{{ filtroError() }}</p>
+  }
+
+  @if (loading() && !registros().length) {
+    <app-loading-state variant="table" [rows]="8" [columns]="6" label="Consultando auditoria…" />
+  } @else if (error()) {
+    <app-error-state [message]="error()" (retry)="carregar()" />
+  } @else if (!registros().length) {
+    <app-empty-state icon="scroll-text" title="Nenhum registro encontrado" message="Nenhum registro de auditoria para os filtros informados." />
+  } @else {
+    <app-section-card title="Registros" [description]="(total() | number) + ' registro(s)'" [flush]="true">
+      <div class="table-scroll" tabindex="0" role="region" aria-label="Registros de auditoria">
+        <table class="ui-table ui-table--striped ui-table--cards">
+          <thead>
+            <tr>
+              <th scope="col">Data e hora</th>
+              <th scope="col">Pessoa</th>
+              <th scope="col">Registro</th>
+              <th scope="col">Operação</th>
+              <th scope="col">Motivo</th>
+              <th scope="col" class="ui-table__actions"><span class="sr-only">Ações</span></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (r of registros(); track r.id) {
+              <tr [class.is-selected]="detalheId() === r.id">
+                <td data-label="Data e hora" class="auditoria-data">
+                  <strong>{{ r.ocorridoEm | dataBr: 'dataHora' }}</strong>
+                  <span class="text-muted"> · {{ r.ocorridoEm | dataBr: 'relativa' }}</span>
+                </td>
+                <td data-label="Pessoa">
+                  @if (r.usuario?.login; as login) {
+                    <app-icon name="user" /> {{ login }}
+                  } @else {
+                    <span class="text-muted">Sistema</span>
+                  }
+                </td>
+                <td data-label="Registro">{{ r.entidade }}{{ r.entidadeId ? ' #' + r.entidadeId : '' }}</td>
+                <td data-label="Operação"><span class="ui-badge ui-badge--neutral">{{ r.operacao }}</span></td>
+                <td data-label="Motivo" class="text-muted">{{ r.motivo || '—' }}</td>
+                <td class="ui-table__actions">
+                  <button
+                    type="button"
+                    class="btn--ghost btn--sm"
+                    (click)="abrirDetalhe(r.id)"
+                    [attr.aria-expanded]="detalheId() === r.id"
+                  >
+                    <app-icon [name]="detalheId() === r.id ? 'chevron-up' : 'eye'" />
+                    {{ detalheId() === r.id ? 'Fechar' : 'Detalhes' }}
+                  </button>
+                </td>
+              </tr>
+              @if (detalheId() === r.id) {
+                <tr class="auditoria-detalhe-row">
+                  <td colspan="6">
+                    @if (detalheLoading()) {
+                      <app-loading-state variant="detail" label="Consultando registro…" />
+                    } @else if (detalheError()) {
+                      <app-error-state [message]="detalheError()" (retry)="abrirDetalhe(r.id, true)" />
+                    } @else if (detalhe(); as d) {
+                      <section class="ui-panel ui-stack" aria-label="Detalhes do registro">
+                        <dl class="ui-dl ui-dl--3">
+                          <div><dt>Registro</dt><dd>#{{ d.id }} · {{ d.entidade }} {{ d.entidadeId ? '#' + d.entidadeId : '' }}</dd></div>
+                          <div><dt>Operação</dt><dd>{{ d.operacao }}</dd></div>
+                          <div><dt>Usuário</dt><dd>{{ d.usuario ? d.usuario.login + ' (ID ' + d.usuario.id + ')' : 'Sistema' }}</dd></div>
+                          @if (d.motivo) {
+                            <div><dt>Motivo</dt><dd>{{ d.motivo }}</dd></div>
+                          }
+                        </dl>
+                        <div class="ui-grid ui-grid--2">
+                          <div>
+                            <h3>Estado anterior</h3>
+                            @if (d.estadoAnterior === null) {
+                              <p class="text-muted">Não registrado.</p>
+                            } @else {
+                              <pre class="ui-code">{{ d.estadoAnterior | json }}</pre>
+                            }
+                          </div>
+                          <div>
+                            <h3>Estado novo</h3>
+                            @if (d.estadoNovo === null) {
+                              <p class="text-muted">Não registrado.</p>
+                            } @else {
+                              <pre class="ui-code">{{ d.estadoNovo | json }}</pre>
+                            }
+                          </div>
+                        </div>
+                      </section>
+                    }
+                  </td>
+                </tr>
+              }
+            }
+          </tbody>
+        </table>
+      </div>
+      <div footer class="ui-card__footer">
+        <app-pagination
+          [page]="page()"
+          [total]="total()"
+          [totalPages]="totalPages()"
+          [disabled]="loading()"
+          (previous)="irPara(page() - 1)"
+          (next)="irPara(page() + 1)"
+        />
+      </div>
+    </app-section-card>
+  }
+</div>

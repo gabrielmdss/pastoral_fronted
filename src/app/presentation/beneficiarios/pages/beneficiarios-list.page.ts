@@ -32,6 +32,9 @@ import { BeneficiarioAvatarComponent } from '../../shared/beneficiarios/benefici
 import { ListarGruposUseCase } from '../../../application/beneficiarios/catalogos.use-cases';
 import type { GrupoDistribuicao } from '../../../application/beneficiarios/catalogos.models';
 import type { Pessoa } from '../../../domain/pessoas/pessoa.model';
+import { DecimalPipe } from '@angular/common';
+import { IconComponent } from '../../../shared/ui/icon.component';
+import { ToastService } from '../../../shared/ui/toast.service';
 @Component({
   selector: 'app-beneficiarios-list-page',
   imports: [
@@ -44,6 +47,8 @@ import type { Pessoa } from '../../../domain/pessoas/pessoa.model';
     StatusBadgeComponent,
     PessoaSearchFieldComponent,
     BeneficiarioAvatarComponent,
+    DecimalPipe,
+    IconComponent,
   ],
   templateUrl: './beneficiarios-list.page.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -71,6 +76,7 @@ export default class BeneficiariosListPage {
     justificativaExcecao: new FormControl<string | null>(null, [Validators.minLength(10)]),
   });
   private readonly destroy = inject(DestroyRef);
+  private readonly toast = inject(ToastService);
   private readonly refreshRequested = new Subject<void>();
   constructor(
     private readonly buscar: BuscarBeneficiariosUseCase,
@@ -143,7 +149,7 @@ export default class BeneficiariosListPage {
           justificativaExcecao: v.justificativaExcecao?.trim() || null,
         }),
       );
-      this.feedback.set('Beneficiário admitido com sucesso.');
+      this.toast.success('Beneficiário admitido com sucesso.');
       this.closeAdmission();
       this.applyFilters();
     } catch (e) {

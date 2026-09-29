@@ -6,7 +6,7 @@ import {
   inject,
   signal,
 } from '@angular/core';
-import { DatePipe } from '@angular/common';
+import { DecimalPipe } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import { FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
@@ -22,11 +22,23 @@ import { LoadingStateComponent } from '../../../shared/ui/loading-state.componen
 import { ErrorStateComponent } from '../../../shared/ui/error-state.component';
 import { EmptyStateComponent } from '../../../shared/ui/empty-state.component';
 import { StatusBadgeComponent } from '../../../shared/ui/status-badge.component';
+import { PageHeaderComponent } from '../../../shared/ui/page-header.component';
+import { SectionCardComponent } from '../../../shared/ui/section-card.component';
+import { IconComponent } from '../../../shared/ui/icon.component';
+import { ToastService } from '../../../shared/ui/toast.service';
+import { DataBrPipe } from '../../../shared/pipes/data-br.pipe';
+import { Confirmacao, ConfirmDialogComponent } from '../../../shared/ui/confirm-dialog.component';
 
 @Component({
   selector: 'app-inventarios',
+  host: { class: 'ui-page' },
   imports: [
-    DatePipe,
+    ConfirmDialogComponent,
+    DecimalPipe,
+    DataBrPipe,
+    PageHeaderComponent,
+    SectionCardComponent,
+    IconComponent,
     ReactiveFormsModule,
     RouterLink,
     LoadingStateComponent,
@@ -35,6 +47,9 @@ import { StatusBadgeComponent } from '../../../shared/ui/status-badge.component'
     StatusBadgeComponent,
   ],
   templateUrl: './inventarios.page.html',
+  styles: [
+    '.contagem-input { width: 7rem; text-align: right; }',
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export default class InventariosPage {
@@ -47,12 +62,15 @@ export default class InventariosPage {
   private readonly concluirUC = inject(U.ConcluirInventarioUseCase);
   private readonly estoqueUC = inject(ListarInsumosUseCase);
   private readonly session = inject(SessionFacade);
+  private readonly toast = inject(ToastService);
   readonly permitido = this.session.hasPermission('ESTOQUE_INVENTARIO');
   readonly podeEstoque = this.session.hasPermission('ESTOQUE_VISUALIZAR');
   readonly id = signal<string | null>(null);
   readonly inventario = signal<Inventario | null>(null);
   readonly loading = signal(false);
   readonly saving = signal(false);
+  /** Confirmação das operações irreversíveis (substitui window.confirm). */
+  readonly confirmacao = new Confirmacao();
   readonly savingItem = signal<string | null>(null);
   readonly error = signal('');
   readonly mutationError = signal('');
@@ -80,6 +98,7 @@ export default class InventariosPage {
           ? 'Inventário aberto. O saldo foi capturado pelo estoque.'
           : '',
       );
+      if (this.feedback()) this.toast.success(this.feedback());
       void this.carregar();
     });
   }
@@ -147,12 +166,13 @@ export default class InventariosPage {
   }
   async criar() {
     if (!this.permitido || this.saving() || this.loading()) return;
-    if (
-      !window.confirm(
+    const confirmado = await this.confirmacao.pedir({
+      title: 'Abrir novo inventário',
+      message:
         'Abrir um novo inventário? O backend capturará o saldo atual. Alterações posteriores no estoque podem impedir a conclusão.',
-      )
-    )
-      return;
+      confirmLabel: 'Abrir inventário',
+    });
+    if (!confirmado || this.saving()) return;
     this.saving.set(true);
     this.feedback.set('');
     this.mutationError.set('');
@@ -199,6 +219,7 @@ export default class InventariosPage {
       if (this.destroy.destroyed || this.id() !== inv.id) return;
       control.markAsPristine();
       this.feedback.set('Contagem registrada. A divergência será consultada novamente.');
+      this.toast.success(this.feedback());
       await this.carregar();
     } catch (e) {
       if (!this.destroy.destroyed && this.id() === inv.id) {
@@ -222,12 +243,13 @@ export default class InventariosPage {
     )
       return;
     const pending = this.pendentesLocais();
-    if (
-      !window.confirm(
-        `Concluir o inventário ${inv.id}?\n${inv.itens.length} itens retornados; ${this.divergentes()} com divergência registrada.\n${pending ? `${pending} edição(ões) não salva(s) nesta tela não serão aplicadas.\n` : ''}O backend não informa quais itens foram conferidos. Serão aplicadas somente as contagens já registradas, se o saldo capturado ainda for válido.`,
-      )
-    )
-      return;
+    const confirmado = await this.confirmacao.pedir({
+      title: `Concluir o inventário ${inv.id}?`,
+      message: `${inv.itens.length} itens retornados; ${this.divergentes()} com divergência registrada.\n${pending ? `${pending} edição(ões) não salva(s) nesta tela não serão aplicadas.\n` : ''}O backend não informa quais itens foram conferidos. Serão aplicadas somente as contagens já registradas, se o saldo capturado ainda for válido.`,
+      confirmLabel: 'Concluir inventário',
+      danger: true,
+    });
+    if (!confirmado || this.saving()) return;
     this.saving.set(true);
     this.feedback.set('');
     this.mutationError.set('');
@@ -235,6 +257,7 @@ export default class InventariosPage {
       await firstValueFrom(this.concluirUC.execute(inv.id).pipe(takeUntilDestroyed(this.destroy)));
       if (this.destroy.destroyed || this.id() !== inv.id) return;
       this.feedback.set('Conclusão confirmada. Consulte o estado e os saldos atualizados.');
+      this.toast.success(this.feedback());
       await this.carregar();
     } catch (e) {
       if (!this.destroy.destroyed && this.id() === inv.id) {

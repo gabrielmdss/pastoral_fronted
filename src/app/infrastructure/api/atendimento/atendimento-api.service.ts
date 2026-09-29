@@ -16,14 +16,20 @@ import type {
   RegistrarRetiradaDto,
   RetiradaDto,
   HistoricoBeneficiarioDto,
+  HistoricoDistribuicaoDto,
   RegistrarJustificativaDto,
   AvaliarJustificativaDto,
 } from './atendimento-api.contracts';
 
-import { mapAusenciasHistoricoDto, mapCheckInDto, mapRetiradaDto } from './atendimento-api.mapper';
+import {
+  mapAusenciasHistoricoDto,
+  mapHistoricoBeneficiarioDto,
+  mapHistoricoDistribuicaoDto,
+  mapCheckInDto, mapRegistrarRetiradaInput, mapRetiradaDto } from './atendimento-api.mapper';
 import type { Retirada } from '../../../domain/atendimento/retirada.model';
 import type { RegistrarRetiradaInput } from '../../../domain/atendimento/retirada.model';
 import type { AusenciaAtendimento, AvaliarJustificativaInput, RegistrarJustificativaInput } from '../../../domain/atendimento/justificativa.model';
+import type { HistoricoBeneficiario, HistoricoDistribuicao } from '../../../domain/atendimento/historico.model';
 
 @Injectable()
 export class AtendimentoApiService implements AtendimentoApiPort {
@@ -95,7 +101,7 @@ export class AtendimentoApiService implements AtendimentoApiPort {
     distribuicaoId: string,
     input: RegistrarRetiradaInput,
   ): Observable<{ id: string }> {
-    const payload: RegistrarRetiradaDto = input;
+    const payload: RegistrarRetiradaDto = mapRegistrarRetiradaInput(input);
 
     return this.http
       .post<DataResponse<{ id: string }>>(
@@ -118,6 +124,22 @@ export class AtendimentoApiService implements AtendimentoApiPort {
         `${this.apiBaseUrl}/beneficiarios/${beneficiarioId}/historico`,
       )
       .pipe(map((response) => mapAusenciasHistoricoDto(response.data)));
+  }
+
+  obterHistoricoBeneficiario(beneficiarioId: string): Observable<HistoricoBeneficiario> {
+    return this.http
+      .get<DataResponse<HistoricoBeneficiarioDto>>(
+        `${this.apiBaseUrl}/beneficiarios/${beneficiarioId}/historico`,
+      )
+      .pipe(map((response) => mapHistoricoBeneficiarioDto(response.data)));
+  }
+
+  obterHistoricoDistribuicao(distribuicaoId: string): Observable<HistoricoDistribuicao> {
+    return this.http
+      .get<DataResponse<HistoricoDistribuicaoDto>>(
+        `${this.distribuicoesUrl}/${distribuicaoId}/historico`,
+      )
+      .pipe(map((response) => mapHistoricoDistribuicaoDto(response.data)));
   }
 
   registrarJustificativa(

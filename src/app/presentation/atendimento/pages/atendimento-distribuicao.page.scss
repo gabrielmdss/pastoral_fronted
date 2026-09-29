@@ -5,29 +5,14 @@
   display: grid;
   gap: var(--space-5);
 }
-.atendimento-header {
-  margin-bottom: 0;
-  border-bottom: 1px solid var(--color-border);
-  padding-bottom: var(--space-5);
-}
 .atendimento-header__meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-3);
-  margin-top: 0.75rem;
-  font-size: 0.875rem;
-  color: var(--color-text-muted);
+  margin-top: var(--space-3);
 }
-.atendimento-header__actions,
 .atendimento-checkin-card__actions {
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-2);
   align-items: center;
-}
-.atendimento-summary {
-  padding-bottom: var(--space-4);
-  border-bottom: 1px solid var(--color-border);
 }
 .atendimento-search-section,
 .atendimento-fila,
@@ -37,8 +22,7 @@
   min-width: 0;
 }
 .atendimento-search-section {
-  border-top: 4px solid var(--color-primary);
-  background: var(--color-primary-soft);
+  border-top: 3px solid var(--color-primary);
 }
 .atendimento-search {
   display: grid;
@@ -50,14 +34,8 @@
   max-width: 44rem;
 }
 .atendimento-search__control input {
-  width: 100%;
-  min-height: 3.25rem;
+  min-height: 3rem;
   font-size: 1.0625rem;
-  padding: 0 var(--space-4);
-  border-width: 2px;
-}
-.atendimento-search__control input:focus-visible {
-  border-color: var(--color-primary);
 }
 .atendimento-search__loading {
   font-size: 0.8125rem;
@@ -132,73 +110,12 @@
   border-top: 4px solid var(--color-primary-soft);
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
-.atendimento-dropzone {
-  display: grid;
-  place-content: center;
-  gap: var(--space-2);
-  justify-items: center;
-  min-height: 10rem;
-  padding: var(--space-5);
-  border: 3px dashed var(--color-primary-soft);
-  border-radius: var(--radius-lg);
-  background: var(--color-primary-soft);
-  color: var(--color-primary-dark);
-  text-align: center;
-  cursor: pointer;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
-}
-.atendimento-dropzone__icon {
-  font-size: 2.25rem;
-  line-height: 1;
-}
-.atendimento-dropzone__label {
-  font-size: 0.8125rem;
-  font-weight: 650;
-}
-.atendimento-fila--entrega.is-dragover .atendimento-dropzone {
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 6px var(--color-primary-soft), 0 0 24px 4px color-mix(in srgb, var(--color-primary) 45%, transparent);
-  animation: atendimento-entrega-pulse 1s ease-in-out infinite;
-}
-@keyframes atendimento-entrega-pulse {
-  0%,
-  100% {
-    border-color: var(--color-primary);
-  }
-  50% {
-    border-color: var(--color-primary-dark);
-  }
-}
-.atendimento-fila--entrega.is-rejected .atendimento-dropzone {
-  border-color: var(--color-danger);
-  animation: atendimento-entrega-shake 0.4s ease;
-}
-@keyframes atendimento-entrega-shake {
-  0%,
-  100% {
-    transform: translateX(0);
-  }
-  25% {
-    transform: translateX(-6px);
-  }
-  75% {
-    transform: translateX(6px);
-  }
-}
-.atendimento-dropzone__rejeicao {
-  margin-top: var(--space-3);
-}
 @media (prefers-reduced-motion: reduce) {
-  .atendimento-checkin-card,
-  .atendimento-dropzone {
+  .atendimento-checkin-card {
     transition: none;
   }
   .atendimento-checkin-card.is-dragging {
     transform: none;
-  }
-  .atendimento-fila--entrega.is-dragover .atendimento-dropzone,
-  .atendimento-fila--entrega.is-rejected .atendimento-dropzone {
-    animation: none;
   }
 }
 .atendimento-checkin-card__content {
@@ -241,50 +158,6 @@
   border-radius: var(--radius-md);
   color: var(--color-warning);
 }
-.atendimento-search-result,
-.atendimento-retirada,
-.atendimento-ausencia {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  flex-wrap: wrap;
-  gap: var(--space-3);
-  padding: var(--space-4);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  background: var(--color-surface);
-  color: var(--color-text);
-}
-.atendimento-search-result {
-  width: 100%;
-  text-align: left;
-}
-.atendimento-search-result:disabled {
-  background: var(--color-disabled-surface);
-  opacity: 0.7;
-}
-.atendimento-search-result:hover:not(:disabled) {
-  border-color: var(--color-primary);
-  background: var(--color-primary-soft);
-  color: var(--color-text);
-}
-.atendimento-search-result > div,
-.atendimento-retirada > div,
-.atendimento-ausencia > div {
-  display: grid;
-  gap: 0.25rem;
-  min-width: 0;
-}
-.atendimento-search-result span,
-.atendimento-retirada span,
-.atendimento-ausencia span {
-  font-size: 0.8125rem;
-}
-.atendimento-search-result__action {
-  color: var(--color-primary);
-  text-decoration: underline;
-  text-underline-offset: 0.2em;
-}
 .atendimento-retirada__meta {
   justify-items: end;
   color: var(--color-text-muted);
@@ -312,9 +185,6 @@
   }
 }
 @media (max-width: 600px) {
-  .atendimento-summary {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
   .atendimento-checkin-card__actions > button {
     flex: 1 1 10rem;
   }

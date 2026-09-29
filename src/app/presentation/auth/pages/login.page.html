@@ -1,56 +1,67 @@
 <main class="login-shell">
   <section class="identity" aria-label="Identificação do sistema">
     <div class="identity-brand">
-      <span class="brand-mark" aria-hidden="true">PC</span>
+      <span class="brand-mark" aria-hidden="true">EC</span>
       <span class="identity-brand__name">Entrega Certa</span>
     </div>
     <div class="identity-message">
+      <app-icon name="heart-handshake" [size]="40" />
       <p class="eyebrow">Pastoral Social</p>
       <h2>Cada cesta chega a quem precisa, no dia certo.</h2>
-      <p>
-        Organize beneficiários, distribuições, atendimento e estoque em um só lugar, com
-        clareza para a equipe da pastoral.
-      </p>
+      <p>Organize beneficiários, distribuições, atendimento e estoque em um só lugar, com clareza para a equipe da pastoral.</p>
+      <ul class="identity-features">
+        <li><app-icon name="users" /> Cadastro e lista de espera das famílias</li>
+        <li><app-icon name="calendar-range" /> Distribuições por competência e grupo</li>
+        <li><app-icon name="boxes" /> Estoque e montagem das cestas</li>
+      </ul>
     </div>
+    <p class="identity-footer">Pastoral Social · Entrega Certa</p>
   </section>
 
   <section class="login-card">
     <div class="login-card__inner">
       <div class="identity-brand identity-brand--mobile">
-        <span class="brand-mark" aria-hidden="true">PC</span>
+        <span class="brand-mark" aria-hidden="true">EC</span>
         <span class="identity-brand__name">Entrega Certa</span>
       </div>
 
       <h1>Bem-vindo de volta</h1>
-      <p class="hint">Entre para continuar o atendimento de hoje.</p>
+      <p class="text-sm text-muted">Entre para continuar o atendimento de hoje.</p>
 
-      <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
-        <label for="login">Login</label>
-        <input
-          id="login"
-          type="text"
-          formControlName="login"
-          autocomplete="username"
-          [attr.aria-invalid]="form.controls.login.invalid && form.controls.login.touched"
-        />
-        @if (form.controls.login.invalid && form.controls.login.touched) {
-          <small class="field-error">Informe o login.</small>
-        }
-        <label for="senha">Senha</label>
-        <app-password-field
-          id="senha"
-          formControlName="senha"
-          autocomplete="current-password"
-          [ariaInvalid]="form.controls.senha.invalid && form.controls.senha.touched"
-        />
-        @if (form.controls.senha.invalid && form.controls.senha.touched) {
-          <small class="field-error">Informe a senha.</small>
-        }
+      <form class="ui-stack" [formGroup]="form" (ngSubmit)="submit()" novalidate>
+        <div class="ui-field">
+          <label class="ui-field__label" for="login">Login</label>
+          <input
+            id="login"
+            type="text"
+            formControlName="login"
+            autocomplete="username"
+            [attr.aria-invalid]="form.controls.login.invalid && form.controls.login.touched"
+          />
+          @if (form.controls.login.invalid && form.controls.login.touched) {
+            <small class="ui-field__error">Informe o login.</small>
+          }
+        </div>
+        <div class="ui-field">
+          <label class="ui-field__label" for="senha">Senha</label>
+          <app-password-field
+            id="senha"
+            formControlName="senha"
+            autocomplete="current-password"
+            [ariaInvalid]="form.controls.senha.invalid && form.controls.senha.touched"
+          />
+          @if (form.controls.senha.invalid && form.controls.senha.touched) {
+            <small class="ui-field__error">Informe a senha.</small>
+          }
+        </div>
         @if (errorMessage()) {
-          <p class="form-error" role="alert">{{ errorMessage() }}</p>
+          <p class="ui-message ui-message--error" role="alert">{{ errorMessage() }}</p>
         }
-        <button type="submit" [disabled]="session.loading()">
+        <button type="submit" class="btn--lg btn--block" [disabled]="session.loading()" [class.is-loading]="session.loading()">
           {{ session.loading() ? 'Entrando…' : 'Entrar' }}
+          @if (!session.loading()) {
+            <app-icon name="arrow-right" />
+          }
         </button>
       </form>
     </div>

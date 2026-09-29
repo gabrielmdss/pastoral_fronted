@@ -16,23 +16,37 @@ import { ErrorStateComponent } from '../../../shared/ui/error-state.component';
 import { EmptyStateComponent } from '../../../shared/ui/empty-state.component';
 import { StatusBadgeComponent } from '../../../shared/ui/status-badge.component';
 import { MetricCardComponent } from '../../../shared/ui/metric-card.component';
+import { PageHeaderComponent } from '../../../shared/ui/page-header.component';
+import { SectionCardComponent } from '../../../shared/ui/section-card.component';
+import { IconComponent } from '../../../shared/ui/icon.component';
+import { ToastService } from '../../../shared/ui/toast.service';
+import { DecimalPipe } from '@angular/common';
+import { MeterComponent } from '../../../shared/ui/meter.component';
+import { Confirmacao, ConfirmDialogComponent } from '../../../shared/ui/confirm-dialog.component';
 
 @Component({
   selector: 'app-estoque-page',
+  host: { class: 'ui-page' },
   imports: [
+    ConfirmDialogComponent,
+    MeterComponent,
     ReactiveFormsModule,
     LoadingStateComponent,
     ErrorStateComponent,
     EmptyStateComponent,
     StatusBadgeComponent,
     MetricCardComponent,
+    PageHeaderComponent,
+    SectionCardComponent,
+    IconComponent,
+    DecimalPipe,
   ],
   templateUrl: './estoque.page.html',
-  styleUrl: './estoque.page.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export default class EstoquePage {
   readonly session = inject(SessionFacade);
+  private readonly toast = inject(ToastService);
   private readonly fb = inject(FormBuilder).nonNullable;
   private readonly listar = inject(U.ListarInsumosUseCase);
   private readonly categoriasUC = inject(U.ListarCategoriasInsumoUseCase);
@@ -47,6 +61,8 @@ export default class EstoquePage {
   readonly doadores = signal<Doador[]>([]);
   readonly loading = signal(false);
   readonly saving = signal(false);
+  /** Confirmação das operações irreversíveis (substitui window.confirm). */
+  readonly confirmacao = new Confirmacao();
   readonly error = signal('');
   readonly mutationError = signal('');
   readonly feedback = signal('');
@@ -169,7 +185,13 @@ export default class EstoquePage {
       this.session.hasPermission('ESTOQUE_PERDA') &&
       this.perda.valid
     ) {
-      if (!window.confirm('Confirmar a perda de estoque?')) return;
+      const confirmado = await this.confirmacao.pedir({
+        title: 'Registrar perda',
+        message: 'Confirmar a perda de estoque? A quantidade será baixada do saldo físico.',
+        confirmLabel: 'Registrar perda',
+        danger: true,
+      });
+      if (!confirmado || this.saving()) return;
       const v = this.perda.getRawValue();
       request = this.perdaUC.execute({ ...v, observacao: v.observacao.trim() || null });
     } else if (
@@ -212,6 +234,7 @@ export default class EstoquePage {
       await firstValueFrom(request);
       this.mode.set(null);
       this.feedback.set('Operação concluída com sucesso.');
+      this.toast.success(this.feedback());
       if (mode === 'entrada') {
         this.entrada.reset();
         this.entrada.controls.itens.clear();

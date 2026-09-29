@@ -1,153 +1,188 @@
 <app-page-header eyebrow="Visão geral" title="Dashboard" description="Acompanhe a capacidade de atendimento e a preparação das próximas cestas.">
-  <button actions type="button" class="secondary" (click)="load()" [disabled]="loading()">
-    @if (refreshing()) {
-      <span class="spinner-inline" aria-hidden="true"></span>
-    }
-    Atualizar
+  <button actions type="button" class="secondary" (click)="load()" [disabled]="loading()" [class.is-loading]="refreshing()">
+    <app-icon name="refresh" /> Atualizar
   </button>
 </app-page-header>
 
 @if (loading()) {
-  <app-loading-state label="Carregando indicadores…" />
+  <app-loading-state variant="cards" [rows]="4" label="Carregando indicadores…" />
 } @else if (error()) {
   <app-error-state [message]="error()" (retry)="load()" />
 } @else if (data(); as dashboard) {
-  @if (alertas().length) {
-    <section class="alert-stack" aria-label="Alertas do provisionamento">
-      @for (alerta of alertas(); track alerta.codigo) {
-        <div class="alert-item" [attr.data-nivel]="alerta.nivel">
-          <span class="alert-icon" aria-hidden="true">{{ alerta.icone }}</span>
-          <span class="alert-message">{{ alerta.mensagem }}</span>
-          @if (alerta.rota) {
-            <a class="alert-action" [routerLink]="alerta.rota">Resolver</a>
-          }
-        </div>
-      }
-    </section>
-  }
-
-  <section class="metric-grid" aria-label="Indicadores de beneficiários">
-    <app-metric-card label="Capacidade" [delayMs]="0">{{ dashboard.beneficiarios.capacidade }}</app-metric-card>
-    <app-metric-card label="Beneficiários ativos" [delayMs]="60">{{ dashboard.beneficiarios.ativos }}</app-metric-card>
+  <section class="ui-grid ui-grid--kpi" aria-label="Indicadores de beneficiários">
+    <app-metric-card
+      label="Beneficiários ativos"
+      icon="users"
+      tone="success"
+      [hint]="'de ' + (dashboard.beneficiarios.capacidade | number) + ' de capacidade'"
+      [delayMs]="0"
+      >{{ dashboard.beneficiarios.ativos | number }}</app-metric-card
+    >
+    <app-metric-card label="Capacidade" icon="gauge" tone="info" hint="limite de atendimento" [delayMs]="60">{{
+      dashboard.beneficiarios.capacidade | number
+    }}</app-metric-card>
     <app-metric-card
       label="Vagas"
+      icon="heart-handshake"
+      hint="disponíveis para novos cadastros"
       [delayMs]="120"
       [variant]="dashboard.beneficiarios.vagas === 0 ? 'attention' : 'default'"
-      >{{ dashboard.beneficiarios.vagas }}</app-metric-card
+      >{{ dashboard.beneficiarios.vagas | number }}</app-metric-card
     >
     <app-metric-card
       label="Lista de espera"
+      icon="clipboard-list"
+      hint="candidaturas aguardando vaga"
       [delayMs]="180"
       [variant]="dashboard.beneficiarios.listaEspera > 0 ? 'critical' : 'default'"
-      >{{ dashboard.beneficiarios.listaEspera }}</app-metric-card
+      >{{ dashboard.beneficiarios.listaEspera | number }}</app-metric-card
     >
   </section>
 
-  <section class="detail-grid">
-    <article class="panel fade-in-stagger" [style.--delay.ms]="220">
-      <div class="panel-title">
-        <h2>Próxima distribuição</h2>
-        @if (dashboard.proximaDistribuicao) {
-          <span class="badge ui-badge" [attr.data-status]="dashboard.proximaDistribuicao.status">{{
-            dashboard.proximaDistribuicao.status
-          }}</span>
-        }
-      </div>
+  <div class="ui-grid ui-grid--sidebar">
+    <app-section-card title="Próxima distribuição" class="fade-in-stagger" [style.--delay.ms]="220">
+      <a actions class="btn btn--ghost btn--sm" routerLink="/distribuicoes">Ver todas <app-icon name="arrow-right" /></a>
       @if (dashboard.proximaDistribuicao; as next) {
-        <dl>
+        <div class="next-head">
+          <span class="ui-tone ui-tone--info"><app-icon name="calendar" [size]="20" /></span>
+          <div>
+            <p class="next-title">{{ next.data | dataBr: 'longa' }}</p>
+            <p class="text-sm text-muted">Grupo {{ next.grupo }} · {{ next.data | dataBr: 'relativa' }}</p>
+          </div>
+          <app-status-badge [status]="next.status" />
+        </div>
+        <dl class="ui-dl ui-dl--3">
           <div>
             <dt>Data</dt>
-            <dd>{{ next.data }}</dd>
-          </div>
-          <div>
-            <dt>Grupo</dt>
-            <dd>{{ next.grupo }}</dd>
+            <dd>{{ next.data | dataBr }}</dd>
           </div>
           <div>
             <dt>Previstos</dt>
-            <dd>{{ next.previstos }}</dd>
+            <dd>{{ next.previstos | number }}</dd>
           </div>
           <div>
             <dt>Cestas montadas</dt>
-            <dd>{{ next.cestasMontadasCompativeis }}</dd>
+            <dd>{{ next.cestasMontadasCompativeis | number }}</dd>
           </div>
         </dl>
-        <div class="assembly-progress" role="progressbar" [attr.aria-valuenow]="next.cestasMontadasCompativeis" [attr.aria-valuemax]="next.previstos">
-          <span
-            class="assembly-progress-fill"
-            [style.width.%]="next.previstos > 0 ? (next.cestasMontadasCompativeis / next.previstos) * 100 : 0"
-          ></span>
-        </div>
-        <small class="assembly-progress-label">Montagem das cestas: {{ next.cestasMontadasCompativeis }} de {{ next.previstos }}</small>
+        <app-meter
+          class="next-meter"
+          size="lg"
+          label="Montagem das cestas"
+          [value]="next.cestasMontadasCompativeis"
+          [max]="next.previstos"
+        />
+        <p class="text-xs text-muted">
+          Montagem das cestas: {{ next.cestasMontadasCompativeis | number }} de {{ next.previstos | number }}
+        </p>
       } @else {
-        <p class="empty">Nenhuma distribuição futura encontrada.</p>
+        <app-empty-state icon="calendar-range" title="Sem distribuição futura" message="Nenhuma distribuição futura encontrada." />
       }
-    </article>
+    </app-section-card>
 
-    <article class="panel fade-in-stagger" [style.--delay.ms]="280">
-      <h2>Saúde da cobertura</h2>
-      <div class="coverage">
-        <span class="status ui-badge" [attr.data-status]="dashboard.saude.proximaDistribuicao.status">{{
-          coberturaStatusLabel()
-        }}</span>
-        <strong>{{ dashboard.saude.proximaDistribuicao.coberturaPercentual }}%</strong>
-        <div class="level-bar" [attr.data-status]="dashboard.saude.proximaDistribuicao.status">
-          <span class="level-bar-fill" [style.width.%]="dashboard.saude.proximaDistribuicao.coberturaPercentual"></span>
+    <app-section-card title="Alertas" class="fade-in-stagger" [style.--delay.ms]="280">
+      @if (alertas().length) {
+        <div class="ui-stack ui-stack--sm" role="list" aria-label="Alertas do provisionamento">
+          @for (alerta of alertas(); track alerta.codigo) {
+            <div
+              role="listitem"
+              class="ui-message alert-item"
+              [class.ui-message--error]="alerta.nivel === 'CRITICO'"
+              [class.ui-message--warning]="alerta.nivel === 'ATENCAO'"
+            >
+              <app-icon [name]="alerta.icone" />
+              <span class="alert-message">{{ alerta.mensagem }}</span>
+              @if (alerta.rota) {
+                <a class="alert-action" [routerLink]="alerta.rota">Resolver</a>
+              }
+            </div>
+          }
         </div>
-        <small
-          >{{ dashboard.saude.proximaDistribuicao.capacidadeGarantida }} de
-          {{ dashboard.saude.proximaDistribuicao.demanda }} cestas garantidas</small
-        >
-      </div>
-    </article>
+      } @else {
+        <app-empty-state icon="check-circle" title="Tudo em ordem" message="Nenhum alerta no momento." />
+      }
+    </app-section-card>
+  </div>
 
-    <article class="panel fade-in-stagger" [style.--delay.ms]="340">
-      <h2>Estoque</h2>
-      <dl>
+  <div class="ui-grid ui-grid--2">
+    <app-section-card
+      title="Saúde da cobertura"
+      description="Capacidade garantida para a próxima distribuição."
+      class="fade-in-stagger"
+      [style.--delay.ms]="340"
+    >
+      <div class="coverage">
+        <div class="coverage-head">
+          <strong class="tabular">{{ dashboard.saude.proximaDistribuicao.coberturaPercentual | number }}%</strong>
+          <app-status-badge [status]="dashboard.saude.proximaDistribuicao.status" />
+        </div>
+        <app-meter
+          label="Cobertura da próxima distribuição"
+          [value]="dashboard.saude.proximaDistribuicao.coberturaPercentual"
+          [tone]="toneCobertura(dashboard.saude.proximaDistribuicao.status)"
+        />
+        <p class="text-sm text-muted">
+          {{ dashboard.saude.proximaDistribuicao.capacidadeGarantida | number }} de
+          {{ dashboard.saude.proximaDistribuicao.demanda | number }} cestas garantidas
+        </p>
+      </div>
+    </app-section-card>
+
+    <app-section-card title="Estoque" description="Resumo do estoque disponível." class="fade-in-stagger" [style.--delay.ms]="400">
+      <a actions class="btn btn--ghost btn--sm" routerLink="/estoque">Ver estoque <app-icon name="arrow-right" /></a>
+      <dl class="ui-dl ui-dl--3">
         <div>
           <dt>Cestas montadas</dt>
-          <dd>{{ dashboard.estoque.cestasMontadas }}</dd>
+          <dd>{{ dashboard.estoque.cestasMontadas | number }}</dd>
         </div>
         <div>
           <dt>Insumos ativos</dt>
-          <dd>{{ dashboard.estoque.insumosAtivos }}</dd>
+          <dd>{{ dashboard.estoque.insumosAtivos | number }}</dd>
         </div>
         <div>
           <dt>Itens críticos</dt>
-          <dd [class.is-critical-text]="dashboard.estoque.itensCriticos > 0">{{ dashboard.estoque.itensCriticos }}</dd>
+          <dd [class.is-critical-text]="dashboard.estoque.itensCriticos > 0">{{ dashboard.estoque.itensCriticos | number }}</dd>
         </div>
       </dl>
-    </article>
+    </app-section-card>
+  </div>
 
-    <article class="panel fade-in-stagger" [style.--delay.ms]="400">
-      <div class="panel-title">
-        <h2>Insumos críticos</h2>
-        @if (insumosCriticos().length > 5) {
-          <app-search-field
-            label="Buscar insumo"
-            [showLabel]="false"
-            placeholder="Buscar insumo…"
-            (termChange)="onInsumoFiltroChange($event)"
-          />
+  <app-section-card
+    title="Insumos críticos"
+    description="Itens que exigem atenção antes da próxima montagem."
+    class="fade-in-stagger"
+    [style.--delay.ms]="460"
+  >
+    @if (insumosCriticos().length > 5) {
+      <app-search-field
+        actions
+        label="Buscar insumo"
+        [showLabel]="false"
+        placeholder="Buscar insumo…"
+        (termChange)="onInsumoFiltroChange($event)"
+      />
+    }
+    @if (insumosFiltrados().length) {
+      <div class="ui-grid ui-grid--3">
+        @for (item of insumosFiltrados(); track item.apresentacaoInsumoId) {
+          <div class="insumo-card">
+            <div class="insumo-row">
+              <p>
+                <strong>{{ item.nome }}</strong> <span class="text-xs text-muted">{{ item.apresentacao }}</span>
+              </p>
+              <app-status-badge [status]="item.limitante ? 'CRITICO' : 'ATENCAO'" [label]="item.limitante ? 'Limitante' : 'Atenção'" />
+            </div>
+            <app-meter
+              [label]="'Nível de ' + item.nome"
+              [value]="item.nivelPercentual"
+              [tone]="item.limitante ? 'danger' : 'warning'"
+            />
+            <p class="text-xs text-muted">Déficit de {{ item.deficit | number }} · {{ item.nivelPercentual | number }}% disponível</p>
+          </div>
         }
       </div>
-      @if (insumosFiltrados().length) {
-        <ul>
-          @for (item of insumosFiltrados(); track item.apresentacaoInsumoId) {
-            <li>
-              <div class="insumo-row">
-                <span>{{ item.nome }} — {{ item.apresentacao }}</span>
-                <strong>Déficit {{ item.deficit }}</strong>
-              </div>
-              <div class="level-bar" [attr.data-status]="item.limitante ? 'CRITICO' : 'ATENCAO'">
-                <span class="level-bar-fill" [style.width.%]="item.nivelPercentual"></span>
-              </div>
-            </li>
-          }
-        </ul>
-      } @else {
-        <p class="empty">Nenhum insumo crítico encontrado.</p>
-      }
-    </article>
-  </section>
+    } @else {
+      <app-empty-state icon="package" title="Sem insumos críticos" message="Nenhum insumo crítico encontrado." />
+    }
+  </app-section-card>
 }

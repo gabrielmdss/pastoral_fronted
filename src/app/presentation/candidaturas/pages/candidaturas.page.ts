@@ -36,6 +36,10 @@ import { PessoaSearchFieldComponent } from '../../shared/pessoas/pessoa-search-f
 import { ListarGruposUseCase } from '../../../application/beneficiarios/catalogos.use-cases';
 import type { GrupoDistribuicao } from '../../../application/beneficiarios/catalogos.models';
 import type { Pessoa } from '../../../domain/pessoas/pessoa.model';
+import { DecimalPipe } from '@angular/common';
+import { IconComponent } from '../../../shared/ui/icon.component';
+import { ToastService } from '../../../shared/ui/toast.service';
+import { DataBrPipe } from '../../../shared/pipes/data-br.pipe';
 type Mode = 'nova' | 'priorizar' | 'contato' | 'nao-localizado' | 'admitir';
 @Component({
   selector: 'app-candidaturas-page',
@@ -47,8 +51,12 @@ type Mode = 'nova' | 'priorizar' | 'contato' | 'nao-localizado' | 'admitir';
     PageHeaderComponent,
     StatusBadgeComponent,
     PessoaSearchFieldComponent,
+    DecimalPipe,
+    IconComponent,
+    DataBrPipe,
   ],
   templateUrl: './candidaturas.page.html',
+  styleUrl: './candidaturas.page.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export default class CandidaturasPage {
@@ -81,6 +89,7 @@ export default class CandidaturasPage {
     justificativaExcecao: new FormControl<string | null>(null, [Validators.minLength(10)]),
   });
   private readonly destroy = inject(DestroyRef);
+  private readonly toast = inject(ToastService);
   private readonly refreshRequested = new Subject<void>();
   constructor(
     private readonly listar: ListarCandidaturasUseCase,
@@ -178,7 +187,7 @@ export default class CandidaturasPage {
           }),
         );
       }
-      this.feedback.set('Operação concluída com sucesso.');
+      this.toast.success('Operação concluída com sucesso.');
       this.mode.set(null);
       this.pessoa.set(null);
       this.refresh();

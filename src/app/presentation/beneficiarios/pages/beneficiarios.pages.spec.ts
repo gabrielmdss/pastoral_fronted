@@ -1,3 +1,4 @@
+import { ObterHistoricoBeneficiarioUseCase } from '../../../application/atendimento/use-cases/obter-historico.use-cases';
 import { TestBed } from '@angular/core/testing';
 import { ActivatedRoute, provideRouter } from '@angular/router';
 import { of, throwError } from 'rxjs';
@@ -62,7 +63,11 @@ describe('páginas de beneficiários', () => {
     await new Promise((r) => setTimeout(r, 400));
     expect(f.componentInstance.error()).toBeTruthy();
   });
-  it('carrega detalhe e executa desligamento', async () => {
+  it('carrega detalhe, linha do tempo e executa desligamento', async () => {
+    const historico = vi.fn(() => of({ beneficiario: { id: '9', nome: 'Ana' }, eventos: [
+      { tipo: 'ALTERACAO_GRUPO', ocorridoEm: '2026-01-01T00:00:00Z', detalhes: { grupoOrigem: 'A', grupoDestino: 'B', motivo: 'Mudança' } },
+      { tipo: 'RETIRADA', ocorridoEm: '2026-02-01T00:00:00Z', detalhes: { retiradaId: '1', distribuicaoId: '4', tipo: 'TITULAR' } },
+    ] }));
     const desligar = vi.fn(() => of(undefined));
     TestBed.configureTestingModule({
       imports: [BeneficiarioDetailPage],
@@ -83,10 +88,19 @@ describe('páginas de beneficiários', () => {
         { provide: EnviarFotoPessoaUseCase, useValue: {} },
         { provide: SessionFacade, useValue: session },
         groups,{provide:ListarMotivosUseCase,useValue:{execute:()=>of([])}},
+        { provide: ObterHistoricoBeneficiarioUseCase, useValue: { execute: historico } },
       ],
     });
-    const page = TestBed.createComponent(BeneficiarioDetailPage).componentInstance;
-    await page.load();
+    const fixture = TestBed.createComponent(BeneficiarioDetailPage);
+    const page = fixture.componentInstance;
+    fixture.detectChanges();
+    await fixture.whenStable();
+    page.abrirHistorico();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(historico).toHaveBeenCalledWith('9');
+    expect(fixture.nativeElement.textContent).toContain('Alteração de grupo');
+    expect(fixture.nativeElement.querySelector('a[href="/distribuicoes/4"]')).toBeTruthy();
     page.mode.set('desligar');
     page.desligarForm.setValue({ motivoId: '1', observacao: null });
     await page.submit();

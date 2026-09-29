@@ -1,8 +1,10 @@
 import { ChangeDetectionStrategy, Component, input, signal } from '@angular/core';
 import { NG_VALUE_ACCESSOR, type ControlValueAccessor } from '@angular/forms';
+import { IconComponent } from './icon.component';
 
 @Component({
   selector: 'app-password-field',
+  imports: [IconComponent],
   template: `
     <div class="password-field">
       <input
@@ -22,7 +24,7 @@ import { NG_VALUE_ACCESSOR, type ControlValueAccessor } from '@angular/forms';
         [attr.aria-label]="visible() ? 'Ocultar senha' : 'Mostrar senha'"
         [attr.aria-pressed]="visible()"
       >
-        {{ visible() ? '🙈' : '👁' }}
+        <app-icon [name]="visible() ? 'eye-off' : 'eye'" [size]="18" />
       </button>
     </div>
   `,

@@ -86,19 +86,24 @@ export interface RetiradaDto {
 
 export interface RegistrarRetiradaDto {
   beneficiarioId: string;
-  tipo: 'TITULAR' | 'REPRESENTANTE';
-  formaIdentificacao: 'DOCUMENTO' | 'REPRESENTANTE';
+  tipo: RetiradaTipoDto;
+  formaIdentificacao: RetiradaFormaIdentificacaoDto | null;
   representante: {
     nome: string;
     documento: string | null;
     relacao: string | null;
     autorizacaoDeclaratoria: boolean;
   } | null;
-  justificativaExcecao: null;
+  justificativaExcecao: string | null;
 }
 
 export interface HistoricoBeneficiarioDto {
   beneficiario: { id: string; nome: string };
+  eventos: HistoricoBeneficiarioEventoDto[];
+}
+
+export interface HistoricoDistribuicaoDto {
+  distribuicao: { id: string; data: string; grupo: string };
   eventos: HistoricoBeneficiarioEventoDto[];
 }
 

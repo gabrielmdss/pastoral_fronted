@@ -6,7 +6,7 @@ import {
   inject,
   signal,
 } from '@angular/core';
-import { DatePipe } from '@angular/common';
+import { DecimalPipe } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
@@ -28,16 +28,26 @@ import { userErrorMessage } from '../../../shared/errors/user-error';
 import { LoadingStateComponent } from '../../../shared/ui/loading-state.component';
 import { ErrorStateComponent } from '../../../shared/ui/error-state.component';
 import { EmptyStateComponent } from '../../../shared/ui/empty-state.component';
+import { PageHeaderComponent } from '../../../shared/ui/page-header.component';
+import { SectionCardComponent } from '../../../shared/ui/section-card.component';
+import { MetricCardComponent } from '../../../shared/ui/metric-card.component';
+import { StatusBadgeComponent } from '../../../shared/ui/status-badge.component';
+import { IconComponent } from '../../../shared/ui/icon.component';
+import { ToastService } from '../../../shared/ui/toast.service';
+import { DataBrPipe, formatarDataBr } from '../../../shared/pipes/data-br.pipe';
+import { CompetenciaPipe, formatarCompetencia } from '../../../shared/pipes/competencia.pipe';
+import { Confirmacao, ConfirmDialogComponent } from '../../../shared/ui/confirm-dialog.component';
 
 @Component({
   selector: 'app-liberacoes',
-  imports: [DatePipe, ReactiveFormsModule, RouterLink, LoadingStateComponent, ErrorStateComponent, EmptyStateComponent],
+  imports: [ConfirmDialogComponent, DecimalPipe, ReactiveFormsModule, RouterLink, LoadingStateComponent, ErrorStateComponent, EmptyStateComponent, PageHeaderComponent, SectionCardComponent, MetricCardComponent, StatusBadgeComponent, IconComponent, DataBrPipe, CompetenciaPipe],
   templateUrl: './liberacoes.page.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export default class LiberacoesPage {
   private readonly route = inject(ActivatedRoute);
   private readonly destroy = inject(DestroyRef);
+  private readonly toast = inject(ToastService);
   private readonly obterDistribuicao = inject(ObterDistribuicaoUseCase);
   private readonly listar = inject(ListarLiberacoesUseCase);
   private readonly liberarUC = inject(LiberarCestasUseCase);
@@ -53,6 +63,8 @@ export default class LiberacoesPage {
   readonly liberacoes = signal<LiberacaoCestas[]>([]);
   readonly loading = signal(false);
   readonly saving = signal(false);
+  /** Confirmação das operações irreversíveis (substitui window.confirm). */
+  readonly confirmacao = new Confirmacao();
   readonly error = signal('');
   readonly mutationError = signal('');
   readonly feedback = signal('');
@@ -115,7 +127,7 @@ export default class LiberacoesPage {
     return `Lote ${lote.id} · ${plano?.modelo ?? 'Modelo não retornado'} · Versão ${lote.planejamento.numeroVersao} do planejamento`;
   }
   destinoLabel(d: Distribuicao): string {
-    return `${d.grupo.nome} · ${d.competencia.mes}/${d.competencia.ano} · ${d.dataPrevista.split('-').reverse().join('/')}`;
+    return `${d.grupo.nome} · ${formatarCompetencia(d.competencia, 'numerica')} · ${formatarDataBr(d.dataPrevista)}`;
   }
   async liberar() {
     const d = this.distribuicao();
@@ -132,12 +144,12 @@ export default class LiberacoesPage {
     const input = this.form.getRawValue();
     const lote = this.utilizaveis().find((l) => l.id === input.loteMontagemId);
     if (!lote) return;
-    if (
-      !window.confirm(
-        `Liberar ${input.quantidade} cestas de ${this.loteLabel(lote)} para ${this.destinoLabel(d)}? A disponibilidade será verificada pelo estoque.`,
-      )
-    )
-      return;
+    const confirmado = await this.confirmacao.pedir({
+      title: 'Liberar cestas',
+      message: `Liberar ${input.quantidade} cestas de ${this.loteLabel(lote)} para ${this.destinoLabel(d)}? A disponibilidade será verificada pelo estoque.`,
+      confirmLabel: 'Liberar cestas',
+    });
+    if (!confirmado || this.saving()) return;
     this.saving.set(true);
     this.feedback.set('');
     this.mutationError.set('');
@@ -148,6 +160,7 @@ export default class LiberacoesPage {
       if (this.destroy.destroyed || this.id() !== d.id) return;
       this.form.reset();
       this.feedback.set('Liberação confirmada. Os saldos serão consultados novamente.');
+      this.toast.success('Liberação confirmada. Os saldos serão consultados novamente.');
       await this.carregar();
     } catch (e) {
       if (!this.destroy.destroyed && this.id() === d.id) {

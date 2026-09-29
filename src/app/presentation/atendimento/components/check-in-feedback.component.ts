@@ -9,10 +9,13 @@ import type {
   CheckIn,
   CheckInMotivoBloqueio,
 } from '../../../domain/atendimento/check-in.model';
+import { IconComponent } from '../../../shared/ui/icon.component';
+import { CompetenciaPipe } from '../../../shared/pipes/competencia.pipe';
 
 @Component({
   selector: 'app-check-in-feedback',
   standalone: true,
+  imports: [IconComponent, CompetenciaPipe],
   templateUrl: './check-in-feedback.component.html',
   styleUrl: './check-in-feedback.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

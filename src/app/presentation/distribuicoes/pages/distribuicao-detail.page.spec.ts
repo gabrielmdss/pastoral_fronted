@@ -1,4 +1,4 @@
-import { TestBed } from '@angular/core/testing';
+import { TestBed, type ComponentFixture } from '@angular/core/testing';
 import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/router';
 import { of, Subject } from 'rxjs';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -10,6 +10,13 @@ import type { Distribuicao } from '../../../domain/distribuicoes/distribuicao.mo
 import { SessionFacade } from '../../../infrastructure/auth/session.facade';
 import DistribuicaoDetailPage from './distribuicao-detail.page';
 import { RemarcarDistribuicaoUseCase } from '../../../application/distribuicoes/remarcar-distribuicao.use-case';
+import { ObterHistoricoDistribuicaoUseCase } from '../../../application/atendimento/use-cases/obter-historico.use-cases';
+import { responderConfirmacao } from '../../../shared/ui/confirm-dialog.testing';
+
+const historico = vi.fn(() => of({ distribuicao: { id: '3', data: '2026-09-04', grupo: 'A' }, eventos: [
+  { tipo: 'RETIRADA', ocorridoEm: '2026-09-04T13:00:00Z', detalhes: { retiradaId: '5', beneficiarioId: '8' } },
+  { tipo: 'ABERTURA', ocorridoEm: '2026-09-04T12:00:00Z', detalhes: { status: 'ABERTA' } },
+] }));
 
 const aberta: Distribuicao = {
   id: '3', status: 'ABERTA', dataPrevista: '2026-09-04', dataReal: null,
@@ -21,7 +28,7 @@ const aberta: Distribuicao = {
   cestasRetornadas: 0, cestasDisponiveis: 0,
 };
 
-function setup(permission: boolean, encerrar: ReturnType<typeof vi.fn>, obter: ReturnType<typeof vi.fn>, triagem = false) {
+function setup(permission: boolean, encerrar: ReturnType<typeof vi.fn>, obter: ReturnType<typeof vi.fn>, triagem = false, extras: string[] = []) {
   TestBed.configureTestingModule({
     imports: [DistribuicaoDetailPage],
     providers: [
@@ -31,14 +38,17 @@ function setup(permission: boolean, encerrar: ReturnType<typeof vi.fn>, obter: R
       { provide: ObterDistribuicaoUseCase, useValue: { execute: obter } },
       { provide: AbrirDistribuicaoUseCase, useValue: { execute: vi.fn() } },
       { provide: EncerrarDistribuicaoUseCase, useValue: { execute: encerrar } },
+      { provide: ObterHistoricoDistribuicaoUseCase, useValue: { execute: historico } },
       {
         provide: SessionFacade,
-        useValue: { hasPermission: (code: string) => (permission && code === 'DISTRIBUICAO_ENCERRAR') || (triagem && code === 'DISTRIBUICAO_TRIAGEM') },
+        useValue: { hasPermission: (code: string) => (permission && code === 'DISTRIBUICAO_ENCERRAR') || (triagem && code === 'DISTRIBUICAO_TRIAGEM') || extras.includes(code) },
       },
     ],
   });
-  return TestBed.createComponent(DistribuicaoDetailPage).componentInstance;
+  fixtureAtual = TestBed.createComponent(DistribuicaoDetailPage);
+  return fixtureAtual.componentInstance;
 }
+let fixtureAtual: ComponentFixture<DistribuicaoDetailPage>;
 
 describe('DistribuicaoDetailPage - encerramento', () => {
   afterEach(() => TestBed.resetTestingModule());
@@ -53,8 +63,28 @@ describe('DistribuicaoDetailPage - encerramento', () => {
     expect(fixture.nativeElement.querySelectorAll('.distribuicao-detail-actions button').length).toBe(0);
   });
 
-  it('confirma, impede envio duplo e recarrega status ENCERRADA', () => {
-    vi.spyOn(window, 'confirm').mockReturnValue(true);
+  it('exibe histórico em linha do tempo com link para o beneficiário', () => {
+    setup(false, vi.fn(), vi.fn().mockReturnValue(of(aberta)));
+    const fixture = TestBed.createComponent(DistribuicaoDetailPage);
+    fixture.detectChanges();
+    expect(historico).toHaveBeenCalledWith('3');
+    const itens = fixture.nativeElement.querySelectorAll('.ui-timeline__item');
+    expect(itens.length).toBe(2);
+    expect(itens[0].textContent).toContain('Retirada');
+    expect(fixture.nativeElement.querySelector('a[href="/beneficiarios/8"]')).toBeTruthy();
+  });
+
+  it.each([
+    [['ESTOQUE_VISUALIZAR'], false],
+    [['ESTOQUE_VISUALIZAR', 'BENEFICIARIO_VISUALIZAR'], true],
+  ])('link de liberações segue os guards da rota: %s', (perms, visivel) => {
+    setup(false, vi.fn(), vi.fn().mockReturnValue(of(aberta)), false, perms);
+    const fixture = TestBed.createComponent(DistribuicaoDetailPage);
+    fixture.detectChanges();
+    expect(Boolean(fixture.nativeElement.querySelector('a[href="/distribuicoes/3/liberacoes"]'))).toBe(visivel);
+  });
+
+  it('confirma, impede envio duplo e recarrega status ENCERRADA', async () => {
     const resposta = new Subject<void>();
     const encerrar = vi.fn().mockReturnValue(resposta);
     const obter = vi.fn()
@@ -62,8 +92,11 @@ describe('DistribuicaoDetailPage - encerramento', () => {
       .mockReturnValueOnce(of({ ...aberta, status: 'ENCERRADA' as const }));
     const page = setup(true, encerrar, obter);
 
-    page.encerrar();
-    page.encerrar();
+    const pending = page.encerrar();
+    const texto = await responderConfirmacao(fixtureAtual);
+    await page.encerrar();
+    await pending;
+    expect(texto).toContain('encerrar a distribuição');
     expect(encerrar).toHaveBeenCalledOnce();
     expect(page.encerrando()).toBe(true);
 
@@ -73,13 +106,14 @@ describe('DistribuicaoDetailPage - encerramento', () => {
     expect(page.encerrando()).toBe(false);
   });
 
-  it('não envia sem a permission real', () => {
-    vi.spyOn(window, 'confirm').mockReturnValue(true);
+  it('não envia sem a permission real', async () => {
     const encerrar = vi.fn().mockReturnValue(of(undefined));
     const page = setup(false, encerrar, vi.fn().mockReturnValue(of(aberta)));
 
-    page.encerrar();
+    await page.encerrar();
+    fixtureAtual.detectChanges();
 
+    expect(fixtureAtual.nativeElement.querySelector('app-confirm-dialog')).toBeNull();
     expect(encerrar).not.toHaveBeenCalled();
   });
 });

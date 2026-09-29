@@ -17,16 +17,6 @@
   background: var(--color-warning-soft);
   border-left-color: var(--color-warning);
 }
-.check-in-feedback__icon {
-  display: grid;
-  place-items: center;
-  width: 2rem;
-  height: 2rem;
-  border-radius: var(--radius-md);
-  color: var(--color-success);
-  font-weight: 700;
-}
-.check-in-feedback--pendente .check-in-feedback__icon,
 .check-in-feedback--pendente .check-in-feedback__status {
   color: var(--color-warning);
 }
@@ -69,23 +59,11 @@
 .check-in-feedback__pendencia {
   color: var(--color-warning);
 }
-.check-in-feedback__close {
-  width: 2.75rem;
-  min-height: 2.75rem;
-  padding: 0;
-  background: transparent;
-  color: var(--color-text-muted);
-  font-size: 1.25rem;
-}
-.check-in-feedback__close:hover {
-  background: var(--color-surface);
-  color: var(--color-text);
-}
 @media (max-width: 600px) {
   .check-in-feedback {
     grid-template-columns: minmax(0, 1fr) auto;
   }
-  .check-in-feedback__icon {
+    .check-in-feedback .ui-tone {
     display: none;
   }
 }

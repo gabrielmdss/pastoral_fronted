@@ -5,7 +5,10 @@ import {
   ATENDIMENTO_API,
   type AtendimentoApiPort,
 } from '../atendimento-api.port';
-import type { RetiradaRepresentanteInput } from '../../../domain/atendimento/retirada.model';
+import type {
+  RegistrarRetiradaInput,
+  RetiradaRepresentanteInput,
+} from '../../../domain/atendimento/retirada.model';
 
 @Injectable()
 export class RegistrarRetiradaUseCase {
@@ -26,5 +29,13 @@ export class RegistrarRetiradaUseCase {
       representante: representante ?? null,
       justificativaExcecao: null,
     });
+  }
+
+  /**
+   * Registro completo (tipos de exceção). As regras de tipo, forma,
+   * justificativa e permissão são validadas pelo backend.
+   */
+  registrar(distribuicaoId: string, input: RegistrarRetiradaInput): Observable<{ id: string }> {
+    return this.api.registrarRetirada(distribuicaoId, input);
   }
 }

@@ -1,146 +1,167 @@
-<a class="back-link" [routerLink]="id() ? ['/distribuicoes', id()] : ['/distribuicoes']"
-  >← Voltar para distribuição</a
+<app-page-header
+  eyebrow="Preparação"
+  title="Liberação de cestas"
+  description="As cestas montadas só podem ser entregues depois de liberadas para uma distribuição."
+  [backLink]="id() ? '/distribuicoes/' + id() : '/distribuicoes'"
+  backLabel="Voltar para distribuição"
 >
-<header class="ui-header">
-  <div>
-    <p class="eyebrow">Preparação</p>
-    <h1>Liberação de cestas</h1>
-    <p>As cestas montadas só podem ser entregues depois de liberadas para uma distribuição.</p>
-  </div>
-  <button type="button" class="secondary" (click)="carregar()" [disabled]="loading() || saving()">
-    Atualizar consulta
+  <button actions type="button" class="secondary" (click)="carregar()" [disabled]="loading() || saving()">
+    <app-icon name="refresh" /> Atualizar consulta
   </button>
-</header>
-@if (feedback()) {
-  <p class="ui-message ui-message--success" role="status">{{ feedback() }}</p>
-}
-@if (mutationError()) {
-  <p class="ui-message ui-message--error" role="alert">{{ mutationError() }}</p>
-}
-@if (loading()) {
-  <app-loading-state label="Consultando distribuição, lotes e liberações…" />
-} @else if (error()) {
-  <app-error-state [message]="error()" (retry)="carregar()" />
-} @else if (distribuicao(); as d) {
-  <section class="ui-panel">
-    <header class="ui-section-header">
-      <div>
-        <h2>{{ d.grupo.nome }}</h2>
-        <p>
-          Competência {{ d.competencia.mes }}/{{ d.competencia.ano }} ·
-          {{ d.dataPrevista | date: 'dd/MM/yyyy' }}
-        </p>
-      </div>
-      <span class="ui-badge" [attr.data-status]="d.status">{{ d.status }}</span>
-    </header>
-    <p>
-      <strong>{{ d.cestasDisponiveis }} cestas disponíveis para atendimento</strong>
-    </p>
-    <p>
-      Liberadas: {{ d.cestasLiberadas }} · Consumidas: {{ d.cestasConsumidas }} · Retornadas:
-      {{ d.cestasRetornadas }}
-    </p>
-    <div class="actions">
-      <a routerLink="/distribuicoes">Escolher outra distribuição</a
-      ><a [routerLink]="['/distribuicoes', d.id]">Detalhe / abertura da distribuição</a>
-      @if (podeAtender && (d.status === 'ABERTA' || d.status === 'ENCERRADA')) {
-        <a [routerLink]="['/distribuicoes', d.id, 'atendimento']">{{
-          d.status === 'ENCERRADA' ? 'Consultar atendimento histórico' : 'Ir para Atendimento'
-        }}</a>
-      }
-    </div>
-  </section>
-  @if (d.status === 'ENCERRADA') {
-    <p class="ui-state">
-      Distribuição encerrada. As liberações permanecem disponíveis para consulta.
-    </p>
-  } @else if (podeLiberar) {
-    <form class="form-grid ui-panel" [formGroup]="form" (ngSubmit)="liberar()">
-      <h2>Nova liberação</h2>
-      <fieldset class="form-grid" [disabled]="saving()">
-        <legend>Lote e quantidade</legend>
-        <label
-          >Lote de origem<select formControlName="loteMontagemId">
-            <option value="">Selecione</option>
-            @for (l of utilizaveis(); track l.id) {
-              <option [value]="l.id">
-                {{ loteLabel(l) }} · {{ l.quantidadeDisponivel }} disponíveis
-              </option>
-            }
-          </select></label
-        >
-        @if (!utilizaveis().length) {
-          <app-empty-state title="Sem lotes" message="Nenhum lote ativo com cestas disponíveis. Consulte a Montagem." />
-        }
-        @if (lotePorId().get(form.controls.loteMontagemId.value); as l) {
-          <p>
-            {{ l.quantidadeMontada }} cestas montadas · {{ l.quantidadeDisponivel }} disponíveis ·
-            {{ l.status }} · Montagem em {{ l.montadoEm | date: 'dd/MM/yyyy HH:mm' }}
-          </p>
-          <a [routerLink]="['/montagem', l.id]">Consultar lote e composição efetiva</a>
-        }
-        <label
-          >Quantidade de cestas<input
-            type="number"
-            formControlName="quantidade"
-            min="1"
-            step="1"
-            required
-            [attr.aria-invalid]="
-              form.controls.quantidade.touched && form.controls.quantidade.invalid
-            "
-        /></label>
-        @if (form.controls.quantidade.touched && form.controls.quantidade.invalid) {
-          <p class="field-error">Informe uma quantidade inteira maior que zero.</p>
-        }
-      </fieldset>
-      <p class="hint">
-        A liberação destina cestas à distribuição. O consumo é registrado no Atendimento.
-      </p>
-      <button type="submit" [disabled]="saving() || form.invalid || !utilizaveis().length">
-        {{ saving() ? 'Liberando…' : 'Liberar cestas' }}
-      </button>
-    </form>
+</app-page-header>
+
+<div class="ui-stack">
+  @if (mutationError()) {
+    <p class="ui-message ui-message--error" role="alert">{{ mutationError() }}</p>
   }
-  <section class="ui-panel">
-    <h2>Liberações registradas</h2>
-    @if (!liberacoes().length) {
-      <app-empty-state title="Sem liberações" message="Nenhuma liberação registrada para esta distribuição." />
-    } @else {
-      <div class="table-scroll" tabindex="0" role="region" aria-label="Liberações da distribuição">
-        <table>
-          <thead>
-            <tr>
-              <th scope="col">Lote / modelo</th>
-              <th scope="col">Data</th>
-              <th scope="col" class="number">Liberadas</th>
-              <th scope="col" class="number">Consumidas</th>
-              <th scope="col" class="number">Retornadas</th>
-              <th scope="col" class="number">Disponíveis</th>
-            </tr>
-          </thead>
-          <tbody>
-            @for (r of liberacoes(); track r.id) {
-              <tr>
-                <td>
-                  <a [routerLink]="['/montagem', r.loteMontagemId]">
-                    @if (lotePorId().get(r.loteMontagemId); as l) {
-                      {{ loteLabel(l) }}
-                    } @else {
-                      Lote {{ r.loteMontagemId }}
-                    }
-                  </a>
-                </td>
-                <td>{{ r.liberadoEm | date: 'dd/MM/yyyy HH:mm' }}</td>
-                <td class="number">{{ r.quantidadeLiberada }}</td>
-                <td class="number">{{ r.quantidadeConsumida }}</td>
-                <td class="number">{{ r.quantidadeRetornada }}</td>
-                <td class="number">{{ r.quantidadeDisponivel }}</td>
-              </tr>
-            }
-          </tbody>
-        </table>
+  @if (loading()) {
+    <app-loading-state variant="detail" label="Consultando distribuição, lotes e liberações…" />
+  } @else if (error()) {
+    <app-error-state [message]="error()" (retry)="carregar()" />
+  } @else if (distribuicao(); as d) {
+    <section class="ui-card">
+      <header class="ui-card__header">
+        <div>
+          <h2>{{ d.grupo.nome }}</h2>
+          <p>Competência {{ d.competencia | competencia }} · {{ d.dataPrevista | dataBr }}</p>
+        </div>
+        <div class="ui-card__actions"><app-status-badge [status]="d.status" /></div>
+      </header>
+      <div class="ui-card__body ui-stack">
+        <div class="ui-grid ui-grid--kpi">
+          <app-metric-card label="Disponíveis para atendimento" icon="package-open" tone="success" [delayMs]="0">
+            {{ d.cestasDisponiveis | number }}
+          </app-metric-card>
+          <app-metric-card label="Liberadas" icon="package" tone="primary" [delayMs]="30">{{ d.cestasLiberadas | number }}</app-metric-card>
+          <app-metric-card label="Consumidas" icon="check-circle" tone="info" [delayMs]="60">{{ d.cestasConsumidas | number }}</app-metric-card>
+          <app-metric-card label="Retornadas" icon="arrow-left" tone="neutral" [delayMs]="90">{{ d.cestasRetornadas | number }}</app-metric-card>
+        </div>
+        <div class="ui-actions">
+          <a class="btn btn--ghost btn--sm" routerLink="/distribuicoes"><app-icon name="calendar-range" /> Escolher outra distribuição</a>
+          <a class="btn btn--secondary btn--sm" [routerLink]="['/distribuicoes', d.id]">Detalhe / abertura da distribuição</a>
+          @if (podeAtender && (d.status === 'ABERTA' || d.status === 'ENCERRADA')) {
+            <a class="btn btn--primary btn--sm" [routerLink]="['/distribuicoes', d.id, 'atendimento']">
+              {{ d.status === 'ENCERRADA' ? 'Consultar atendimento histórico' : 'Ir para Atendimento' }}
+              <app-icon name="arrow-right" />
+            </a>
+          }
+        </div>
       </div>
+    </section>
+
+    <p class="ui-message">
+      Ao encerrar a distribuição, as cestas não consumidas voltam ao lote de origem.
+    </p>
+
+    @if (d.status === 'ENCERRADA') {
+      <p class="ui-message ui-message--warning">
+        Distribuição encerrada. As liberações permanecem disponíveis para consulta.
+      </p>
+    } @else if (podeLiberar) {
+      <app-section-card title="Nova liberação" description="A liberação destina cestas à distribuição. O consumo é registrado no Atendimento.">
+        <form class="form-grid" [formGroup]="form" (ngSubmit)="liberar()">
+          <fieldset class="form-grid" [disabled]="saving()">
+            <legend class="sr-only">Lote e quantidade</legend>
+            <label class="ui-field">
+              <span class="ui-field__label">Lote de origem</span>
+              <select formControlName="loteMontagemId">
+                <option value="">Selecione</option>
+                @for (l of utilizaveis(); track l.id) {
+                  <option [value]="l.id">{{ loteLabel(l) }} · {{ l.quantidadeDisponivel }} disponíveis</option>
+                }
+              </select>
+            </label>
+            @if (!utilizaveis().length) {
+              <app-empty-state icon="boxes" title="Sem lotes" message="Nenhum lote ativo com cestas disponíveis. Consulte a Montagem." />
+            }
+            <a data-action="montagem" class="btn btn--ghost btn--sm" routerLink="/montagem" [queryParams]="{ distribuicao: d.id }">
+              <app-icon name="boxes" /> Consultar lotes na Montagem
+            </a>
+            @if (lotePorId().get(form.controls.loteMontagemId.value); as l) {
+              <dl class="ui-dl ui-dl--3">
+                <div><dt>Montadas</dt><dd>{{ l.quantidadeMontada | number }}</dd></div>
+                <div><dt>Disponíveis</dt><dd>{{ l.quantidadeDisponivel | number }}</dd></div>
+                <div><dt>Montagem em</dt><dd>{{ l.montadoEm | dataBr: 'dataHora' }}</dd></div>
+              </dl>
+              <div class="ui-actions">
+                <app-status-badge [status]="l.status" />
+                <a [routerLink]="['/montagem', l.id]" [queryParams]="{ distribuicao: d.id }">Consultar lote e composição efetiva</a>
+              </div>
+            }
+            <label class="ui-field">
+              <span class="ui-field__label">Quantidade de cestas</span>
+              <input
+                type="number"
+                formControlName="quantidade"
+                min="1"
+                step="1"
+                required
+                [attr.aria-invalid]="form.controls.quantidade.touched && form.controls.quantidade.invalid"
+              />
+              @if (form.controls.quantidade.touched && form.controls.quantidade.invalid) {
+                <span class="ui-field__error">Informe uma quantidade inteira maior que zero.</span>
+              }
+            </label>
+          </fieldset>
+          <div class="ui-actions ui-actions--end">
+            <button type="submit" [class.is-loading]="saving()" [disabled]="saving() || form.invalid || !utilizaveis().length">
+              <app-icon name="package" /> {{ saving() ? 'Liberando…' : 'Liberar cestas' }}
+            </button>
+          </div>
+        </form>
+      </app-section-card>
     }
-  </section>
+
+    <app-section-card title="Liberações registradas" [flush]="true">
+      @if (!liberacoes().length) {
+        <app-empty-state icon="package" title="Sem liberações" message="Nenhuma liberação registrada para esta distribuição." />
+      } @else {
+        <div class="table-scroll" tabindex="0" role="region" aria-label="Liberações da distribuição">
+          <table class="ui-table ui-table--striped ui-table--cards">
+            <thead>
+              <tr>
+                <th scope="col">Lote / modelo</th>
+                <th scope="col">Data</th>
+                <th scope="col" class="number">Liberadas</th>
+                <th scope="col" class="number">Consumidas</th>
+                <th scope="col" class="number">Retornadas</th>
+                <th scope="col" class="number">Disponíveis</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (r of liberacoes(); track r.id) {
+                <tr>
+                  <td data-label="Lote / modelo">
+                    <a [routerLink]="['/montagem', r.loteMontagemId]" [queryParams]="{ distribuicao: d.id }">
+                      @if (lotePorId().get(r.loteMontagemId); as l) {
+                        {{ loteLabel(l) }}
+                      } @else {
+                        Lote {{ r.loteMontagemId }}
+                      }
+                    </a>
+                  </td>
+                  <td data-label="Data" class="muted">{{ r.liberadoEm | dataBr: 'dataHora' }}</td>
+                  <td data-label="Liberadas" class="number">{{ r.quantidadeLiberada | number }}</td>
+                  <td data-label="Consumidas" class="number">{{ r.quantidadeConsumida | number }}</td>
+                  <td data-label="Retornadas" class="number">{{ r.quantidadeRetornada | number }}</td>
+                  <td data-label="Disponíveis" class="number"><strong>{{ r.quantidadeDisponivel | number }}</strong></td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </app-section-card>
+  }
+</div>
+
+@if (confirmacao.atual(); as c) {
+  <app-confirm-dialog
+    [title]="c.title"
+    [message]="c.message ?? ''"
+    [confirmLabel]="c.confirmLabel ?? 'Confirmar'"
+    [danger]="!!c.danger"
+    (confirm)="confirmacao.responder(true)"
+    (dismiss)="confirmacao.responder(false)"
+  />
 }

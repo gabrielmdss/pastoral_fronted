@@ -9,13 +9,21 @@ import { PageHeaderComponent } from '../../../shared/ui/page-header.component';
 import { SearchFieldComponent } from '../../../shared/ui/search-field.component';
 import { MetricCardComponent } from '../../../shared/ui/metric-card.component';
 import { RouterLink } from '@angular/router';
+import { DecimalPipe } from '@angular/common';
+import { IconComponent } from '../../../shared/ui/icon.component';
+import type { IconName } from '../../../shared/ui/icons';
+import { SectionCardComponent } from '../../../shared/ui/section-card.component';
+import { StatusBadgeComponent } from '../../../shared/ui/status-badge.component';
+import { EmptyStateComponent } from '../../../shared/ui/empty-state.component';
+import { DataBrPipe } from '../../../shared/pipes/data-br.pipe';
+import { MeterComponent, type MeterTone } from '../../../shared/ui/meter.component';
 
 type InsumoCritico = Dashboard['insumosCriticos'][number] & { nivelPercentual: number };
 
-type AlertaExibicao = Dashboard['alertas'][number] & { icone: string; rota: string | null };
+type AlertaExibicao = Dashboard['alertas'][number] & { icone: IconName; rota: string | null };
 
 const SEVERIDADE_ORDEM: Record<string, number> = { CRITICO: 0, ATENCAO: 1, INFO: 2 };
-const SEVERIDADE_ICONE: Record<string, string> = { CRITICO: '⛔', ATENCAO: '⚠️', INFO: 'ℹ️' };
+const SEVERIDADE_ICONE: Record<string, IconName> = { CRITICO: 'x-circle', ATENCAO: 'alert-triangle', INFO: 'info' };
 const ROTA_POR_CODIGO: Array<{ termo: string; rota: string }> = [
   { termo: 'ESTOQUE', rota: '/estoque' },
   { termo: 'INSUMO', rota: '/estoque' },
@@ -33,7 +41,16 @@ function rotaParaAlerta(codigo: string): string | null {
 
 @Component({
   selector: 'app-dashboard-page',
-  imports: [LoadingStateComponent, ErrorStateComponent, PageHeaderComponent, SearchFieldComponent, MetricCardComponent, RouterLink],
+  host: { class: 'ui-page' },
+  imports: [MeterComponent, LoadingStateComponent, ErrorStateComponent, PageHeaderComponent, SearchFieldComponent, MetricCardComponent,
+    RouterLink,
+    DecimalPipe,
+    IconComponent,
+    SectionCardComponent,
+    StatusBadgeComponent,
+    EmptyStateComponent,
+    DataBrPipe,
+  ],
   templateUrl: './dashboard.page.html',
   styleUrl: './dashboard.page.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -51,7 +68,7 @@ export default class DashboardPage implements OnInit {
       .sort((a, b) => (SEVERIDADE_ORDEM[a.nivel] ?? 99) - (SEVERIDADE_ORDEM[b.nivel] ?? 99))
       .map((alerta) => ({
         ...alerta,
-        icone: SEVERIDADE_ICONE[alerta.nivel] ?? 'ℹ️',
+        icone: SEVERIDADE_ICONE[alerta.nivel] ?? 'info',
         rota: rotaParaAlerta(alerta.codigo),
       }));
   });
@@ -71,10 +88,11 @@ export default class DashboardPage implements OnInit {
     return filtrados.slice(0, 8);
   });
 
-  readonly coberturaStatusLabel = computed(() => {
-    const status = this.data()?.saude.proximaDistribuicao.status ?? '';
-    return status.replace('_', ' ');
-  });
+  toneCobertura(status: string): MeterTone {
+    if (status === 'CRITICO') return 'danger';
+    if (status === 'ATENCAO') return 'warning';
+    return 'primary';
+  }
 
   constructor(private readonly getDashboard: GetDashboardUseCase) {}
 

@@ -1,11 +1,7 @@
 <section class="check-in-feedback" [class.check-in-feedback--regular]="isRegular"
     [class.check-in-feedback--pendente]="isPendente" role="status" aria-live="polite">
-    <div class="check-in-feedback__icon" aria-hidden="true">
-        @if (isRegular) {
-        ✓
-        } @else {
-        !
-        }
+    <div class="check-in-feedback__icon ui-tone" [class.ui-tone--success]="isRegular" [class.ui-tone--warning]="!isRegular">
+        <app-icon [name]="isRegular ? 'check-circle' : 'alert-triangle'" [size]="20" />
     </div>
 
     <div class="check-in-feedback__content">
@@ -42,7 +38,7 @@
         <div class="check-in-feedback__pendencias">
             @for (pendencia of checkIn().pendencias; track $index) {
             <div class="check-in-feedback__pendencia">
-                <strong>{{ pendencia.codigo }}</strong>
+                <strong><app-icon name="file-warning" /> {{ pendencia.codigo }}</strong>
 
                 @if (pendencia.grupoEsperado) {
                 <span>
@@ -54,7 +50,7 @@
                 @if (pendencia.competencia) {
                 <span>
                     Competência:
-                    {{ pendencia.competencia }}
+                    {{ pendencia.competencia | competencia }}
                 </span>
                 }
             </div>
@@ -63,8 +59,8 @@
         }
     </div>
 
-    <button type="button" class="check-in-feedback__close" aria-label="Fechar confirmação do check-in"
+    <button type="button" class="check-in-feedback__close btn--ghost btn--icon btn--sm" aria-label="Fechar confirmação do check-in"
         (click)="fechar()">
-        ×
+        <app-icon name="x" />
     </button>
 </section>

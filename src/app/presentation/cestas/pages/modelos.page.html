@@ -1,161 +1,233 @@
-<header class="ui-header">
-  <div>
-    <p class="eyebrow">Preparação</p>
-    <h1>Modelos de cesta</h1>
-    <p>Cada modelo tem versões. A versão usada em um lote fica registrada para sempre.</p>
+<app-page-header
+  eyebrow="Preparação"
+  title="Modelos de cesta"
+  description="Cada modelo tem versões. A versão usada em um lote fica registrada para sempre."
+>
+  <div actions class="ui-actions">
+    <button class="btn--ghost" (click)="carregar()" [disabled]="loading() || saving()">
+      <app-icon name="refresh" /> Atualizar
+    </button>
+    @if (session.hasPermission('CESTA_MODELO_GERENCIAR')) {
+      <button (click)="mutationError.set(''); dialogo.set('modelo')" [disabled]="loading() || saving() || !!error()">
+        <app-icon name="plus" /> Novo modelo
+      </button>
+    }
   </div>
-  <button class="secondary" (click)="carregar()" [disabled]="loading() || saving()">
-    Atualizar
-  </button>
-</header>
-@if (feedback()) {
-  <p class="ui-message ui-message--success" role="status">{{ feedback() }}</p>
-}
-@if (mutationError()) {
+</app-page-header>
+
+@if (mutationError() && !dialogo()) {
   <p class="ui-message ui-message--error" role="alert">{{ mutationError() }}</p>
 }
-@if (session.hasPermission('CESTA_MODELO_GERENCIAR')) {
-  <form class="form-grid ui-panel" [formGroup]="novo" (ngSubmit)="salvar('modelo')">
-    <h2>Novo modelo</h2>
-    <label>Nome<input formControlName="nome" required /></label
-    ><label
-      >Tipo<select formControlName="tipo">
-        <option value="REGULAR">Regular</option>
-        <option value="EMERGENCIAL">Emergencial</option>
-        <option value="ESPECIAL">Especial</option>
-        <option value="OUTRO">Outro</option>
-      </select></label
-    ><button [disabled]="novo.invalid || loading() || saving() || !!error()">
-      {{ saving() ? 'Salvando…' : 'Criar modelo' }}
-    </button>
-  </form>
-}
-@if (loading()) {
-  <app-loading-state label="Consultando modelos…" />
-} @else if (error()) {
-  <app-error-state [message]="error()" (retry)="carregar()" />
-} @else {
-  @if (!modelos().length) {
-    <app-empty-state title="Nenhum modelo" message="Nenhum modelo cadastrado." />
-  } @else {
-    <div class="table-scroll" tabindex="0" role="region" aria-label="Modelos">
-      <table>
-        <thead>
-          <tr>
-            <th>Nome</th>
-            <th>Tipo</th>
-            <th>Status</th>
-            <th>Consulta</th>
-          </tr>
-        </thead>
-        <tbody>
-          @for (m of modelos(); track m.id) {
-            <tr>
-              <td>{{ m.nome }}</td>
-              <td>{{ m.tipo }}</td>
-              <td>{{ m.ativo ? 'Ativo' : 'Inativo' }}</td>
-              <td>
-                <button class="secondary" (click)="selecionar(m.id)" [disabled]="saving()">
-                  Consultar versões
-                </button>
-              </td>
-            </tr>
-          }
-        </tbody>
-      </table>
-    </div>
-  }
-  @if (detalhe(); as d) {
-    <section class="ui-panel">
-      <h2>{{ d.nome }} · Composição</h2>
-      @if (!d.versoes.length) {
-        <app-empty-state title="Sem versões" message="Nenhuma versão cadastrada." />
-      }
-      @for (v of d.versoes; track v.id) {
-        <h3>Versão {{ v.numeroVersao }} · Meta: {{ v.metaItens }} itens</h3>
-        <p class="hint">Criada em {{ v.criadoEm | date: 'dd/MM/yyyy HH:mm' }}</p>
-        <div
-          class="table-scroll"
-          tabindex="0"
-          role="region"
-          [attr.aria-label]="'Composição da versão ' + v.numeroVersao"
-        >
-          <table>
-            <thead>
-              <tr>
-                <th>Produto</th>
-                <th>Apresentação</th>
-                <th class="number">Quantidade por cesta</th>
-              </tr>
-            </thead>
-            <tbody>
-              @for (i of v.itens; track i.apresentacaoInsumoId) {
-                <tr>
-                  <td>{{ i.insumo || 'Produto indisponível' }}</td>
-                  <td>{{ i.apresentacao || 'Apresentação indisponível' }}</td>
-                  <td class="number">{{ i.quantidade }}</td>
-                </tr>
-              }
-            </tbody>
-          </table>
+
+@if (dialogo() === 'modelo' && session.hasPermission('CESTA_MODELO_GERENCIAR')) {
+  <div class="ui-dialog-backdrop">
+    <form class="ui-dialog" role="dialog" aria-modal="true" aria-labelledby="dlg-modelo" [formGroup]="novo" (ngSubmit)="salvar('modelo')">
+      <header class="ui-dialog__header">
+        <div>
+          <h2 id="dlg-modelo">Novo modelo</h2>
+          <p>Depois de criado, defina sua composição em uma versão.</p>
         </div>
-      }
-    </section>
-    @if (
-      session.hasPermission('CESTA_MODELO_GERENCIAR') && session.hasPermission('ESTOQUE_VISUALIZAR')
-    ) {
-      <form class="form-grid ui-panel" [formGroup]="versao" (ngSubmit)="salvar('versao')">
-        <h2>Nova versão de {{ d.nome }}</h2>
-        <label
-          >Meta de itens<input type="number" min="1" step="1" formControlName="metaItens"
-        /></label>
-        <div formArrayName="itens">
-          @for (row of versao.controls.itens.controls; track row; let index = $index) {
-            <fieldset class="form-grid" [formGroupName]="index">
-              <legend>Item {{ index + 1 }}</legend>
-              <label
-                >Produto / apresentação<select formControlName="apresentacaoInsumoId">
-                  <option value="">Selecione</option>
-                  @for (i of insumos(); track i.apresentacaoId) {
-                    <option [value]="i.apresentacaoId">
-                      {{ i.insumo }} · {{ i.apresentacao }}
-                    </option>
-                  }
-                </select></label
-              ><label
-                >Quantidade<input
-                  type="number"
-                  min="1"
-                  step="1"
-                  formControlName="quantidade" /></label
-              ><button
-                type="button"
-                class="secondary"
-                [disabled]="saving() || versao.controls.itens.length === 1"
-                (click)="versao.controls.itens.removeAt(index)"
-              >
-                Remover item
-              </button>
-            </fieldset>
-          }
-        </div>
-        <button
-          type="button"
-          class="secondary"
-          [disabled]="saving()"
-          (click)="versao.controls.itens.push(item())"
-        >
-          Adicionar item</button
-        ><button [disabled]="saving() || versao.invalid">
-          {{ saving() ? 'Salvando…' : 'Criar versão' }}
+        <button type="button" class="btn--ghost btn--icon btn--sm" aria-label="Fechar" [disabled]="saving()" (click)="dialogo.set(null)">
+          <app-icon name="x" />
         </button>
-      </form>
-    } @else {
-      <p class="hint">
-        A consulta de insumos é necessária para compor uma nova versão. Solicite acesso ao estoque.
-      </p>
+      </header>
+      <div class="ui-dialog__body ui-stack">
+        <label class="ui-field">
+          <span class="ui-field__label">Nome</span>
+          <input formControlName="nome" required />
+        </label>
+        <label class="ui-field">
+          <span class="ui-field__label">Tipo</span>
+          <select formControlName="tipo">
+            <option value="REGULAR">Regular</option>
+            <option value="EMERGENCIAL">Emergencial</option>
+            <option value="ESPECIAL">Especial</option>
+            <option value="OUTRO">Outro</option>
+          </select>
+        </label>
+        @if (mutationError()) {
+          <p class="ui-message ui-message--error" role="alert">{{ mutationError() }}</p>
+        }
+      </div>
+      <footer class="ui-dialog__footer">
+        <button type="button" class="secondary" [disabled]="saving()" (click)="dialogo.set(null)">Cancelar</button>
+        <button [class.is-loading]="saving()" [disabled]="novo.invalid || loading() || saving() || !!error()">
+          {{ saving() ? 'Salvando…' : 'Criar modelo' }}
+        </button>
+      </footer>
+    </form>
+  </div>
+}
+
+@if (loading() && !modelos().length) {
+  <app-loading-state variant="detail" label="Consultando modelos…" />
+} @else if (error()) {
+  <app-error-state [message]="error()" (retry)="carregar()" title="Não foi possível carregar os modelos" />
+} @else if (!modelos().length) {
+  <app-empty-state title="Nenhum modelo" message="Nenhum modelo cadastrado." icon="layers" />
+} @else {
+  <div class="ui-tabs ui-tabs--pill" role="tablist" aria-label="Modelos">
+    @for (m of modelos(); track m.id) {
+      <button
+        class="ui-tab"
+        role="tab"
+        [attr.aria-selected]="selectedId() === m.id"
+        [attr.aria-label]="'Consultar versões de ' + m.nome"
+        (click)="selecionar(m.id)"
+        [disabled]="saving()"
+      >
+        {{ m.nome }}
+        <span class="ui-badge ui-badge--neutral">{{ m.tipo }}</span>
+        @if (!m.ativo) {
+          <span class="ui-badge ui-badge--warning">Inativo</span>
+        }
+      </button>
+    }
+  </div>
+
+  @if (loading()) {
+    <app-loading-state variant="detail" label="Consultando modelo…" />
+  } @else if (detalhe(); as d) {
+    <div class="ui-grid ui-grid--sidebar">
+      <div class="ui-stack">
+        @if (!d.versoes.length) {
+          <app-section-card [title]="d.nome + ' · Composição'">
+            <app-empty-state title="Sem versões" message="Nenhuma versão cadastrada." icon="layers" />
+          </app-section-card>
+        }
+        @for (v of d.versoes; track v.id) {
+          <app-section-card
+            [flush]="true"
+            [title]="d.nome + ' · Composição — versão ' + v.numeroVersao"
+            [description]="'Meta: ' + (v.metaItens | number) + ' itens · criada em ' + (v.criadoEm | dataBr: 'dataHora')"
+          >
+            <div class="ui-table-wrap" tabindex="0" role="region" [attr.aria-label]="'Composição da versão ' + v.numeroVersao">
+              <table class="ui-table ui-table--cards">
+                <thead>
+                  <tr>
+                    <th>Produto</th>
+                    <th>Apresentação</th>
+                    <th class="number">Quantidade por cesta</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (i of v.itens; track i.apresentacaoInsumoId) {
+                    <tr>
+                      <td data-label="Produto"><strong>{{ i.insumo || 'Produto indisponível' }}</strong></td>
+                      <td data-label="Apresentação" class="text-muted">{{ i.apresentacao || 'Apresentação indisponível' }}</td>
+                      <td class="number" data-label="Quantidade por cesta">{{ i.quantidade | number }}</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          </app-section-card>
+        }
+      </div>
+      <app-section-card title="Histórico de versões">
+        <div actions>
+          <app-status-badge [status]="(modelo(d.id)?.ativo ?? true) ? 'ATIVO' : 'INATIVO'" />
+        </div>
+        <div class="ui-stack">
+          @if (d.versoes.length) {
+            <ol class="ui-timeline ui-timeline--plain" aria-label="Versões do modelo">
+              @for (v of d.versoes; track v.id) {
+                <li class="ui-timeline__item">
+                  <div class="ui-timeline__body">
+                    <p><strong>Versão {{ v.numeroVersao }}</strong></p>
+                    <p class="text-sm text-muted">Meta de {{ v.metaItens | number }} itens · {{ v.itens.length | number }} produtos</p>
+                    <p class="ui-timeline__meta"><app-icon name="calendar" /> {{ v.criadoEm | dataBr: 'dataHora' }}</p>
+                  </div>
+                </li>
+              }
+            </ol>
+          }
+          <p class="ui-message">
+            <app-icon name="info" /> Alterações geram nova versão e não afetam lotes já montados.
+          </p>
+          @if (session.hasPermission('CESTA_MODELO_GERENCIAR') && session.hasPermission('ESTOQUE_VISUALIZAR')) {
+            <button class="secondary" (click)="mutationError.set(''); dialogo.set('versao')" [disabled]="saving()">
+              <app-icon name="plus" /> Criar nova versão
+            </button>
+          } @else {
+            <p class="text-sm text-muted">
+              A consulta de insumos é necessária para compor uma nova versão. Solicite acesso ao estoque.
+            </p>
+          }
+        </div>
+      </app-section-card>
+    </div>
+
+    @if (
+      dialogo() === 'versao' &&
+      session.hasPermission('CESTA_MODELO_GERENCIAR') &&
+      session.hasPermission('ESTOQUE_VISUALIZAR')
+    ) {
+      <div class="ui-dialog-backdrop">
+        <form class="ui-dialog ui-dialog--lg" role="dialog" aria-modal="true" aria-labelledby="dlg-versao" [formGroup]="versao" (ngSubmit)="salvar('versao')">
+          <header class="ui-dialog__header">
+            <div>
+              <h2 id="dlg-versao">Nova versão de {{ d.nome }}</h2>
+              <p>A versão atual continua válida para os lotes já montados.</p>
+            </div>
+            <button type="button" class="btn--ghost btn--icon btn--sm" aria-label="Fechar" [disabled]="saving()" (click)="dialogo.set(null)">
+              <app-icon name="x" />
+            </button>
+          </header>
+          <div class="ui-dialog__body ui-stack">
+            <label class="ui-field">
+              <span class="ui-field__label">Meta de itens</span>
+              <input type="number" min="1" step="1" formControlName="metaItens" />
+            </label>
+            <div formArrayName="itens" class="ui-stack ui-stack--sm">
+              @for (row of versao.controls.itens.controls; track row; let index = $index) {
+                <div class="ui-panel ui-form-row ui-form-row--3" [formGroupName]="index">
+                  <label class="ui-field">
+                    <span class="ui-field__label">Item {{ index + 1 }} · Produto / apresentação</span>
+                    <select formControlName="apresentacaoInsumoId">
+                      <option value="">Selecione</option>
+                      @for (i of insumos(); track i.apresentacaoId) {
+                        <option [value]="i.apresentacaoId">{{ i.insumo }} · {{ i.apresentacao }}</option>
+                      }
+                    </select>
+                  </label>
+                  <label class="ui-field">
+                    <span class="ui-field__label">Quantidade</span>
+                    <input type="number" min="1" step="1" formControlName="quantidade" />
+                  </label>
+                  <button
+                    type="button"
+                    class="btn--ghost btn--icon"
+                    aria-label="Remover item"
+                    [disabled]="saving() || versao.controls.itens.length === 1"
+                    (click)="versao.controls.itens.removeAt(index)"
+                  >
+                    <app-icon name="trash" />
+                  </button>
+                </div>
+              }
+              <div>
+                <button type="button" class="secondary btn--sm" [disabled]="saving()" (click)="versao.controls.itens.push(item())">
+                  <app-icon name="plus" /> Adicionar item
+                </button>
+              </div>
+            </div>
+            @if (mutationError()) {
+              <p class="ui-message ui-message--error" role="alert">{{ mutationError() }}</p>
+            }
+          </div>
+          <footer class="ui-dialog__footer">
+            <button type="button" class="secondary" [disabled]="saving()" (click)="dialogo.set(null)">Cancelar</button>
+            <button [class.is-loading]="saving()" [disabled]="saving() || versao.invalid">
+              {{ saving() ? 'Salvando…' : 'Criar versão' }}
+            </button>
+          </footer>
+        </form>
+      </div>
     }
   } @else if (selectedId()) {
-    <app-empty-state title="Não encontrado" message="Modelo não encontrado." />
+    <app-empty-state title="Não encontrado" message="Modelo não encontrado." icon="search" />
+  } @else {
+    <app-empty-state title="Selecione um modelo" message="Escolha um modelo acima para consultar a composição e as versões." icon="layers" />
   }
 }

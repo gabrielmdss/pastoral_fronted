@@ -12,6 +12,9 @@ import { firstValueFrom } from 'rxjs';
 import { AlterarSenhaUseCase } from '../../../application/auth/use-cases/alterar-senha.use-case';
 import { PageHeaderComponent } from '../../../shared/ui/page-header.component';
 import { PasswordFieldComponent } from '../../../shared/ui/password-field.component';
+import { IconComponent } from '../../../shared/ui/icon.component';
+import { SectionCardComponent } from '../../../shared/ui/section-card.component';
+import { ToastService } from '../../../shared/ui/toast.service';
 
 function senhasIguaisValidator(group: AbstractControl): ValidationErrors | null {
   const novaSenha = group.get('novaSenha')?.value;
@@ -23,7 +26,7 @@ function senhasIguaisValidator(group: AbstractControl): ValidationErrors | null 
 
 @Component({
   selector: 'app-alterar-senha-page',
-  imports: [ReactiveFormsModule, PageHeaderComponent, PasswordFieldComponent],
+  imports: [ReactiveFormsModule, PageHeaderComponent, PasswordFieldComponent, IconComponent, SectionCardComponent],
   templateUrl: './alterar-senha.page.html',
   styleUrl: './alterar-senha.page.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -34,6 +37,7 @@ export default class AlterarSenhaPage {
   readonly saving = signal(false);
   readonly errorMessage = signal('');
   readonly feedback = signal('');
+  private readonly toast = inject(ToastService);
 
   readonly form = new FormGroup(
     {
@@ -62,6 +66,7 @@ export default class AlterarSenhaPage {
     try {
       await firstValueFrom(this.alterarSenha.execute({ senhaAtual, novaSenha }));
       this.feedback.set('Senha alterada com sucesso.');
+      this.toast.success(this.feedback());
       this.form.reset();
     } catch (error) {
       this.errorMessage.set(this.mensagemDeErro(error));

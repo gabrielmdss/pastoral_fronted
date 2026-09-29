@@ -1,51 +1,6 @@
-// Scoped to the capacity page only; grid/card styles stay in assistencia.scss.
-.metric-grid {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: var(--space-4);
-  margin-bottom: var(--space-5);
-}
-
-.capacidade-columns {
-  display: grid;
-  grid-template-columns: 2fr 1fr;
-  gap: var(--space-5);
-}
-
-.capacidade-columns .ui-panel {
-  display: grid;
-  align-content: start;
+.occupancy-head {
+  display: flex;
+  justify-content: space-between;
   gap: var(--space-3);
-}
-
-@media (max-width: 900px) {
-  .metric-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-  .capacidade-columns {
-    grid-template-columns: 1fr;
-  }
-}
-
-.occupancy-bar {
-  height: 0.75rem;
-  border-radius: var(--radius-full, 999px);
-  background: var(--color-border);
-  overflow: hidden;
-}
-
-.occupancy-bar-fill {
-  display: block;
-  height: 100%;
-  border-radius: inherit;
-  background: var(--color-primary);
-  transition: width 0.4s ease;
-}
-
-.occupancy-bar[data-status='ATENCAO'] .occupancy-bar-fill {
-  background: var(--color-warning);
-}
-
-.occupancy-bar[data-status='CRITICO'] .occupancy-bar-fill {
-  background: var(--color-danger);
+  margin-bottom: var(--space-2);
 }

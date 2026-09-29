@@ -4,9 +4,10 @@ import { Router } from '@angular/router';
 import { SessionFacade } from '../../../infrastructure/auth/session.facade';
 import { userErrorMessage } from '../../../shared/errors/user-error';
 import { PasswordFieldComponent } from '../../../shared/ui/password-field.component';
+import { IconComponent } from '../../../shared/ui/icon.component';
 @Component({
   selector: 'app-login-page',
-  imports: [ReactiveFormsModule, PasswordFieldComponent],
+  imports: [ReactiveFormsModule, PasswordFieldComponent, IconComponent],
   templateUrl: './login.page.html',
   styleUrl: './login.page.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

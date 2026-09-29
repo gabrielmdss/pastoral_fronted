@@ -1,3 +1,6 @@
+import { AUDITORIA_API } from '../application/auditoria/auditoria-api.port';
+import { ListarAuditoriaUseCase, ObterAuditoriaUseCase } from '../application/auditoria/auditoria.use-cases';
+import { AuditoriaApiService } from '../infrastructure/api/auditoria/auditoria-api.service';
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import {
   provideAppInitializer,
@@ -92,6 +95,8 @@ import { AvaliarJustificativaUseCase } from '../application/atendimento/use-case
 import { ATENDIMENTO_API } from '../application/atendimento/atendimento-api.port';
 export function providePastoralApplication(): Array<Provider | EnvironmentProviders> {
   return [
+    AuditoriaApiService, ListarAuditoriaUseCase, ObterAuditoriaUseCase,
+    { provide: AUDITORIA_API, useExisting: AuditoriaApiService },
     RelatoriosApiService,RelatorioDistribuicoesUseCase,RelatorioBeneficiariosUseCase,RelatorioEstoqueUseCase,
     {provide:RELATORIOS_API,useExisting:RelatoriosApiService},
     InventariosApiService, CriarInventarioUseCase, ObterInventarioUseCase, ContarInventarioUseCase, ConcluirInventarioUseCase,

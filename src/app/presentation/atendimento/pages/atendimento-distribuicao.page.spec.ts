@@ -1,3 +1,4 @@
+import { HttpErrorResponse } from '@angular/common/http';
 import { provideRouter } from '@angular/router';
 import { ActivatedRoute, convertToParamMap } from '@angular/router';
 import { TestBed } from '@angular/core/testing';
@@ -20,6 +21,7 @@ import type { CheckIn } from '../../../domain/atendimento/check-in.model';
 import type { BeneficiarioResumo } from '../../../domain/beneficiarios/beneficiario.model';
 import type { Distribuicao } from '../../../domain/distribuicoes/distribuicao.model';
 import AtendimentoDistribuicaoPage from './atendimento-distribuicao.page';
+import { preencherDialogo, responderConfirmacao } from '../../../shared/ui/confirm-dialog.testing';
 
 const distribuicao: Distribuicao = {
   id: '1',
@@ -64,6 +66,7 @@ function setup(options?: {
   obter?: ReturnType<typeof vi.fn>;
   listarRetiradas?: ReturnType<typeof vi.fn>;
   registrarRetirada?: ReturnType<typeof vi.fn>;
+  registrarRetiradaCompleta?: ReturnType<typeof vi.fn>;
   estornarRetirada?: ReturnType<typeof vi.fn>;
   permissions?: string[];
   userId?: string;
@@ -78,6 +81,7 @@ function setup(options?: {
   const obter = options?.obter ?? vi.fn().mockReturnValue(of(distribuicao));
   const listarRetiradas = options?.listarRetiradas ?? vi.fn().mockReturnValue(of([]));
   const registrarRetirada = options?.registrarRetirada ?? vi.fn();
+  const registrarRetiradaCompleta = options?.registrarRetiradaCompleta ?? vi.fn();
   const estornarRetirada = options?.estornarRetirada ?? vi.fn();
   const permissions = options?.permissions ?? ['RETIRADA_REGISTRAR'];
   const encerrar = options?.encerrar ?? vi.fn();
@@ -98,7 +102,7 @@ function setup(options?: {
       { provide: BuscarBeneficiariosUseCase, useValue: { execute: buscar } },
       { provide: RegistrarCheckInUseCase, useValue: { execute: registrar } },
       { provide: ListarRetiradasUseCase, useValue: { execute: listarRetiradas } },
-      { provide: RegistrarRetiradaUseCase, useValue: { execute: registrarRetirada } },
+      { provide: RegistrarRetiradaUseCase, useValue: { execute: registrarRetirada, registrar: registrarRetiradaCompleta } },
       { provide: EncerrarDistribuicaoUseCase, useValue: { execute: encerrar } },
       { provide: EstornarRetiradaUseCase, useValue: { execute: estornarRetirada } },
       { provide: ListarAusenciasBeneficiarioUseCase, useValue: { execute: listarAusencias } },
@@ -116,7 +120,7 @@ function setup(options?: {
 
   const fixture = TestBed.createComponent(AtendimentoDistribuicaoPage);
   const page = fixture.componentInstance;
-  return { fixture, page, listar, buscar, registrar, obter, listarRetiradas, registrarRetirada, estornarRetirada, encerrar, listarAusencias, registrarJustificativa, avaliarJustificativa };
+  return { fixture, page, listar, buscar, registrar, obter, listarRetiradas, registrarRetirada, registrarRetiradaCompleta, estornarRetirada, encerrar, listarAusencias, registrarJustificativa, avaliarJustificativa };
 }
 
 describe('AtendimentoDistribuicaoPage', () => {
@@ -295,22 +299,28 @@ describe('AtendimentoDistribuicaoPage', () => {
   });
 
   it.each(['titular', 'representante', 'estorno', 'encerramento'] as const)(
-    'refresh de %s cancela fila e resumo anteriores', (acao) => {
-      vi.spyOn(window, 'confirm').mockReturnValue(true);
-      vi.spyOn(window, 'prompt').mockReturnValue('Motivo / representante');
+    'refresh de %s cancela fila e resumo anteriores', async (acao) => {
       const filaAntiga = new Subject<CheckIn[]>(), resumoAntigo = new Subject<Distribuicao>();
       const obter = vi.fn().mockReturnValueOnce(of(distribuicao)).mockReturnValueOnce(resumoAntigo)
         .mockReturnValue(of({ ...distribuicao, checkIns: 12, status: acao === 'encerramento' ? 'ENCERRADA' : 'ABERTA' }));
       const listar = vi.fn().mockReturnValueOnce(filaAntiga).mockReturnValueOnce(filaAntiga).mockReturnValue(of([]));
-      const { page } = setup({ obter, listar, registrarRetirada: vi.fn().mockReturnValue(of({ id: '1' })),
+      const { fixture, page } = setup({ obter, listar, registrarRetirada: vi.fn().mockReturnValue(of({ id: '1' })),
         estornarRetirada: vi.fn().mockReturnValue(of(undefined)), encerrar: vi.fn().mockReturnValue(of(undefined)),
         permissions: ['RETIRADA_REGISTRAR', 'RETIRADA_ESTORNAR_QUALQUER', 'DISTRIBUICAO_ENCERRAR'],
       });
       page.carregar();
-      if (acao === 'titular') page.registrarRetiradaTitular(checkIn({ id: '8' }));
-      if (acao === 'representante') page.registrarRetiradaRepresentante(checkIn({ id: '8' }));
-      if (acao === 'encerramento') page.encerrar();
-      if (acao === 'estorno') page.solicitarEstorno({ id: '1', distribuicaoId: '1', direitoId: '1', beneficiario: { id: '8', nomeCompleto: 'Maria' }, tipo: 'TITULAR', status: 'VALIDA', formaIdentificacao: 'DOCUMENTO', representante: null, operador: { id: '4', login: 'operador' }, ocorridoEm: '2026-09-04T12:00:00Z' });
+      let pending: Promise<void> = Promise.resolve();
+      if (acao === 'titular') pending = page.registrarRetiradaTitular(checkIn({ id: '8' }));
+      if (acao === 'representante') {
+        pending = page.registrarRetiradaRepresentante(checkIn({ id: '8' }));
+        await preencherDialogo(fixture, { nome: 'Representante' });
+        await responderConfirmacao(fixture);
+      }
+      if (acao === 'encerramento') pending = page.encerrar();
+      if (acao !== 'estorno') await responderConfirmacao(fixture);
+      await pending;
+      if (acao === 'estorno') pending = page.solicitarEstorno({ id: '1', distribuicaoId: '1', direitoId: '1', beneficiario: { id: '8', nomeCompleto: 'Maria' }, tipo: 'TITULAR', status: 'VALIDA', formaIdentificacao: 'DOCUMENTO', representante: null, operador: { id: '4', login: 'operador' }, ocorridoEm: '2026-09-04T12:00:00Z' });
+      if (acao === 'estorno') { await preencherDialogo(fixture, { motivo: 'Motivo' }); await pending; }
       resumoAntigo.next(distribuicao); filaAntiga.next([checkIn({ id: 'antigo' })]); filaAntiga.complete();
       expect(page.distribuicao()?.checkIns).toBe(12);
       expect(page.filaRegular()).toEqual([]);
@@ -374,26 +384,23 @@ describe('AtendimentoDistribuicaoPage', () => {
     TestBed.resetTestingModule();
   });
 
-  it('registra e avalia justificativa com permissions e atualiza filas e resumo', () => {
+  it('registra e avalia justificativa com permissions e atualiza filas e resumo', async () => {
     const listarAusencias = vi.fn().mockReturnValue(of([{
       id: '8', status: 'SEM_JUSTIFICATIVA', competenciaId: '7',
       ocorridoEm: '2026-08-01T12:00:00.000Z', justificativas: [],
     }]));
     const registrarJustificativa = vi.fn().mockReturnValue(of({ id: '9' }));
     const avaliarJustificativa = vi.fn().mockReturnValue(of(void 0));
-    const { page, listar, obter } = setup({
+    const { fixture, page, listar, obter } = setup({
       listarAusencias, registrarJustificativa, avaliarJustificativa,
       permissions: ['JUSTIFICATIVA_REGISTRAR', 'JUSTIFICATIVA_AVALIAR'],
     });
-    vi.spyOn(window, 'prompt')
-      .mockReturnValueOnce('Motivo informado')
-      .mockReturnValueOnce('DEPOIS_DISTRIBUICAO')
-      .mockReturnValueOnce('Analisada');
-    vi.spyOn(window, 'confirm').mockReturnValue(true);
 
     page.carregarAusencias('1');
     const ausencia = page.ausenciasPorBeneficiario()['1']![0]!;
-    page.registrarJustificativa('1', ausencia);
+    const registro = page.registrarJustificativa('1', ausencia);
+    await preencherDialogo(fixture, { descricao: '  Motivo informado ', momento: 'DEPOIS_DISTRIBUICAO' });
+    await registro;
     expect(registrarJustificativa).toHaveBeenCalledWith('8', {
       descricao: 'Motivo informado', momento: 'DEPOIS_DISTRIBUICAO',
     });
@@ -404,7 +411,9 @@ describe('AtendimentoDistribuicaoPage', () => {
         momento: 'DEPOIS_DISTRIBUICAO' as const, ocorridoEm: '2026-08-02T00:00:00Z',
       }],
     };
-    page.avaliarJustificativa('1', ausenciaRecarregada, 'ACEITA');
+    const avaliacao = page.avaliarJustificativa('1', ausenciaRecarregada, 'ACEITA');
+    await preencherDialogo(fixture, { observacao: 'Analisada' });
+    await avaliacao;
     expect(avaliarJustificativa).toHaveBeenCalledWith('9', {
       decisao: 'ACEITA', observacao: 'Analisada',
     });
@@ -488,13 +497,16 @@ describe('AtendimentoDistribuicaoPage', () => {
     expect(page.podeRegistrarRetirada(atendido)).toBe(false);
   });
 
-  it('registra retirada titular e atualiza filas, resumo e listagem', () => {
-    vi.spyOn(window, 'confirm').mockReturnValue(true);
+  it('registra retirada titular e atualiza filas, resumo e listagem', async () => {
     const registrarRetirada = vi.fn().mockReturnValue(of({ id: '16' }));
-    const { page, listar, obter, listarRetiradas } = setup({ registrarRetirada });
+    const { fixture, page, listar, obter, listarRetiradas } = setup({ registrarRetirada });
     const apto = checkIn({ id: 'apto', beneficiario: { id: '8', nomeCompleto: 'José' } });
 
-    page.registrarRetiradaTitular(apto);
+    const pending = page.registrarRetiradaTitular(apto);
+    const segunda = page.registrarRetiradaTitular(apto);
+    const texto = await responderConfirmacao(fixture);
+    await Promise.all([pending, segunda]);
+    expect(texto).toContain('José');
 
     expect(registrarRetirada).toHaveBeenCalledWith('1', '8');
     expect(page.retiradaFeedback()).toContain('José');
@@ -517,14 +529,54 @@ describe('AtendimentoDistribuicaoPage', () => {
     expect(page.loadingRetiradas()).toBe(false);
   });
 
-  it('registra representante com nome e autorização no contrato real', () => {
-    vi.spyOn(window, 'prompt').mockReturnValue('Maria Representante');
-    vi.spyOn(window, 'confirm').mockReturnValue(true);
+  it('registra retirada de exceção mesmo sem podeRetirar e deixa o backend validar', async () => {
+    const registrarRetiradaCompleta = vi.fn()
+      .mockReturnValueOnce(throwError(() => new HttpErrorResponse({ status: 403, error: { error: { message: 'Antecipação exige autorização superior e justificativa' } } })))
+      .mockReturnValueOnce(of({ id: '20' }));
+    const { fixture, page } = setup({ registrarRetiradaCompleta });
+    const bloqueado = checkIn({ id: 'b', podeRetirar: false, motivoBloqueio: 'DIREITO_NAO_DISPONIVEL', beneficiario: { id: '8', nomeCompleto: 'José' } });
+
+    expect(page.podeRegistrarRetirada(bloqueado)).toBe(false);
+    expect(page.podeRegistrarExcecao(bloqueado)).toBe(true);
+    page.abrirExcecao(bloqueado);
+    page.excecaoTipo.set('ANTECIPADA');
+    page.excecaoForma.set('FOTO_HISTORICO');
+    page.excecaoJustificativa.set(' Viagem ');
+    let pending = page.registrarExcecao();
+    await responderConfirmacao(fixture);
+    await pending;
+
+    const esperado = {
+      beneficiarioId: '8', tipo: 'ANTECIPADA', formaIdentificacao: 'FOTO_HISTORICO',
+      representante: null, justificativaExcecao: 'Viagem',
+    };
+    expect(registrarRetiradaCompleta).toHaveBeenCalledWith('1', esperado);
+    expect(page.retiradasError()).toBeTruthy();
+    expect(page.excecaoCheckIn()).not.toBeNull();
+
+    pending = page.registrarExcecao();
+    await responderConfirmacao(fixture);
+    await pending;
+    expect(page.excecaoCheckIn()).toBeNull();
+    expect(page.retiradaFeedback()).toContain('José');
+  });
+
+  it('liga o nome do beneficiário da fila à ficha', () => {
+    const { fixture } = setup({ listar: vi.fn().mockReturnValue(of([checkIn({ id: '8' })])) });
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('a[href="/beneficiarios/8"]')).toBeTruthy();
+  });
+
+  it('registra representante com nome e autorização no contrato real', async () => {
     const registrarRetirada = vi.fn().mockReturnValue(of({ id: '17' }));
-    const { page } = setup({ registrarRetirada });
+    const { fixture, page } = setup({ registrarRetirada });
     const apto = checkIn({ id: 'apto', beneficiario: { id: '8', nomeCompleto: 'José' } });
 
-    page.registrarRetiradaRepresentante(apto);
+    const pending = page.registrarRetiradaRepresentante(apto);
+    expect(await preencherDialogo(fixture, { nome: 'Maria Representante' })).toContain('José');
+    expect(await responderConfirmacao(fixture)).toContain('autorizado');
+    expect(await responderConfirmacao(fixture)).toContain('Maria Representante');
+    await pending;
 
     expect(registrarRetirada).toHaveBeenCalledWith('1', '8', {
       nome: 'Maria Representante',
@@ -552,10 +604,9 @@ describe('AtendimentoDistribuicaoPage', () => {
     expect(setup({ permissions: ['RETIRADA_ESTORNAR_QUALQUER'], userId: '9' }).page.podeEstornar(base)).toBe(true);
   });
 
-  it('estorna com motivo e atualiza histórico, filas e resumo', () => {
-    vi.spyOn(window, 'prompt').mockReturnValue('Entrega registrada por engano');
+  it('estorna com motivo e atualiza histórico, filas e resumo', async () => {
     const estornarRetirada = vi.fn().mockReturnValue(of(undefined));
-    const { page, listar, obter, listarRetiradas } = setup({
+    const { fixture, page, listar, obter, listarRetiradas } = setup({
       estornarRetirada,
       permissions: ['RETIRADA_ESTORNAR_QUALQUER', 'RETIRADA_REGISTRAR'],
     });
@@ -567,7 +618,9 @@ describe('AtendimentoDistribuicaoPage', () => {
       operador: { id: '4', login: 'admin' }, ocorridoEm: '2026-09-04T14:56:37.851Z',
     };
 
-    page.solicitarEstorno(retirada);
+    const estorno = page.solicitarEstorno(retirada);
+    await preencherDialogo(fixture, { motivo: 'Entrega registrada por engano' });
+    await estorno;
 
     expect(estornarRetirada).toHaveBeenCalledWith('16', 'Entrega registrada por engano');
     expect(listarRetiradas).toHaveBeenCalledTimes(2);
@@ -575,20 +628,44 @@ describe('AtendimentoDistribuicaoPage', () => {
     expect(obter).toHaveBeenCalledTimes(2);
   });
 
-  it('encerra, reflete ENCERRADA e recarrega filas, resumo, retiradas e histórico', () => {
-    vi.spyOn(window, 'confirm').mockReturnValue(true);
+  it('estorno exige motivo no diálogo e cancelar não chama a API', async () => {
+    const estornarRetirada = vi.fn().mockReturnValue(of(undefined));
+    const { fixture, page } = setup({ estornarRetirada, permissions: ['RETIRADA_ESTORNAR_QUALQUER'] });
+    const retirada = {
+      id: '16', distribuicaoId: '1', direitoId: '31',
+      beneficiario: { id: '8', nomeCompleto: 'José' },
+      tipo: 'TITULAR' as const, status: 'VALIDA' as const,
+      formaIdentificacao: 'DOCUMENTO' as const, representante: null,
+      operador: { id: '4', login: 'admin' }, ocorridoEm: '2026-09-04T14:56:37.851Z',
+    };
+
+    const estorno = page.solicitarEstorno(retirada);
+    fixture.detectChanges();
+    const confirmar = (fixture.nativeElement as HTMLElement)
+      .querySelectorAll<HTMLButtonElement>('app-confirm-dialog .dialog-actions button')[1]!;
+    expect(confirmar.disabled).toBe(true);
+    await responderConfirmacao(fixture, false);
+    await estorno;
+
+    expect(estornarRetirada).not.toHaveBeenCalled();
+    expect(fixture.nativeElement.querySelector('app-confirm-dialog')).toBeNull();
+  });
+
+  it('encerra, reflete ENCERRADA e recarrega filas, resumo, retiradas e histórico', async () => {
     const encerrada = { ...distribuicao, status: 'ENCERRADA' as const };
     const obter = vi.fn()
       .mockReturnValueOnce(of(distribuicao))
       .mockReturnValueOnce(of(encerrada));
     const encerrar = vi.fn().mockReturnValue(of(undefined));
-    const { page, listar, listarRetiradas } = setup({
+    const { fixture, page, listar, listarRetiradas } = setup({
       obter,
       encerrar,
       permissions: ['DISTRIBUICAO_ENCERRAR', 'RETIRADA_REGISTRAR'],
     });
 
-    page.encerrar();
+    const pending = page.encerrar();
+    await responderConfirmacao(fixture);
+    await pending;
 
     expect(encerrar).toHaveBeenCalledOnce();
     expect(page.distribuicao()?.status).toBe('ENCERRADA');
@@ -598,13 +675,14 @@ describe('AtendimentoDistribuicaoPage', () => {
     expect(page.podeRegistrarRetirada(checkIn({ id: 'apto' }))).toBe(false);
   });
 
-  it('não encerra sem permission', () => {
-    vi.spyOn(window, 'confirm').mockReturnValue(true);
+  it('não encerra sem permission', async () => {
     const encerrar = vi.fn().mockReturnValue(of(undefined));
-    const { page } = setup({ encerrar });
+    const { fixture, page } = setup({ encerrar });
 
-    page.encerrar();
+    await page.encerrar();
+    fixture.detectChanges();
 
+    expect(fixture.nativeElement.querySelector('app-confirm-dialog')).toBeNull();
     expect(encerrar).not.toHaveBeenCalled();
   });
 });

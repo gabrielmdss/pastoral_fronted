@@ -29,10 +29,10 @@ export interface RetiradaRepresentanteInput {
 
 export interface RegistrarRetiradaInput {
   beneficiarioId: string;
-  tipo: 'TITULAR' | 'REPRESENTANTE';
-  formaIdentificacao: 'DOCUMENTO' | 'REPRESENTANTE';
+  tipo: RetiradaTipo;
+  formaIdentificacao: RetiradaFormaIdentificacao | null;
   representante: RetiradaRepresentanteInput | null;
-  justificativaExcecao: null;
+  justificativaExcecao: string | null;
 }
 
 export interface Retirada {

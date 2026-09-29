@@ -1,4 +1,8 @@
-import { ChangeDetectionStrategy, Component, OnInit, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
+import { DecimalPipe } from '@angular/common';
+import { IconComponent } from '../../../shared/ui/icon.component';
+import { SectionCardComponent } from '../../../shared/ui/section-card.component';
+import { ToastService } from '../../../shared/ui/toast.service';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { firstValueFrom } from 'rxjs';
 import {
@@ -12,14 +16,20 @@ import { ErrorStateComponent } from '../../../shared/ui/error-state.component';
 import { LoadingStateComponent } from '../../../shared/ui/loading-state.component';
 import { PageHeaderComponent } from '../../../shared/ui/page-header.component';
 import { MetricCardComponent } from '../../../shared/ui/metric-card.component';
+import { MeterComponent } from '../../../shared/ui/meter.component';
 @Component({
   selector: 'app-capacidade-page',
+  host: { class: 'ui-page' },
   imports: [
+    MeterComponent,
     ReactiveFormsModule,
     ErrorStateComponent,
     LoadingStateComponent,
     PageHeaderComponent,
     MetricCardComponent,
+    DecimalPipe,
+    IconComponent,
+    SectionCardComponent,
   ],
   templateUrl: './capacidade.page.html',
   styleUrl: './capacidade.page.scss',
@@ -32,6 +42,7 @@ export default class CapacidadePage implements OnInit {
   readonly dialog = signal(false);
   readonly mutation = signal(false);
   readonly feedback = signal('');
+  private readonly toast = inject(ToastService);
   readonly form = new FormGroup({
     capacidade: new FormControl<number | null>(null, [Validators.required, Validators.min(1)]),
     justificativa: new FormControl('', {
@@ -81,7 +92,7 @@ export default class CapacidadePage implements OnInit {
           }),
         ),
       );
-      this.feedback.set('Capacidade alterada com sucesso.');
+      this.toast.success('Capacidade alterada com sucesso.');
       this.dialog.set(false);
     } catch (e) {
       this.feedback.set(userErrorMessage(e));

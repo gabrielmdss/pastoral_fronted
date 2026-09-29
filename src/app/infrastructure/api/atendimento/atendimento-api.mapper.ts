@@ -1,8 +1,17 @@
 import type { CheckIn } from '../../../domain/atendimento/check-in.model';
 import type { CheckInDto } from './atendimento-api.contracts';
-import type { Retirada } from '../../../domain/atendimento/retirada.model';
-import type { RetiradaDto } from './atendimento-api.contracts';
-import type { HistoricoBeneficiarioDto } from './atendimento-api.contracts';
+import type { RegistrarRetiradaInput, Retirada } from '../../../domain/atendimento/retirada.model';
+import type { RegistrarRetiradaDto, RetiradaDto } from './atendimento-api.contracts';
+import type {
+  HistoricoBeneficiarioDto,
+  HistoricoBeneficiarioEventoDto,
+  HistoricoDistribuicaoDto,
+} from './atendimento-api.contracts';
+import type {
+  HistoricoBeneficiario,
+  HistoricoDistribuicao,
+  HistoricoEvento,
+} from '../../../domain/atendimento/historico.model';
 import type { AusenciaAtendimento, DecisaoJustificativa, MomentoJustificativa } from '../../../domain/atendimento/justificativa.model';
 
 export function mapCheckInDto(dto: CheckInDto): CheckIn {
@@ -69,4 +78,26 @@ export function mapRetiradaDto(dto: RetiradaDto): Retirada {
     operador: { ...dto.operador },
     ocorridoEm: dto.ocorridoEm,
   };
+}
+
+export function mapRegistrarRetiradaInput(input: RegistrarRetiradaInput): RegistrarRetiradaDto {
+  return {
+    beneficiarioId: input.beneficiarioId,
+    tipo: input.tipo,
+    formaIdentificacao: input.formaIdentificacao,
+    representante: input.representante ? { ...input.representante } : null,
+    justificativaExcecao: input.justificativaExcecao?.trim() || null,
+  };
+}
+
+function mapHistoricoEventoDto(dto: HistoricoBeneficiarioEventoDto): HistoricoEvento {
+  return { tipo: dto.tipo, ocorridoEm: dto.ocorridoEm, detalhes: { ...(dto.detalhes ?? {}) } };
+}
+
+export function mapHistoricoBeneficiarioDto(dto: HistoricoBeneficiarioDto): HistoricoBeneficiario {
+  return { beneficiario: { ...dto.beneficiario }, eventos: dto.eventos.map(mapHistoricoEventoDto) };
+}
+
+export function mapHistoricoDistribuicaoDto(dto: HistoricoDistribuicaoDto): HistoricoDistribuicao {
+  return { distribuicao: { ...dto.distribuicao }, eventos: dto.eventos.map(mapHistoricoEventoDto) };
 }

@@ -22,11 +22,16 @@ import type {
 import { RegistrarCheckInUseCase } from '../../../application/atendimento/use-cases/registrar-check-in.use-case';
 import { BuscarBeneficiariosUseCase } from '../../../application/beneficiarios/beneficiarios.use-cases';
 import { BeneficiarioResumo } from '../../../domain/beneficiarios/beneficiario.model';
-import { catchError, distinctUntilChanged, finalize, forkJoin, map, of, Subject, switchMap, takeUntil, timer } from 'rxjs';
+import { catchError, distinctUntilChanged, finalize, forkJoin, map, of, Subject, switchMap, takeUntil, timer, type Observable } from 'rxjs';
 import { CheckInFeedbackComponent } from '../components/check-in-feedback.component';
 import { ListarRetiradasUseCase } from '../../../application/atendimento/use-cases/listar-retiradas.use-case';
 import { RegistrarRetiradaUseCase } from '../../../application/atendimento/use-cases/registrar-retirada.use-case';
-import type { Retirada } from '../../../domain/atendimento/retirada.model';
+import type {
+    RegistrarRetiradaInput,
+    Retirada,
+    RetiradaFormaIdentificacao,
+    RetiradaTipo,
+} from '../../../domain/atendimento/retirada.model';
 import { userErrorMessage } from '../../../shared/errors/user-error';
 import { EstornarRetiradaUseCase } from '../../../application/atendimento/use-cases/estornar-retirada.use-case';
 import { SessionFacade } from '../../../infrastructure/auth/session.facade';
@@ -39,16 +44,25 @@ import type { AusenciaAtendimento, DecisaoJustificativa, MomentoJustificativa } 
 import { LoadingStateComponent } from '../../../shared/ui/loading-state.component';
 import { ErrorStateComponent } from '../../../shared/ui/error-state.component';
 import { EmptyStateComponent } from '../../../shared/ui/empty-state.component';
+import { PageHeaderComponent } from '../../../shared/ui/page-header.component';
+import { MetricCardComponent } from '../../../shared/ui/metric-card.component';
+import { StatusBadgeComponent } from '../../../shared/ui/status-badge.component';
+import { IconComponent } from '../../../shared/ui/icon.component';
+import { ToastService } from '../../../shared/ui/toast.service';
+import { DataBrPipe } from '../../../shared/pipes/data-br.pipe';
+import { CompetenciaPipe } from '../../../shared/pipes/competencia.pipe';
+import { Confirmacao, ConfirmDialogComponent } from '../../../shared/ui/confirm-dialog.component';
 
 @Component({
     selector: 'app-atendimento-distribuicao-page',
     standalone: true,
-    imports: [CommonModule, RouterLink, CheckInFeedbackComponent, LoadingStateComponent, ErrorStateComponent, EmptyStateComponent],
+    imports: [ConfirmDialogComponent, CommonModule, RouterLink, CheckInFeedbackComponent, LoadingStateComponent, ErrorStateComponent, EmptyStateComponent, PageHeaderComponent, MetricCardComponent, StatusBadgeComponent, IconComponent, DataBrPipe, CompetenciaPipe],
     templateUrl: './atendimento-distribuicao.page.html',
     styleUrl: './atendimento-distribuicao.page.scss',
     changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export default class AtendimentoDistribuicaoPage {
+    private readonly toast = inject(ToastService);
     private readonly route = inject(ActivatedRoute);
     private readonly destroyRef = inject(DestroyRef);
     private readonly obterDistribuicao = inject(ObterDistribuicaoUseCase);
@@ -79,6 +93,8 @@ export default class AtendimentoDistribuicaoPage {
     readonly retiradaFeedback = signal<string | null>(null);
     readonly estornoEmAndamentoId = signal<string | null>(null);
     readonly encerrando = signal(false);
+    /** Confirmação das operações irreversíveis (substitui window.confirm). */
+    readonly confirmacao = new Confirmacao();
     readonly encerramentoError = signal<string | null>(null);
     readonly historicoCheckIns = signal<CheckIn[]>([]);
     readonly loadingHistoricoCheckIns = signal(false);
@@ -96,6 +112,13 @@ export default class AtendimentoDistribuicaoPage {
     readonly arrastandoCheckInId = signal<string | null>(null);
     readonly dragOverEntrega = signal(false);
     readonly dropRejeitado = signal<string | null>(null);
+    /** Tipos de exceção aceitos pelo backend; TITULAR/REPRESENTANTE têm botões próprios. */
+    readonly tiposExcecao: readonly RetiradaTipo[] = ['PRIMEIRA_ENTREGA', 'ANTECIPADA', 'CONTINGENCIA'];
+    readonly formasIdentificacao: readonly RetiradaFormaIdentificacao[] = ['DOCUMENTO', 'FOTO_HISTORICO', 'CONTINGENCIA'];
+    readonly excecaoCheckIn = signal<CheckIn | null>(null);
+    readonly excecaoTipo = signal<RetiradaTipo>('PRIMEIRA_ENTREGA');
+    readonly excecaoForma = signal<RetiradaFormaIdentificacao | ''>('DOCUMENTO');
+    readonly excecaoJustificativa = signal('');
     private rejeicaoTimeout: ReturnType<typeof setTimeout> | null = null;
 
     readonly buscaInput =
@@ -154,6 +177,7 @@ export default class AtendimentoDistribuicaoPage {
         this.justificativaError.set(null);
         this.retiradaFeedback.set(null);
         this.justificativaFeedback.set(null);
+        this.excecaoCheckIn.set(null);
     }
 
     constructor() {
@@ -370,7 +394,7 @@ export default class AtendimentoDistribuicaoPage {
         this.rejeicaoTimeout = setTimeout(() => this.dropRejeitado.set(null), 2400);
     }
 
-    encerrar(): void {
+    async encerrar(): Promise<void> {
         const distribuicao = this.distribuicao();
         if (
             !distribuicao ||
@@ -381,10 +405,13 @@ export default class AtendimentoDistribuicaoPage {
             return;
         }
 
-        if (!window.confirm(
-            `Encerrar a distribuição de ${distribuicao.grupo.nome}?\n\n` +
-            'A distribuição será finalizada e novas ações operacionais serão bloqueadas.',
-        )) {
+        const confirmado = await this.confirmacao.pedir({
+            title: `Encerrar a distribuição de ${distribuicao.grupo.nome}?`,
+            message: 'A distribuição será finalizada e novas ações operacionais serão bloqueadas.',
+            confirmLabel: 'Encerrar distribuição',
+            danger: true,
+        });
+        if (!confirmado || this.encerrando()) {
             return;
         }
 
@@ -430,24 +457,35 @@ export default class AtendimentoDistribuicaoPage {
             });
     }
 
-    registrarRetiradaTitular(checkIn: CheckIn): void {
-        this.confirmarERegistrarRetirada(checkIn);
+    async registrarRetiradaTitular(checkIn: CheckIn): Promise<void> {
+        await this.confirmarERegistrarRetirada(checkIn);
     }
 
-    registrarRetiradaRepresentante(checkIn: CheckIn): void {
+    async registrarRetiradaRepresentante(checkIn: CheckIn): Promise<void> {
         if (!this.podeRegistrarRetirada(checkIn)) {
             return;
         }
 
-        const nome = window.prompt('Nome completo do representante:')?.trim();
+        const dados = await this.confirmacao.pedirDados({
+            title: 'Retirada por representante',
+            message: `Beneficiário: ${checkIn.beneficiario.nomeCompleto}`,
+            confirmLabel: 'Continuar',
+            campos: [{ id: 'nome', label: 'Nome completo do representante', obrigatorio: true }],
+        });
+        if (!dados) {
+            return;
+        }
+        const nome = dados['nome'];
         if (!nome) {
             this.retiradasError.set('Informe o nome do representante.');
             return;
         }
 
-        const autorizada = window.confirm(
-            'Confirma que o representante declarou estar autorizado a retirar a cesta?',
-        );
+        const autorizada = await this.confirmacao.pedir({
+            title: 'Autorização do representante',
+            message: 'Confirma que o representante declarou estar autorizado a retirar a cesta?',
+            confirmLabel: 'Confirmar autorização',
+        });
         if (!autorizada) {
             return;
         }
@@ -458,13 +496,13 @@ export default class AtendimentoDistribuicaoPage {
             relacao: null,
             autorizacaoDeclaratoria: true,
         };
-        this.confirmarERegistrarRetirada(checkIn, representante);
+        await this.confirmarERegistrarRetirada(checkIn, representante);
     }
 
-    private confirmarERegistrarRetirada(
+    private async confirmarERegistrarRetirada(
         checkIn: CheckIn,
         representante?: RetiradaRepresentanteInput,
-    ): void {
+    ): Promise<void> {
         const distribuicao = this.distribuicao();
 
         if (!distribuicao || !this.podeRegistrarRetirada(checkIn)) {
@@ -474,13 +512,14 @@ export default class AtendimentoDistribuicaoPage {
         const destinatario = representante
             ? `${representante.nome}, representante de ${checkIn.beneficiario.nomeCompleto}`
             : checkIn.beneficiario.nomeCompleto;
-        if (!window.confirm(`Confirmar entrega da cesta para ${destinatario}?`)) {
+        const confirmado = await this.confirmacao.pedir({
+            title: 'Confirmar entrega',
+            message: `Confirmar entrega da cesta para ${destinatario}?`,
+            confirmLabel: 'Entregar cesta',
+        });
+        if (!confirmado || !this.podeRegistrarRetirada(checkIn)) {
             return;
         }
-
-        this.retiradaEmAndamentoId.set(checkIn.id);
-        this.retiradasError.set(null);
-        this.retiradaFeedback.set(null);
 
         const registro$ = representante
             ? this.registrarRetirada.execute(
@@ -489,7 +528,60 @@ export default class AtendimentoDistribuicaoPage {
                 representante,
             )
             : this.registrarRetirada.execute(distribuicao.id, checkIn.beneficiario.id);
+        this.enviarRetirada(distribuicao.id, checkIn, registro$);
+    }
 
+    /**
+     * Exceções não dependem de `podeRetirar`: o backend decide se o tipo é
+     * aceito (ex.: ANTECIPADA exige justificativa e autorização superior).
+     */
+    podeRegistrarExcecao(checkIn: CheckIn): boolean {
+        return this.podeAcessarRetiradas && this.distribuicao()?.status === 'ABERTA'
+            && checkIn.situacaoOperacional === 'AGUARDANDO';
+    }
+
+    abrirExcecao(checkIn: CheckIn): void {
+        if (!this.podeRegistrarExcecao(checkIn)) return;
+        this.excecaoCheckIn.set(checkIn);
+        this.excecaoTipo.set('PRIMEIRA_ENTREGA');
+        this.excecaoForma.set('DOCUMENTO');
+        this.excecaoJustificativa.set('');
+    }
+
+    async registrarExcecao(): Promise<void> {
+        const checkIn = this.excecaoCheckIn();
+        const distribuicao = this.distribuicao();
+        if (!checkIn || !distribuicao || !this.podeRegistrarExcecao(checkIn) || this.retiradaEmAndamentoId()) return;
+        const input: RegistrarRetiradaInput = {
+            beneficiarioId: checkIn.beneficiario.id,
+            tipo: this.excecaoTipo(),
+            formaIdentificacao: this.excecaoForma() || null,
+            representante: null,
+            justificativaExcecao: this.excecaoJustificativa().trim() || null,
+        };
+        const confirmado = await this.confirmacao.pedir({
+            title: 'Registrar retirada',
+            message: `Registrar retirada (${this.tipoRetiradaLabel(input.tipo)}) para ${checkIn.beneficiario.nomeCompleto}?`,
+            confirmLabel: 'Registrar retirada',
+        });
+        if (!confirmado || this.retiradaEmAndamentoId()) return;
+        this.enviarRetirada(
+            distribuicao.id,
+            checkIn,
+            this.registrarRetirada.registrar(distribuicao.id, input),
+            () => this.excecaoCheckIn.set(null),
+        );
+    }
+
+    private enviarRetirada(
+        distribuicaoId: string,
+        checkIn: CheckIn,
+        registro$: Observable<{ id: string }>,
+        aoConcluir?: () => void,
+    ): void {
+        this.retiradaEmAndamentoId.set(checkIn.id);
+        this.retiradasError.set(null);
+        this.retiradaFeedback.set(null);
         registro$
             .pipe(takeUntil(this.distribuicaoAlterada), takeUntilDestroyed(this.destroyRef))
             .subscribe({
@@ -498,9 +590,11 @@ export default class AtendimentoDistribuicaoPage {
                     this.retiradaFeedback.set(
                         `Cesta entregue para ${checkIn.beneficiario.nomeCompleto}.`,
                     );
-                    this.carregarFilas(distribuicao.id);
-                    this.carregarResumoDistribuicao(distribuicao.id);
-                    this.carregarRetiradas(distribuicao.id);
+                    this.toast.success(`Cesta entregue para ${checkIn.beneficiario.nomeCompleto}.`);
+                    aoConcluir?.();
+                    this.carregarFilas(distribuicaoId);
+                    this.carregarResumoDistribuicao(distribuicaoId);
+                    this.carregarRetiradas(distribuicaoId);
                 },
                 error: (error: unknown) => {
                     this.retiradaEmAndamentoId.set(null);
@@ -525,16 +619,23 @@ export default class AtendimentoDistribuicaoPage {
             && this.dataSaoPaulo(retirada.ocorridoEm) === this.dataSaoPaulo(new Date());
     }
 
-    solicitarEstorno(retirada: Retirada): void {
+    async solicitarEstorno(retirada: Retirada): Promise<void> {
         if (!this.podeEstornar(retirada)) {
             return;
         }
 
-        const motivo = window.prompt('Informe o motivo do estorno:');
-        if (motivo === null) {
+        const dados = await this.confirmacao.pedirDados({
+            title: 'Estornar retirada',
+            message: `Retirada de ${retirada.beneficiario.nomeCompleto}. O estorno não pode ser desfeito.`,
+            confirmLabel: 'Estornar',
+            danger: true,
+            campos: [{ id: 'motivo', label: 'Motivo do estorno', tipo: 'textarea', obrigatorio: true }],
+        });
+        if (dados === null || this.estornoEmAndamentoId()) {
             return;
         }
-        if (!motivo.trim()) {
+        const motivo = dados['motivo'] ?? '';
+        if (!motivo) {
             this.retiradasError.set('Informe o motivo do estorno.');
             return;
         }
@@ -551,6 +652,7 @@ export default class AtendimentoDistribuicaoPage {
                     this.retiradaFeedback.set(
                         `Retirada de ${retirada.beneficiario.nomeCompleto} estornada.`,
                     );
+                    this.toast.success(`Retirada de ${retirada.beneficiario.nomeCompleto} estornada.`);
                     this.carregarRetiradas(retirada.distribuicaoId);
                     this.carregarFilas(retirada.distribuicaoId);
                     this.carregarResumoDistribuicao(retirada.distribuicaoId);
@@ -616,14 +718,30 @@ export default class AtendimentoDistribuicaoPage {
             });
     }
 
-    registrarJustificativa(beneficiarioId: string, ausencia: AusenciaAtendimento): void {
+    async registrarJustificativa(beneficiarioId: string, ausencia: AusenciaAtendimento): Promise<void> {
         if (!this.podeRegistrarJustificativa || this.justificativaLoadingId()) return;
-        const descricao = window.prompt('Descreva a justificativa da ausência:')?.trim();
+        const dados = await this.confirmacao.pedirDados({
+            title: 'Registrar justificativa',
+            confirmLabel: 'Registrar',
+            campos: [
+                { id: 'descricao', label: 'Justificativa da ausência', tipo: 'textarea', obrigatorio: true },
+                {
+                    id: 'momento',
+                    label: 'Momento da justificativa',
+                    tipo: 'select',
+                    obrigatorio: true,
+                    valorInicial: 'DEPOIS_DISTRIBUICAO',
+                    opcoes: [
+                        { valor: 'ANTES_DISTRIBUICAO', label: 'Antes da distribuição' },
+                        { valor: 'DEPOIS_DISTRIBUICAO', label: 'Depois da distribuição' },
+                    ],
+                },
+            ],
+        });
+        if (!dados || this.justificativaLoadingId()) return;
+        const descricao = dados['descricao'];
         if (!descricao) return;
-        const momentoInformado = window.prompt(
-            'Informe o momento: ANTES_DISTRIBUICAO ou DEPOIS_DISTRIBUICAO',
-            'DEPOIS_DISTRIBUICAO',
-        )?.trim().toUpperCase();
+        const momentoInformado = dados['momento'];
         if (momentoInformado !== 'ANTES_DISTRIBUICAO' && momentoInformado !== 'DEPOIS_DISTRIBUICAO') {
             this.justificativaError.set('Informe ANTES_DISTRIBUICAO ou DEPOIS_DISTRIBUICAO.');
             return;
@@ -637,6 +755,7 @@ export default class AtendimentoDistribuicaoPage {
                 next: () => {
                     this.justificativaLoadingId.set(null);
                     this.justificativaFeedback.set('Justificativa registrada e aguardando avaliação.');
+                    this.toast.success('Justificativa registrada e aguardando avaliação.');
                     this.atualizarAposJustificativa(beneficiarioId);
                 },
                 error: (error: unknown) => {
@@ -646,19 +765,23 @@ export default class AtendimentoDistribuicaoPage {
             });
     }
 
-    avaliarJustificativa(
+    async avaliarJustificativa(
         beneficiarioId: string,
         ausencia: AusenciaAtendimento,
         decisao: Exclude<DecisaoJustificativa, 'PENDENTE'>,
-    ): void {
+    ): Promise<void> {
         const justificativaId = ausencia.justificativas.find(
             (justificativa) => justificativa.decisao === 'PENDENTE',
         )?.id;
         if (!this.podeAvaliarJustificativa || !justificativaId || this.justificativaLoadingId()) return;
-        if (!window.confirm(`${decisao === 'ACEITA' ? 'Aceitar' : 'Rejeitar'} esta justificativa?`)) return;
-        const observacaoInformada = window.prompt('Observação da avaliação (opcional):');
-        if (observacaoInformada === null) return;
-        const observacao = observacaoInformada.trim() || null;
+        const dados = await this.confirmacao.pedirDados({
+            title: `${decisao === 'ACEITA' ? 'Aceitar' : 'Rejeitar'} esta justificativa?`,
+            confirmLabel: decisao === 'ACEITA' ? 'Aceitar' : 'Rejeitar',
+            danger: decisao !== 'ACEITA',
+            campos: [{ id: 'observacao', label: 'Observação da avaliação', tipo: 'textarea' }],
+        });
+        if (!dados || this.justificativaLoadingId()) return;
+        const observacao = dados['observacao'] || null;
         this.justificativaLoadingId.set(ausencia.id);
         this.justificativaError.set(null);
         this.avaliarJustificativaUseCase.execute(justificativaId, { decisao, observacao })
@@ -669,6 +792,7 @@ export default class AtendimentoDistribuicaoPage {
                     this.justificativaFeedback.set(
                         decisao === 'ACEITA' ? 'Justificativa aceita.' : 'Justificativa rejeitada.',
                     );
+                    this.toast.success(decisao === 'ACEITA' ? 'Justificativa aceita.' : 'Justificativa rejeitada.');
                     this.atualizarAposJustificativa(beneficiarioId);
                 },
                 error: (error: unknown) => {
@@ -735,18 +859,6 @@ export default class AtendimentoDistribuicaoPage {
         this.buscaSubject.next(valor);
     }
 
-    horaLabel(ocorridoEm: string): string {
-        const data = new Date(ocorridoEm);
-
-        if (Number.isNaN(data.getTime())) {
-            return ocorridoEm;
-        }
-
-        return new Intl.DateTimeFormat('pt-BR', {
-            hour: '2-digit',
-            minute: '2-digit',
-        }).format(data);
-    }
 
     situacaoOperacionalLabel(situacao: CheckInSituacaoOperacional): string {
         const labels: Record<CheckInSituacaoOperacional, string> = {
@@ -769,20 +881,7 @@ export default class AtendimentoDistribuicaoPage {
         return motivo ? labels[motivo] : 'Retirada indisponível neste momento.';
     }
 
-    dataLabel(data: string): string {
-        const [ano, mes, dia] = data.split('-');
 
-        if (!ano || !mes || !dia) {
-            return data;
-        }
-
-        return `${dia}/${mes}/${ano}`;
-    }
-
-    competenciaLabel(distribuicao: Distribuicao): string {
-        const mes = String(distribuicao.competencia.mes).padStart(2, '0');
-        return `${mes}/${distribuicao.competencia.ano}`;
-    }
 
     tipoRetiradaLabel(tipo: Retirada['tipo']): string {
         const labels: Record<Retirada['tipo'], string> = {

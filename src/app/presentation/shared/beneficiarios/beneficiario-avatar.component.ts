@@ -17,9 +17,9 @@ import { ImageLightboxComponent } from '../../../shared/ui/image-lightbox.compon
   template: `
     <button
       type="button"
-      class="ba-avatar"
-      [class.ba-avatar--lg]="size() === 'lg'"
-      [class.ba-avatar--clickable]="!!fotoUrl()"
+      class="ui-avatar"
+      [class.ui-avatar--lg]="size() === 'lg'"
+      [class.ui-avatar--clickable]="!!fotoUrl()"
       [disabled]="!fotoUrl()"
       (click)="abrir()"
       [attr.aria-label]="fotoUrl() ? 'Ampliar foto de ' + nome() : nome()"
@@ -35,51 +35,11 @@ import { ImageLightboxComponent } from '../../../shared/ui/image-lightbox.compon
         [src]="url"
         [alt]="'Foto de ' + nome()"
         [caption]="nome()"
-        (close)="fechar()"
+        (dismiss)="fechar()"
       />
     }
   `,
-  styles: [
-    `
-      :host {
-        display: contents;
-      }
-      .ba-avatar {
-        display: grid;
-        place-items: center;
-        flex: 0 0 auto;
-        width: 2.3rem;
-        height: 2.3rem;
-        min-height: 0;
-        border-radius: 50%;
-        background: var(--color-primary-soft);
-        color: var(--color-primary-dark);
-        font-weight: 700;
-        border: none;
-        padding: 0;
-        overflow: hidden;
-        cursor: default;
-      }
-      .ba-avatar:disabled {
-        background: var(--color-primary-soft);
-        color: var(--color-primary-dark);
-        cursor: default;
-      }
-      .ba-avatar--lg {
-        width: 4rem;
-        height: 4rem;
-        font-size: 1.4rem;
-      }
-      .ba-avatar--clickable {
-        cursor: zoom-in;
-      }
-      .ba-avatar img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-      }
-    `,
-  ],
+  styles: [':host{display:contents}'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class BeneficiarioAvatarComponent implements OnInit, OnDestroy {

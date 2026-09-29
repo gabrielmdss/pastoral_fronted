@@ -47,12 +47,6 @@
   border-color: var(--color-primary);
   cursor: grabbing;
 }
-.dnd-card__grip {
-  color: var(--color-text-muted);
-  letter-spacing: -0.15em;
-  font-size: 0.875rem;
-  line-height: 1;
-}
 .dnd-card__label {
   font-size: 0.875rem;
   overflow-wrap: anywhere;
@@ -71,10 +65,6 @@
   text-align: center;
   cursor: pointer;
   transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.15s ease;
-}
-.dnd-basket__icon {
-  font-size: 2rem;
-  line-height: 1;
 }
 .dnd-basket__label {
   font-size: 0.8125rem;
@@ -115,35 +105,10 @@
     transform: scale(1);
   }
 }
-.dnd-toast {
-  margin: 0;
-  padding: var(--space-2) var(--space-4);
-  border-radius: var(--radius-pill);
-  background: var(--color-success-soft);
-  color: var(--color-success);
-  font-size: 0.8125rem;
-  font-weight: 650;
-  width: fit-content;
-  animation: dnd-toast-in 0.2s ease-out both;
-}
-@keyframes dnd-toast-in {
-  from {
-    opacity: 0;
-    transform: translateY(4px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
 @media (prefers-reduced-motion: reduce) {
   .dnd-card,
   .dnd-basket,
-  .dnd-toast {
-    animation: none;
-    transition: none;
-  }
-  .dnd-card.is-dragging {
+    .dnd-card.is-dragging {
     transform: none;
   }
 }

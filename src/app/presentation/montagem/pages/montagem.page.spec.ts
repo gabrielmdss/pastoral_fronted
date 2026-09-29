@@ -14,6 +14,7 @@ import type { PlanejamentoDetalhe } from '../../../domain/planejamento/planejame
 import type { LoteMontagem } from '../../../domain/montagem/montagem.model';
 import { SessionFacade } from '../../../infrastructure/auth/session.facade';
 import Page from './montagem.page';
+import { responderConfirmacao } from '../../../shared/ui/confirm-dialog.testing';
 const lote: LoteMontagem = {
   id: '9',
   quantidadeMontada: 20,
@@ -49,7 +50,11 @@ const plano: PlanejamentoDetalhe = {
     },
   ],
 };
-async function setup(id: string | null = null, allowed = true) {
+async function setup(
+  id: string | null = null,
+  allowed = true,
+  query: Record<string, string> = {},
+) {
   const response = new Subject<{ id: string }>();
   const api = {
     listar: vi.fn(() => of([lote])),
@@ -82,7 +87,13 @@ async function setup(id: string | null = null, allowed = true) {
       provideRouter([]),
       ...Object.values(U),
       { provide: MONTAGEM_API, useValue: api },
-      { provide: ActivatedRoute, useValue: { paramMap: of(convertToParamMap(id ? { id } : {})) } },
+      {
+        provide: ActivatedRoute,
+        useValue: {
+          paramMap: of(convertToParamMap(id ? { id } : {})),
+          snapshot: { queryParamMap: convertToParamMap(query) },
+        },
+      },
       { provide: ListarPlanejamentosUseCase, useValue: { execute: () => of([plano]) } },
       { provide: ObterPlanejamentoUseCase, useValue: planoUC },
       { provide: ListarInsumosUseCase, useValue: estoque },
@@ -165,17 +176,18 @@ describe('Montagem: páginas', () => {
     expect(api.montar).not.toHaveBeenCalled();
   });
   it('cancelar confirmação não monta', async () => {
-    const { page, api } = await setup();
+    const { page, api, fixture } = await setup();
     await fill(page);
-    vi.spyOn(window, 'confirm').mockReturnValue(false);
-    await page.montar();
+    const acao = page.montar();
+    await responderConfirmacao(fixture, false);
+    await acao;
     expect(api.montar).not.toHaveBeenCalled();
   });
   it('bloqueia duplo envio e atualiza lotes/estoque após sucesso antes de navegar', async () => {
-    const { page, api, response, estoque, navigate } = await setup();
+    const { page, api, response, estoque, navigate, fixture } = await setup();
     await fill(page);
-    vi.spyOn(window, 'confirm').mockReturnValue(true);
     const pending = page.montar();
+    await responderConfirmacao(fixture);
     await page.montar();
     expect(api.montar).toHaveBeenCalledExactlyOnceWith({
       planejamentoVersaoId: '4',
@@ -191,10 +203,10 @@ describe('Montagem: páginas', () => {
     expect(page.saving()).toBe(false);
   });
   it('409 reconsulta lote/estoque/planejamento e não assume sucesso', async () => {
-    const { page, api, response, estoque, planoUC, navigate } = await setup();
+    const { page, api, response, estoque, planoUC, navigate, fixture } = await setup();
     await fill(page);
-    vi.spyOn(window, 'confirm').mockReturnValue(true);
     const pending = page.montar();
+    await responderConfirmacao(fixture);
     response.error(
       new HttpErrorResponse({
         status: 409,
@@ -268,9 +280,10 @@ describe('Montagem: páginas', () => {
     expect(fixture.nativeElement.textContent).toContain('Desmontagem integral: 20 cestas');
     expect(fixture.nativeElement.querySelector('input[formControlName="quantidade"]')).toBeNull();
     page.desmontagemForm.patchValue({ quantidade: 1, motivo: 'Conferência' });
-    vi.spyOn(window, 'confirm').mockReturnValue(true);
     api.desmontar.mockReturnValue(of(undefined));
-    await page.confirmarAcao();
+    const acao = page.confirmarAcao();
+    await responderConfirmacao(fixture);
+    await acao;
     expect(api.desmontar).toHaveBeenCalledExactlyOnceWith('9', {
       quantidade: 20,
       motivo: 'Conferência',
@@ -282,9 +295,10 @@ describe('Montagem: páginas', () => {
     fixture.detectChanges();
     expect(fixture.nativeElement.querySelector('input[formControlName="quantidade"]')).toBeTruthy();
     page.desmontagemForm.patchValue({ quantidade: 3, motivo: 'Conferência' });
-    vi.spyOn(window, 'confirm').mockReturnValue(true);
     api.desmontar.mockReturnValue(of(undefined));
-    await page.confirmarAcao();
+    const acao = page.confirmarAcao();
+    await responderConfirmacao(fixture);
+    await acao;
     expect(api.desmontar).toHaveBeenCalledExactlyOnceWith('9', {
       quantidade: 3,
       motivo: 'Conferência',
@@ -294,15 +308,18 @@ describe('Montagem: páginas', () => {
     expect(page.feedback()).toContain('confirmada');
   });
   it('cancelamento da confirmação não envia nenhuma mutação', async () => {
-    const { page, api } = await setup('9');
-    vi.spyOn(window, 'confirm').mockReturnValue(false);
+    const { page, api, fixture } = await setup('9');
     page.abrirAcao('desmontagem');
     page.desmontagemForm.patchValue({ quantidade: 3, motivo: 'Conferência' });
-    await page.confirmarAcao();
+    const acao = page.confirmarAcao();
+    await responderConfirmacao(fixture, false);
+    await acao;
     page.lote.set({ ...lote, podeAjustar: true, quantidadeDisponivel: 20 });
     page.abrirAcao('ajuste');
     page.ajusteForm.patchValue({ motivo: 'Conferência', itens: [{ apresentacaoInsumoId: '6' }] });
-    await page.confirmarAcao();
+    const ajuste = page.confirmarAcao();
+    await responderConfirmacao(fixture, false);
+    await ajuste;
     expect(api.desmontar).not.toHaveBeenCalled();
     expect(api.ajustar).not.toHaveBeenCalled();
   });
@@ -322,8 +339,8 @@ describe('Montagem: páginas', () => {
     page.ajusteForm.setValue(input);
     const response = new Subject<{ id: string }>();
     api.ajustar.mockReturnValue(response);
-    vi.spyOn(window, 'confirm').mockReturnValue(true);
     const pending = page.confirmarAcao();
+    await responderConfirmacao(fixture);
     await page.confirmarAcao();
     fixture.detectChanges();
     expect(page.saving()).toBe(true);
@@ -338,13 +355,13 @@ describe('Montagem: páginas', () => {
     expect(estoque.execute).toHaveBeenCalledTimes(2);
   });
   it('desmontagem bloqueia duplo envio durante a chamada', async () => {
-    const { page, api } = await setup('9');
+    const { page, api, fixture } = await setup('9');
     page.abrirAcao('desmontagem');
     page.desmontagemForm.patchValue({ quantidade: 3, motivo: 'Conferência' });
     const response = new Subject<void>();
     api.desmontar.mockReturnValue(response);
-    vi.spyOn(window, 'confirm').mockReturnValue(true);
     const pending = page.confirmarAcao();
+    await responderConfirmacao(fixture);
     await page.confirmarAcao();
     expect(page.saving()).toBe(true);
     expect(api.desmontar).toHaveBeenCalledTimes(1);
@@ -354,7 +371,7 @@ describe('Montagem: páginas', () => {
     expect(page.saving()).toBe(false);
   });
   it('novo conflito 409 informa integral, preserva motivo e reconsulta flags/composição', async () => {
-    const { page, api, estoque } = await setup('9');
+    const { page, api, estoque, fixture } = await setup('9');
     page.abrirAcao('desmontagem');
     page.desmontagemForm.patchValue({ quantidade: 3, motivo: 'Conferência' });
     api.desmontar.mockReturnValue(
@@ -369,8 +386,9 @@ describe('Montagem: páginas', () => {
     api.obter.mockReturnValue(
       of({ ...lote, possuiAjustes: true, permiteDesmontagemParcial: false, podeDesmontar: false }),
     );
-    vi.spyOn(window, 'confirm').mockReturnValue(true);
-    await page.confirmarAcao();
+    const acao = page.confirmarAcao();
+    await responderConfirmacao(fixture);
+    await acao;
     expect(page.mutationError()).toContain('só pode ser desmontado integralmente');
     expect(page.mutationError()).not.toContain('SQL');
     expect(page.desmontagemForm.controls.motivo.value).toBe('Conferência');
@@ -380,7 +398,7 @@ describe('Montagem: páginas', () => {
     expect(page.feedback()).toBe('');
   });
   it('ajuste em conflito preserva formulário e reconsulta o estado', async () => {
-    const { page, api, estoque } = await setup('9');
+    const { page, api, estoque, fixture } = await setup('9');
     page.lote.set({ ...lote, podeAjustar: true, quantidadeDisponivel: 20 });
     page.abrirAcao('ajuste');
     page.ajusteForm.patchValue({ motivo: 'Conferência', itens: [{ apresentacaoInsumoId: '6' }] });
@@ -394,8 +412,9 @@ describe('Montagem: páginas', () => {
           }),
       ),
     );
-    vi.spyOn(window, 'confirm').mockReturnValue(true);
-    await page.confirmarAcao();
+    const acao = page.confirmarAcao();
+    await responderConfirmacao(fixture);
+    await acao;
     expect(page.ajusteForm.getRawValue()).toEqual(before);
     expect(page.mutationError()).toContain('insuficiente');
     expect(page.mutationError()).not.toContain('SQL');
@@ -421,4 +440,35 @@ describe('Montagem: páginas', () => {
       expect(api.desmontar).not.toHaveBeenCalled();
     },
   );
+  it('planejamento/versão da navegação pré-selecionam a montagem', async () => {
+    const { page, planoUC } = await setup(null, true, { planejamento: '2', versao: '4' });
+    await vi.waitFor(() => expect(page.planLoading()).toBe(false));
+    expect(planoUC.execute).toHaveBeenCalledWith('2');
+    expect(page.criando()).toBe(true);
+    expect(page.form.controls.planejamentoVersaoId.value).toBe('4');
+  });
+  it('ignora parâmetros de navegação não numéricos', async () => {
+    const { page, planoUC } = await setup(null, true, { planejamento: 'x', distribuicao: 'y' });
+    expect(planoUC.execute).not.toHaveBeenCalled();
+    expect(page.distribuicaoDestino()).toBeNull();
+  });
+  it('lote com distribuição de origem oferece link para a liberação', async () => {
+    const { fixture } = await setup('9', true, { distribuicao: '5' });
+    fixture.detectChanges();
+    const el: HTMLElement = fixture.nativeElement;
+    expect(el.querySelector('a[data-action="liberar"]')?.getAttribute('href')).toBe(
+      '/distribuicoes/5/liberacoes',
+    );
+    expect(el.textContent).toContain('Média por cesta');
+  });
+  it('sem distribuição de origem orienta escolher distribuição; sem permissão explica', async () => {
+    let r = await setup('9');
+    r.fixture.detectChanges();
+    expect(r.fixture.nativeElement.querySelector('a[data-action="escolher-distribuicao"]')).toBeTruthy();
+    TestBed.resetTestingModule();
+    r = await setup('9', false);
+    r.fixture.detectChanges();
+    expect(r.fixture.nativeElement.querySelector('a[data-action="liberar"]')).toBeNull();
+    expect(r.fixture.nativeElement.textContent).toContain('exige a permissão de liberar');
+  });
 });

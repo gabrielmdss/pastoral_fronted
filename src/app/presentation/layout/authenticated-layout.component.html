@@ -1,100 +1,159 @@
-<div class="app-shell">
+<div class="shell">
   <a class="skip-link" href="#main-content">Ir para o conteúdo</a>
-  <aside class="sidebar" [class.open]="menuOpen()">
-    <div class="brand">
-      <span>PC</span>
-      <div><strong>Entrega Certa</strong><small>Pastoral Social</small></div>
+  <aside class="shell-sidebar" [class.is-open]="menuOpen()" aria-label="Navegação">
+    <div class="shell-brand">
+      <a routerLink="/dashboard" class="shell-brand__link">
+        <span class="shell-brand__badge" aria-hidden="true">EC</span>
+        <span class="shell-brand__text"><strong>Entrega Certa</strong><small>Pastoral Social</small></span>
+      </a>
+      <button type="button" class="shell-icon-btn shell-close" aria-label="Fechar menu" (click)="menuOpen.set(false)">
+        <app-icon name="x" [size]="18" />
+      </button>
     </div>
-    <nav id="main-navigation" aria-label="Menu principal">
-      @for (item of menuItems(); track item.label) {
-        <a
-          [routerLink]="item.route"
-          routerLinkActive="active"
-          ariaCurrentWhenActive="page"
-          (click)="menuOpen.set(false)"
-          >{{ item.label }}</a
-        >
-      }
-      @if (podeRelatorios()) {
-        <a
-          routerLink="/relatorios"
-          routerLinkActive="active"
-          ariaCurrentWhenActive="page"
-          (click)="menuOpen.set(false)"
-          >Relatórios</a
-        >
-      }
-      @if (assistanceMenu().length) {
-        <p class="nav-section">Assistência</p>
-        @for (item of assistanceMenu(); track item.label) {
-          <a
-            class="subitem"
-            [routerLink]="item.route"
-            routerLinkActive="active"
-            ariaCurrentWhenActive="page"
-            (click)="menuOpen.set(false)"
-            >{{ item.label }}</a
+
+    <nav id="main-navigation" class="nav" aria-label="Menu principal">
+      @for (group of menu(); track group.id) {
+        <div class="nav-group" [attr.data-group]="group.id">
+          <button
+            type="button"
+            class="nav-group__toggle"
+            [attr.aria-expanded]="isGroupOpen(group.id)"
+            [attr.aria-controls]="'nav-group-' + group.id"
+            (click)="toggleGroup(group.id)"
           >
-        }
-      }
-      @if (preparationMenu().length) {
-        <p class="nav-section">Preparação</p>
-        @for (item of preparationMenu(); track item.route) {
-          <a
-            class="subitem"
-            [routerLink]="item.route"
-            routerLinkActive="active"
-            ariaCurrentWhenActive="page"
-            (click)="menuOpen.set(false)"
-            >{{ item.label }}</a
-          >
-        }
+            <span>{{ group.label }}</span>
+            <app-icon name="chevron-down" [size]="14" class="nav-chevron" />
+          </button>
+          <div class="nav-collapse" [class.is-open]="isGroupOpen(group.id)" [id]="'nav-group-' + group.id" [inert]="!isGroupOpen(group.id)">
+            <ul class="nav-list">
+              @for (item of group.items; track item.id) {
+                <li>
+                  @if (item.children) {
+                    <button
+                      type="button"
+                      class="nav-item nav-item--parent"
+                      [class.is-active]="isItemActive(item)"
+                      [attr.aria-expanded]="isItemOpen(item.id)"
+                      [attr.aria-controls]="'nav-sub-' + item.id"
+                      (click)="toggleItem(item.id)"
+                    >
+                      <app-icon [name]="item.icon" class="nav-item__icon" />
+                      <span class="nav-item__label">{{ item.label }}</span>
+                      <app-icon name="chevron-right" [size]="14" class="nav-chevron nav-chevron--item" />
+                    </button>
+                    <div class="nav-collapse" [class.is-open]="isItemOpen(item.id)" [id]="'nav-sub-' + item.id" [inert]="!isItemOpen(item.id)">
+                      <ul class="nav-sublist">
+                        @for (child of item.children; track child.route) {
+                          <li>
+                            <a class="nav-subitem" [routerLink]="child.route" routerLinkActive="is-active" ariaCurrentWhenActive="page">
+                              {{ child.label }}
+                            </a>
+                          </li>
+                        }
+                      </ul>
+                    </div>
+                  } @else {
+                    <a class="nav-item" [routerLink]="item.route" routerLinkActive="is-active" ariaCurrentWhenActive="page">
+                      <app-icon [name]="item.icon" class="nav-item__icon" />
+                      <span class="nav-item__label">{{ item.label }}</span>
+                    </a>
+                  }
+                </li>
+              }
+            </ul>
+          </div>
+        </div>
       }
     </nav>
-    <div class="sidebar-foot">
-      <span>{{ session.currentUser()?.login }}</span
-      ><button type="button" class="secondary" (click)="logout()">Sair</button>
-    </div>
-  </aside>
-  @if (menuOpen()) {
-    <button class="backdrop" aria-label="Fechar menu" (click)="menuOpen.set(false)"></button>
-  }
-  <div class="content">
-    <header class="topbar">
+
+    <div class="shell-user" [class.is-open]="userMenuOpen()">
+      @if (userMenuOpen()) {
+        <div class="shell-user__menu" id="user-menu" role="menu" aria-label="Conta">
+          <a role="menuitem" class="shell-user__option" routerLink="/perfil/senha">
+            <app-icon name="key" /> Alterar senha
+          </a>
+          <button type="button" role="menuitem" class="shell-user__option" (click)="theme.toggle()">
+            <app-icon [name]="theme.theme() === 'dark' ? 'sun' : 'moon'" />
+            {{ theme.theme() === 'dark' ? 'Tema claro' : 'Tema escuro' }}
+          </button>
+          <button type="button" role="menuitem" class="shell-user__option shell-user__option--danger" (click)="logout()">
+            <app-icon name="log-out" /> Sair
+          </button>
+        </div>
+      }
       <button
         type="button"
-        class="menu-button"
+        class="shell-user__trigger"
+        aria-haspopup="menu"
+        aria-controls="user-menu"
+        [attr.aria-expanded]="userMenuOpen()"
+        (click)="toggleUserMenu()"
+      >
+        <span class="shell-avatar" aria-hidden="true">{{ initials() }}</span>
+        <span class="shell-user__info">
+          <strong>{{ user()?.login }}</strong>
+          @if (perfis()) {
+            <small>{{ perfis() }}</small>
+          }
+        </span>
+        <app-icon name="chevrons-up-down" [size]="14" />
+      </button>
+    </div>
+  </aside>
+
+  @if (menuOpen()) {
+    <button type="button" class="shell-backdrop" aria-label="Fechar menu" (click)="menuOpen.set(false)"></button>
+  }
+
+  <div class="shell-content">
+    <header class="shell-header">
+      <button
+        type="button"
+        class="shell-icon-btn shell-menu-btn"
         aria-label="Abrir menu"
         [attr.aria-expanded]="menuOpen()"
         aria-controls="main-navigation"
-        (click)="menuOpen.set(!menuOpen())"
+        (click)="menuOpen.set(true)"
       >
-        ☰</button
-      ><nav class="breadcrumbs" aria-label="Localização atual">
-        <span>Pastoral de Distribuição de Cestas</span>
-        @if (breadcrumbLabel()) {
-          <span class="breadcrumbs-separator" aria-hidden="true">/</span>
-          <span class="breadcrumbs-current">{{ breadcrumbLabel() }}</span>
-        }
-      </nav>
-      <button
-        type="button"
-        class="theme-toggle"
-        (click)="theme.toggle()"
-        [attr.aria-label]="theme.theme() === 'dark' ? 'Usar tema claro' : 'Usar tema escuro'"
-        [attr.aria-pressed]="theme.theme() === 'dark'"
-      >
-        {{ theme.theme() === 'dark' ? '☾' : '☀' }}
+        <app-icon name="menu" [size]="18" />
       </button>
-      <a
-        class="user-dot"
-        routerLink="/perfil/senha"
-        [attr.aria-label]="'Alterar senha (' + (session.currentUser()?.login ?? 'usuário') + ')'"
-        title="Alterar senha"
-      >
-        {{ session.currentUser()?.login?.charAt(0)?.toUpperCase() }}
-      </a>
+      <nav class="shell-crumbs" aria-label="Localização atual">
+        <ol>
+          <li><a routerLink="/dashboard" class="shell-crumbs__home"><app-icon name="home" [size]="14" /><span>Início</span></a></li>
+          @for (crumb of crumbs(); track $index; let last = $last) {
+            <li [class.is-current]="last">
+              <app-icon name="chevron-right" [size]="14" class="shell-crumbs__sep" />
+              @if (crumb.route) {
+                <a [routerLink]="crumb.route">{{ crumb.label }}</a>
+              } @else {
+                <span [attr.aria-current]="last ? 'page' : null">{{ crumb.label }}</span>
+              }
+            </li>
+          }
+        </ol>
+      </nav>
+      <strong class="shell-header__title">{{ pageTitle() }}</strong>
+      <div class="shell-header__actions">
+        <button
+          type="button"
+          class="shell-icon-btn"
+          (click)="theme.toggle()"
+          [attr.aria-label]="theme.theme() === 'dark' ? 'Usar tema claro' : 'Usar tema escuro'"
+          [attr.aria-pressed]="theme.theme() === 'dark'"
+          [title]="theme.theme() === 'dark' ? 'Tema claro' : 'Tema escuro'"
+        >
+          <app-icon [name]="theme.theme() === 'dark' ? 'sun' : 'moon'" [size]="18" />
+        </button>
+        <a
+          class="shell-avatar shell-avatar--link"
+          routerLink="/perfil/senha"
+          [attr.aria-label]="'Alterar senha (' + (user()?.login ?? 'usuário') + ')'"
+          title="Alterar senha"
+          >{{ initials() }}</a
+        >
+      </div>
     </header>
     <main class="page" id="main-content" tabindex="-1"><router-outlet /></main>
   </div>
+  <app-toast-host />
 </div>

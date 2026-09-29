@@ -40,7 +40,7 @@ describe('BeneficiarioAvatarComponent', () => {
     const img = f.nativeElement.querySelector('img');
     expect(img).not.toBeNull();
     expect(f.componentInstance.expandido()).toBe(false);
-    (f.nativeElement.querySelector('button.ba-avatar') as HTMLButtonElement).click();
+    (f.nativeElement.querySelector('button.ui-avatar') as HTMLButtonElement).click();
     f.detectChanges();
     expect(f.componentInstance.expandido()).toBe(true);
     expect(f.nativeElement.querySelector('.lightbox')).not.toBeNull();

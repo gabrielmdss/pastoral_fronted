@@ -3,6 +3,7 @@ import {
   ChangeDetectionStrategy,
   Component,
   inject,
+  computed,
   signal,
 } from '@angular/core';
 import { RouterLink } from '@angular/router';
@@ -14,6 +15,11 @@ import { ErrorStateComponent } from '../../../shared/ui/error-state.component';
 import { EmptyStateComponent } from '../../../shared/ui/empty-state.component';
 import { PageHeaderComponent } from '../../../shared/ui/page-header.component';
 import { StatusBadgeComponent } from '../../../shared/ui/status-badge.component';
+import { SectionCardComponent } from '../../../shared/ui/section-card.component';
+import { MetricCardComponent } from '../../../shared/ui/metric-card.component';
+import { IconComponent } from '../../../shared/ui/icon.component';
+import { DataBrPipe } from '../../../shared/pipes/data-br.pipe';
+import { CompetenciaPipe } from '../../../shared/pipes/competencia.pipe';
 
 @Component({
   selector: 'app-distribuicoes-list-page',
@@ -26,6 +32,11 @@ import { StatusBadgeComponent } from '../../../shared/ui/status-badge.component'
     EmptyStateComponent,
     PageHeaderComponent,
     StatusBadgeComponent,
+    SectionCardComponent,
+    MetricCardComponent,
+    IconComponent,
+    DataBrPipe,
+    CompetenciaPipe,
   ],
   templateUrl: './distribuicoes-list.page.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -37,6 +48,16 @@ export default class DistribuicoesListPage {
   readonly distribuicoes = signal<Distribuicao[]>([]);
   readonly loading = signal(false);
   readonly error = signal<string | null>(null);
+  readonly totais = computed(() =>
+    this.distribuicoes().reduce(
+      (acc, d) => ({
+        previstos: acc.previstos + d.previstos,
+        checkIns: acc.checkIns + d.checkIns,
+        retiradas: acc.retiradas + d.retiradas,
+      }),
+      { previstos: 0, checkIns: 0, retiradas: 0 },
+    ),
+  );
 
   constructor() {
     this.carregar();
@@ -60,22 +81,5 @@ export default class DistribuicoesListPage {
         this.loading.set(false);
       },
     });
-  }
-
-  competenciaLabel(distribuicao: Distribuicao): string {
-    const mes = String(distribuicao.competencia.mes)
-      .padStart(2, '0');
-
-    return `${mes}/${distribuicao.competencia.ano}`;
-  }
-
-  dataLabel(data: string): string {
-    const [ano, mes, dia] = data.split('-');
-
-    if (!ano || !mes || !dia) {
-      return data;
-    }
-
-    return `${dia}/${mes}/${ano}`;
   }
 }
