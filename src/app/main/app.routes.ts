@@ -25,6 +25,7 @@ export const appRoutes: Routes = [
       { path: 'modelos-cesta', canActivate: [permissionGuard('CESTA_MODELO_GERENCIAR')], loadComponent: () => import('../presentation/cestas/pages/modelos.page') },
       { path: 'estoque', canActivate: [permissionGuard('ESTOQUE_VISUALIZAR')], loadComponent: () => import('../presentation/estoque/pages/estoque.page') },
       { path: 'doadores', canActivate: [permissionGuard('ESTOQUE_VISUALIZAR')], loadComponent: () => import('../presentation/doadores/pages/doadores.page') },
+      { path: 'usuarios', canActivate: [permissionGuard('PERFIL_GERENCIAR')], loadComponent: () => import('../presentation/usuarios/pages/usuarios.page') },
       { path: 'auditoria', canActivate: [permissionGuard('AUDITORIA_VISUALIZAR')], loadComponent: () => import('../presentation/auditoria/pages/auditoria.page') },
       {
         path: 'competencias',
