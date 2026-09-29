@@ -5,18 +5,60 @@
   display: grid;
   justify-items: center;
   align-content: center;
-  gap: var(--space-3);
+  gap: var(--space-2);
   min-height: 10rem;
-  padding: var(--space-5);
+  padding: var(--space-7) var(--space-5);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   background: var(--color-surface);
   color: var(--color-text-muted);
+  font-size: 0.875rem;
   text-align: center;
 }
 .state p {
   margin: 0;
-  max-width: 60ch;
+  max-width: 40ch;
+}
+.state strong {
+  margin-top: var(--space-2);
+  color: var(--color-text);
+  font-size: 0.9375rem;
+}
+.empty {
+  border-style: dashed;
+  background: transparent;
+}
+.state-icon {
+  display: grid;
+  place-items: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 50%;
+  background: var(--color-surface-muted);
+}
+.state-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+}
+.state-actions:empty {
+  display: none;
+}
+.error {
+  border-color: color-mix(in oklch, var(--color-danger) 25%, transparent);
+  background: var(--color-danger-soft);
+  color: var(--color-danger);
+  .state-icon {
+    background: var(--color-surface);
+  }
+  strong {
+    color: var(--color-danger);
+  }
+  button {
+    margin-top: var(--space-3);
+  }
 }
 .spinner {
   width: 1.5rem;
@@ -26,10 +68,82 @@
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
-.error {
-  color: var(--color-danger);
-  background: var(--color-danger-soft);
-  border-left: 3px solid currentColor;
+.skeleton-lines {
+  display: grid;
+  gap: var(--space-2);
+  width: min(100%, 24rem);
+  margin-top: var(--space-2);
+}
+.skeleton-lines .skeleton:nth-child(2) {
+  width: 85%;
+}
+.skeleton-lines .skeleton:nth-child(3) {
+  width: 60%;
+}
+// Variantes estruturadas: ocupam a largura toda, sem centralizar.
+.loading--table,
+.loading--cards,
+.loading--detail {
+  display: block;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+.sk-table {
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+}
+.sk-row {
+  display: grid;
+  grid-template-columns: repeat(var(--cols, 4), minmax(0, 1fr));
+  gap: var(--space-4);
+  padding: 1rem;
+  border-bottom: 1px solid var(--color-border);
+}
+.sk-row:last-child {
+  border-bottom: 0;
+}
+.sk-row--head {
+  background: var(--color-surface-muted);
+  .skeleton {
+    width: 50%;
+    min-height: 0.625rem;
+  }
+}
+.sk-cards {
+  display: grid;
+  gap: var(--space-4);
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 13rem), 1fr));
+}
+.sk-card {
+  display: grid;
+  gap: var(--space-3);
+  padding: 1.25rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+}
+.sk-detail {
+  display: grid;
+  gap: var(--space-4) var(--space-5);
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 12rem), 1fr));
+  > div {
+    display: grid;
+    gap: var(--space-2);
+  }
+}
+.sk-big {
+  height: 2rem;
+  width: 50%;
+}
+.sk-w60 {
+  width: 60%;
+}
+.sk-w40 {
+  width: 40%;
 }
 @keyframes spin {
   to {

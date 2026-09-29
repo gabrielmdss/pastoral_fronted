@@ -1,235 +1,164 @@
-<section class="distribuicao-detail-page">
-  @if (remarcacaoFeedback()) {
-    <p class="ui-message ui-message--success" role="status">{{ remarcacaoFeedback() }}</p>
-  }
+<section class="distribuicao-detail-page ui-stack">
   @if (remarcacaoError()) {
     <p class="ui-message ui-message--error" role="alert">{{ remarcacaoError() }}</p>
   }
-  <a class="distribuicao-detail-page__back back-link" routerLink="/distribuicoes">
-    ← Voltar para distribuições
-  </a>
 
   @if (loading()) {
-    <app-loading-state label="Carregando distribuição…" />
+    <a class="back-link" routerLink="/distribuicoes"><app-icon name="arrow-left" /> Distribuições</a>
+    <app-loading-state variant="detail" label="Carregando distribuição…" />
   } @else if (error(); as msg) {
+    <a class="back-link" routerLink="/distribuicoes"><app-icon name="arrow-left" /> Distribuições</a>
     <app-error-state [message]="msg" (retry)="carregar()" />
   } @else if (distribuicao(); as distribuicao) {
-    <header class="distribuicao-detail-header ui-header">
-      <div>
-        <div class="distribuicao-detail-header__eyebrow eyebrow">
-          Competência {{ competenciaLabel(distribuicao) }}
-        </div>
-
-        <h1 class="distribuicao-detail-header__title">
-          {{ distribuicao.grupo.nome }}
-        </h1>
-
-        <div class="distribuicao-detail-header__meta">
-          <span>
-            Data prevista:
-            <strong>{{ dataLabel(distribuicao.dataPrevista) }}</strong>
-          </span>
-
-          @if (distribuicao.dataReal) {
-            <span>
-              Data realizada:
-              <strong>{{ dataLabel(distribuicao.dataReal) }}</strong>
-            </span>
-          }
-        </div>
+    <app-page-header
+      eyebrow="Distribuição"
+      [title]="distribuicao.grupo.nome + ' — ' + (distribuicao.dataPrevista | dataBr)"
+      [description]="'Competência ' + (distribuicao.competencia | competencia)"
+      backLink="/distribuicoes"
+      backLabel="Distribuições"
+    >
+      <div meta class="ui-actions distribuicao-detail-meta">
+        <app-status-badge [status]="distribuicao.status" />
+        <span class="ui-chip"><app-icon name="calendar" /> Prevista: {{ distribuicao.dataPrevista | dataBr: 'longa' }}</span>
+        @if (distribuicao.dataReal) {
+          <span class="ui-chip"><app-icon name="check" /> Realizada: {{ distribuicao.dataReal | dataBr }}</span>
+        }
       </div>
-
-      <div class="distribuicao-detail-header__actions">
-        @if (
-          podeAbrir && (distribuicao.status === 'PLANEJADA' || distribuicao.status === 'PREPARADA')
-        ) {
-          <button type="button" class="btn btn-primary" (click)="abrir()" [disabled]="abrindo()">
-            @if (abrindo()) {
-              Abrindo...
-            } @else {
-              Abrir distribuição
-            }
+      <div actions class="ui-actions distribuicao-detail-actions">
+        @if (podeAbrir && (distribuicao.status === 'PLANEJADA' || distribuicao.status === 'PREPARADA')) {
+          <button type="button" (click)="abrir()" [disabled]="abrindo()" [class.is-loading]="abrindo()">
+            <app-icon name="package-open" /> {{ abrindo() ? 'Abrindo…' : 'Abrir distribuição' }}
           </button>
         }
-
         @if (distribuicao.status === 'ABERTA') {
-          @if (podeAtender) {
-            <a
-              class="btn btn-primary"
-              [routerLink]="['/distribuicoes', distribuicao.id, 'atendimento']"
-            >
-              Iniciar atendimento
-            </a>
-          }
-
           @if (podeEncerrar) {
-            <button
-              type="button"
-              class="btn btn-danger"
-              (click)="encerrar()"
-              [disabled]="encerrando()"
-            >
-              @if (encerrando()) {
-                Encerrando...
-              } @else {
-                Encerrar distribuição
-              }
+            <button type="button" class="secondary" (click)="encerrar()" [disabled]="encerrando()" [class.is-loading]="encerrando()">
+              {{ encerrando() ? 'Encerrando…' : 'Encerrar distribuição' }}
             </button>
           }
+          @if (podeAtender) {
+            <a class="btn btn--primary" [routerLink]="['/distribuicoes', distribuicao.id, 'atendimento']">
+              Iniciar atendimento <app-icon name="arrow-right" />
+            </a>
+          }
         }
-
         @if (distribuicao.status === 'ENCERRADA' && podeAtender) {
-          <a
-            class="btn btn-secondary"
-            [routerLink]="['/distribuicoes', distribuicao.id, 'atendimento']"
-          >
-            Consultar histórico do atendimento
+          <a class="btn btn--secondary" [routerLink]="['/distribuicoes', distribuicao.id, 'atendimento']">
+            <app-icon name="scroll-text" /> Consultar histórico do atendimento
           </a>
         }
       </div>
-    </header>
+    </app-page-header>
 
-    <div class="distribuicao-detail-status">
-      <span class="ui-badge" [attr.data-status]="distribuicao.status">
-        {{ statusLabel(distribuicao.status) }}
-      </span>
-      @if (distribuicao.status === 'ENCERRADA') {
-        <span class="distribuicao-detail-status__message">Distribuição encerrada</span>
-      }
-    </div>
-
-    <div class="distribuicao-detail-kpis">
-      <app-metric-card label="Previstos" [delayMs]="0">{{ distribuicao.previstos }}</app-metric-card>
-      <app-metric-card label="Check-ins" [delayMs]="30">{{ distribuicao.checkIns }}</app-metric-card>
-      <app-metric-card label="Retiradas" [delayMs]="60">{{ distribuicao.retiradas }}</app-metric-card>
+    <div class="ui-grid ui-grid--kpi">
+      <app-metric-card label="Previstos" icon="users" tone="info" hint="famílias convocadas" [delayMs]="0">
+        {{ distribuicao.previstos | number }}
+      </app-metric-card>
+      <app-metric-card label="Check-ins" icon="clipboard-check" tone="info" hint="chegadas registradas" [delayMs]="30">
+        {{ distribuicao.checkIns | number }}
+      </app-metric-card>
+      <app-metric-card label="Retiradas" icon="package-open" tone="success" hint="cestas entregues" [delayMs]="60">
+        {{ distribuicao.retiradas | number }}
+      </app-metric-card>
       <app-metric-card
         label="Ausências"
-        [variant]="distribuicao.ausentes > 0 ? 'attention' : 'default'"
+        icon="user"
+        [tone]="distribuicao.ausentes > 0 ? 'warning' : 'neutral'"
+        hint="famílias que não compareceram"
         [delayMs]="90"
-      >{{ distribuicao.ausentes }}</app-metric-card>
+      >{{ distribuicao.ausentes | number }}</app-metric-card>
     </div>
 
-    <div class="distribuicao-detail-columns">
-      <section class="distribuicao-detail-section distribuicao-detail-section--andamento ui-panel">
-        <div class="distribuicao-detail-section__header ui-section-header">
-          <div>
-            <h2>Andamento</h2>
-            <p>Retiradas concluídas em relação aos previstos.</p>
-          </div>
+    <div class="ui-grid ui-grid--sidebar">
+      <app-section-card title="Andamento" description="Retiradas concluídas em relação aos previstos.">
+        <div class="ui-stack">
+          <app-meter
+            label="Retiradas concluídas"
+            [showLabel]="true"
+            [value]="distribuicao.retiradas"
+            [max]="distribuicao.previstos"
+            [valueText]="(distribuicao.retiradas | number) + ' de ' + (distribuicao.previstos | number)"
+          />
+
+          <dl class="ui-dl ui-dl--3">
+            <div><dt>Regulares presentes</dt><dd>{{ distribuicao.regularesPresentes | number }}</dd></div>
+            <div><dt>Pendentes presentes</dt><dd>{{ distribuicao.pendentesPresentes | number }}</dd></div>
+            <div><dt>Cestas liberadas</dt><dd>{{ distribuicao.cestasLiberadas | number }}</dd></div>
+            <div><dt>Cestas consumidas</dt><dd>{{ distribuicao.cestasConsumidas | number }}</dd></div>
+            <div><dt>Cestas disponíveis</dt><dd>{{ distribuicao.cestasDisponiveis | number }}</dd></div>
+            <div><dt>Cestas retornadas</dt><dd>{{ distribuicao.cestasRetornadas | number }}</dd></div>
+            @if (distribuicao.status === 'ENCERRADA') {
+              <div><dt>Não atendidos por estoque</dt><dd>{{ distribuicao.naoAtendidosEstoque | number }}</dd></div>
+              <div><dt>Não atendidos por irregularidade</dt><dd>{{ distribuicao.naoAtendidosIrregularidade | number }}</dd></div>
+            }
+          </dl>
         </div>
+      </app-section-card>
 
-        <div class="distribuicao-detail-progress">
-          <div class="distribuicao-detail-progress__labels">
-            <span>Retiradas concluídas</span>
-            <span class="muted">{{ distribuicao.retiradas }} de {{ distribuicao.previstos }}</span>
-          </div>
-          <div class="level-bar">
-            <span
-              class="level-bar-fill"
-              [style.width.%]="distribuicao.previstos ? (distribuicao.retiradas / distribuicao.previstos) * 100 : 0"
-            ></span>
-          </div>
-        </div>
-
-        <div class="distribuicao-detail-metrics ui-metrics">
-          <article class="distribuicao-detail-metric ui-metric">
-            <span class="distribuicao-detail-metric__label"> Regulares presentes </span>
-            <strong class="distribuicao-detail-metric__value">{{ distribuicao.regularesPresentes }}</strong>
-          </article>
-
-          <article class="distribuicao-detail-metric ui-metric">
-            <span class="distribuicao-detail-metric__label"> Pendentes presentes </span>
-            <strong class="distribuicao-detail-metric__value">{{ distribuicao.pendentesPresentes }}</strong>
-          </article>
-
-          <article class="distribuicao-detail-metric ui-metric">
-            <span class="distribuicao-detail-metric__label"> Cestas liberadas </span>
-            <strong class="distribuicao-detail-metric__value">{{ distribuicao.cestasLiberadas }}</strong>
-          </article>
-
-          <article class="distribuicao-detail-metric ui-metric">
-            <span class="distribuicao-detail-metric__label"> Cestas consumidas </span>
-            <strong class="distribuicao-detail-metric__value">{{ distribuicao.cestasConsumidas }}</strong>
-          </article>
-
-          <article class="distribuicao-detail-metric ui-metric">
-            <span class="distribuicao-detail-metric__label"> Cestas disponíveis </span>
-            <strong class="distribuicao-detail-metric__value">{{ distribuicao.cestasDisponiveis }}</strong>
-          </article>
-
-          <article class="distribuicao-detail-metric ui-metric">
-            <span class="distribuicao-detail-metric__label"> Cestas retornadas </span>
-            <strong class="distribuicao-detail-metric__value">{{ distribuicao.cestasRetornadas }}</strong>
-          </article>
-        </div>
-
-        @if (distribuicao.status === 'ENCERRADA') {
-          <div class="distribuicao-detail-metrics ui-metrics distribuicao-detail-metrics--resultado">
-            <article class="distribuicao-detail-metric ui-metric">
-              <span class="distribuicao-detail-metric__label"> Não atendidos por estoque </span>
-              <strong class="distribuicao-detail-metric__value">{{ distribuicao.naoAtendidosEstoque }}</strong>
-            </article>
-
-            <article class="distribuicao-detail-metric ui-metric">
-              <span class="distribuicao-detail-metric__label">
-                Não atendidos por irregularidade
-              </span>
-              <strong class="distribuicao-detail-metric__value">{{ distribuicao.naoAtendidosIrregularidade }}</strong>
-            </article>
-          </div>
-        }
-      </section>
-
-      <section class="distribuicao-detail-section distribuicao-detail-section--atalhos ui-panel">
-        <div class="distribuicao-detail-section__header ui-section-header">
-          <div>
-            <h2>Atalhos</h2>
-            <p>Ações rápidas para esta distribuição.</p>
-          </div>
-        </div>
-
-        <div class="distribuicao-detail-atalhos">
+      <app-section-card title="Atalhos" description="Ações rápidas para esta distribuição.">
+        <div class="ui-stack ui-stack--sm">
           @if (distribuicao.status === 'ABERTA' && podeAtender) {
-            <a class="btn btn-secondary" [routerLink]="['/distribuicoes', distribuicao.id, 'atendimento']">
-              Fila de atendimento
+            <a class="btn btn--secondary btn--block" [routerLink]="['/distribuicoes', distribuicao.id, 'atendimento']">
+              <app-icon name="clipboard-check" /> Fila de atendimento
             </a>
           }
           @if (podeConsultarLiberacoes) {
-            <a class="btn btn-secondary" [routerLink]="['/distribuicoes', distribuicao.id, 'liberacoes']">
-              Liberações de cestas
+            <a class="btn btn--secondary btn--block" [routerLink]="['/distribuicoes', distribuicao.id, 'liberacoes']">
+              <app-icon name="package" /> Liberações de cestas
             </a>
           }
           @if (podeCestasAdicionais) {
-            <a class="btn btn-secondary" [routerLink]="['/distribuicoes', distribuicao.id]" fragment="cestas-adicionais">
-              Cestas adicionais
+            <a class="btn btn--secondary btn--block" [routerLink]="['/distribuicoes', distribuicao.id]" fragment="cestas-adicionais">
+              <app-icon name="package-plus" /> Cestas adicionais
             </a>
           }
         </div>
 
-        @if (
-          podeRemarcar && (distribuicao.status === 'PLANEJADA' || distribuicao.status === 'PREPARADA')
-        ) {
-          <form class="form-grid distribuicao-detail-remarcar" [formGroup]="remarcacao" (ngSubmit)="remarcar()">
+        @if (podeRemarcar && (distribuicao.status === 'PLANEJADA' || distribuicao.status === 'PREPARADA')) {
+          <form class="ui-stack ui-stack--sm distribuicao-detail-remarcar" [formGroup]="remarcacao" (ngSubmit)="remarcar()">
             <h3>Remarcar distribuição</h3>
-            <label>Nova data <input type="date" formControlName="novaData" required /></label>
-            <label
-              >Motivo
+            <label class="ui-field">
+              <span class="ui-field__label">Nova data</span>
+              <input type="date" formControlName="novaData" required />
+            </label>
+            <label class="ui-field">
+              <span class="ui-field__label">Motivo</span>
               <textarea formControlName="motivo" minlength="3" maxlength="1000" required></textarea>
             </label>
-            <button
-              type="submit"
-              class="btn btn-secondary"
-              [disabled]="remarcando() || remarcacao.invalid"
-            >
-              {{ remarcando() ? 'Remarcando...' : 'Remarcar distribuição' }}
+            <button type="submit" class="secondary" [disabled]="remarcando() || remarcacao.invalid" [class.is-loading]="remarcando()">
+              <app-icon name="calendar" /> {{ remarcando() ? 'Remarcando…' : 'Remarcar distribuição' }}
             </button>
           </form>
         }
-      </section>
+      </app-section-card>
     </div>
+
+    <app-section-card title="Histórico" description="Eventos da distribuição, do mais recente ao mais antigo.">
+      <button actions type="button" class="secondary btn--sm" (click)="carregarHistorico()" [disabled]="historicoLoading()">
+        <app-icon name="refresh" /> Atualizar
+      </button>
+      @if (historicoLoading()) {
+        <app-loading-state label="Carregando histórico…" />
+      } @else if (historicoError(); as msg) {
+        <app-error-state [message]="msg" (retry)="carregarHistorico()" />
+      } @else {
+        <app-historico-timeline [eventos]="historico()" rotulo="Histórico da distribuição" [linkDistribuicao]="false" />
+      }
+    </app-section-card>
 
     @if (podeCestasAdicionais) {
       <app-cestas-adicionais [distribuicao]="distribuicao" (distribuicaoAtualizada)="this.distribuicao.set($event)" />
     }
   }
 </section>
+
+@if (confirmacao.atual(); as c) {
+  <app-confirm-dialog
+    [title]="c.title"
+    [message]="c.message ?? ''"
+    [confirmLabel]="c.confirmLabel ?? 'Confirmar'"
+    [danger]="!!c.danger"
+    (confirm)="confirmacao.responder(true)"
+    (dismiss)="confirmacao.responder(false)"
+  />
+}

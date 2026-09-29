@@ -48,25 +48,12 @@
 .balanco-row td {
   vertical-align: middle;
 }
-.balanco-bar {
-  width: 100%;
+.balanco-meter {
   min-width: 6rem;
-  height: 0.5rem;
-  border-radius: var(--radius-pill);
-  background: var(--color-surface-muted);
-  overflow: hidden;
   margin-bottom: 0.375rem;
+}
+.balanco-meter .ui-meter {
   transition: box-shadow 0.15s ease;
-}
-.balanco-bar__fill {
-  display: block;
-  height: 100%;
-  border-radius: inherit;
-  background: var(--color-success);
-  transition: width 0.8s ease-out, background-color 0.2s ease;
-}
-.balanco-bar.is-alerta .balanco-bar__fill {
-  background: var(--color-warning);
 }
 .balanco-row__detalhe {
   display: block;
@@ -74,7 +61,7 @@
   color: var(--color-text-muted);
   transition: color 0.15s ease, font-weight 0.15s ease;
 }
-.balanco-row:hover .balanco-bar {
+.balanco-row:hover .balanco-meter .ui-meter {
   box-shadow: 0 0 0 3px var(--color-primary-soft);
 }
 .balanco-row:hover .balanco-row__detalhe {
@@ -85,8 +72,7 @@
 @media (prefers-reduced-motion: reduce) {
   .plano-panel,
   .termometro__arco,
-  .balanco-bar__fill,
-  .balanco-bar,
+  .balanco-meter .ui-meter,
   .balanco-row__detalhe {
     transition: none;
   }

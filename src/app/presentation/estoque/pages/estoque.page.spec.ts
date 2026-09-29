@@ -6,6 +6,7 @@ import { ESTOQUE_API } from '../../../application/estoque/estoque-api.port';
 import * as U from '../../../application/estoque/estoque.use-cases';
 import { SessionFacade } from '../../../infrastructure/auth/session.facade';
 import EstoquePage from './estoque.page';
+import { responderConfirmacao } from '../../../shared/ui/confirm-dialog.testing';
 async function setup(allowed = true) {
   const result = new Subject<{ id: string }>();
   const api = {
@@ -37,12 +38,12 @@ describe('Estoque operacional', () => {
     TestBed.resetTestingModule();
   });
   it.each(['entrada', 'perda'] as const)('registra %s e atualiza sem duplicar', async (mode) => {
-    vi.spyOn(window, 'confirm').mockReturnValue(true);
-    const { page, api, result } = await setup();
+    const { page, api, result, fixture } = await setup();
     page.abrir(mode);
     page.entrada.controls.itens.at(0).patchValue({ apresentacaoInsumoId: '8', quantidade: 2 });
     page.perda.patchValue({ apresentacaoInsumoId: '8', motivoId: '3', quantidade: 1 });
     const saving = page.salvar();
+    if (mode === 'perda') await responderConfirmacao(fixture);
     await page.salvar();
     expect(api[mode]).toHaveBeenCalledOnce();
     expect(page.saving()).toBe(true);

@@ -17,6 +17,7 @@ import { SessionFacade } from '../../../infrastructure/auth/session.facade';
 import { appRoutes } from '../../../main/app.routes';
 import Layout from '../../layout/authenticated-layout.component';
 import Page from './inventarios.page';
+import { responderConfirmacao } from '../../../shared/ui/confirm-dialog.testing';
 const inv: Inventario = {
   id: '1',
   status: 'ABERTO',
@@ -112,9 +113,9 @@ describe('Inventários: fluxo frontend', () => {
     expect(api.obter).toHaveBeenCalledTimes(4);
   });
   it('abre uma vez sem saldo capturado no frontend e navega ao detalhe', async () => {
-    const { page, api, created, navigate } = await setup(null);
-    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    const { page, api, created, navigate, fixture } = await setup(null);
     const pending = page.criar();
+    await responderConfirmacao(fixture);
     await page.criar();
     expect(api.criar).toHaveBeenCalledOnce();
     created.next({ id: '8' });
@@ -124,9 +125,10 @@ describe('Inventários: fluxo frontend', () => {
     expect(page.saving()).toBe(false);
   });
   it('cancelar abertura não cria', async () => {
-    const { page, api } = await setup(null);
-    vi.spyOn(window, 'confirm').mockReturnValue(false);
-    await page.criar();
+    const { page, api, fixture } = await setup(null);
+    const acao = page.criar();
+    await responderConfirmacao(fixture, false);
+    await acao;
     expect(api.criar).not.toHaveBeenCalled();
   });
   it('contagem zero válida, bloqueio duplo e refresh preservando outro rascunho', async () => {
@@ -162,11 +164,11 @@ describe('Inventários: fluxo frontend', () => {
   });
   it('conclusão confirma resumo e não exige marcação de todos contados', async () => {
     const { page, api, response, stock, fixture } = await setup();
-    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(true);
     const pending = page.concluir();
+    const confirm = await responderConfirmacao(fixture);
     await page.concluir();
     expect(api.concluir).toHaveBeenCalledExactlyOnceWith('1');
-    expect(confirm.mock.calls[0]?.[0]).toContain('2 itens retornados; 1 com divergência');
+    expect(confirm).toContain('2 itens retornados; 1 com divergência');
     expect(page.inventario()?.status).toBe('ABERTO');
     api.obter.mockReturnValue(
       of({ ...inv, status: 'CONCLUIDO', concluidoEm: '2026-09-07T13:00:00Z' }),
@@ -180,19 +182,20 @@ describe('Inventários: fluxo frontend', () => {
     expect(fixture.nativeElement.textContent).not.toContain('Salvar contagem');
   });
   it('confirmação alerta sobre rascunhos locais e cancelamento não conclui', async () => {
-    const { page, api } = await setup();
+    const { page, api, fixture } = await setup();
     page.controles()['3']!.markAsDirty();
-    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false);
-    await page.concluir();
-    expect(confirm.mock.calls[0]?.[0]).toContain('não salva');
+    const acao = page.concluir();
+    const confirm = await responderConfirmacao(fixture, false);
+    await acao;
+    expect(confirm).toContain('não salva');
     expect(api.concluir).not.toHaveBeenCalled();
   });
   it('stale reconsulta e preserva valores sem sincronizar ou criar automaticamente', async () => {
-    const { page, api, response, stock } = await setup();
+    const { page, api, response, stock, fixture } = await setup();
     page.controles()['3']!.setValue(8);
     page.controles()['3']!.markAsDirty();
-    vi.spyOn(window, 'confirm').mockReturnValue(true);
     const pending = page.concluir();
+    await responderConfirmacao(fixture);
     response.error(
       new HttpErrorResponse({
         status: 409,

@@ -49,46 +49,6 @@
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
 }
-.person {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  min-width: 0;
-}
-.avatar {
-  display: grid;
-  place-items: center;
-  flex: 0 0 auto;
-  width: 2.3rem;
-  height: 2.3rem;
-  min-height: 0;
-  padding: 0;
-  border: none;
-  border-radius: 50%;
-  background: var(--color-primary-soft);
-  color: var(--color-primary-dark);
-  font-weight: 700;
-  cursor: default;
-}
-button.avatar:disabled {
-  background: var(--color-primary-soft);
-  color: var(--color-primary-dark);
-  cursor: default;
-}
-.avatar-clickable {
-  cursor: zoom-in;
-}
-.avatar.large {
-  width: 4rem;
-  height: 4rem;
-  font-size: 1.4rem;
-  overflow: hidden;
-}
-.avatar-photo {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
 .photo-upload-label {
   position: relative;
   cursor: pointer;
@@ -225,7 +185,7 @@ button.avatar:disabled {
   font-size: 1rem;
   margin: 0;
 }
-.candidate-list .person {
+.candidate-list .ui-person {
   gap: var(--space-2);
 }
 .priority-flag {
@@ -344,4 +304,128 @@ button.avatar:disabled {
   .candidate-list article {
     padding: var(--space-4);
   }
+}
+
+// Atendimento (global to keep the page component under its style budget).
+// Row cards shared by search results, retiradas and ausências.
+.atendimento-search-result,
+.atendimento-retirada,
+.atendimento-ausencia {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+.atendimento-search-result {
+  width: 100%;
+  text-align: left;
+}
+.atendimento-search-result:disabled {
+  background: var(--color-disabled-surface);
+  opacity: 0.7;
+}
+.atendimento-search-result:hover:not(:disabled) {
+  border-color: var(--color-primary);
+  background: var(--color-primary-soft);
+  color: var(--color-text);
+}
+.atendimento-search-result > div,
+.atendimento-retirada > div,
+.atendimento-ausencia > div {
+  display: grid;
+  gap: 0.25rem;
+  min-width: 0;
+}
+.atendimento-search-result span,
+.atendimento-retirada span,
+.atendimento-ausencia span {
+  font-size: 0.8125rem;
+}
+.atendimento-search-result__action {
+  color: var(--color-primary);
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+.atendimento-fila__header h2,
+.atendimento-section-header h2 {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+// Drop zone for "Entregar cesta" drag-and-drop.
+.atendimento-dropzone {
+  display: grid;
+  place-content: center;
+  gap: var(--space-2);
+  justify-items: center;
+  min-height: 10rem;
+  padding: var(--space-5);
+  border: 3px dashed var(--color-primary-soft);
+  border-radius: var(--radius-lg);
+  background: var(--color-primary-soft);
+  color: var(--color-primary-dark);
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.atendimento-dropzone__icon {
+  width: 3rem;
+  height: 3rem;
+}
+.atendimento-dropzone__label {
+  font-size: 0.8125rem;
+  font-weight: 650;
+}
+.atendimento-fila--entrega.is-dragover .atendimento-dropzone {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 6px var(--color-primary-soft), 0 0 24px 4px color-mix(in srgb, var(--color-primary) 45%, transparent);
+  animation: atendimento-entrega-pulse 1s ease-in-out infinite;
+}
+@keyframes atendimento-entrega-pulse {
+  0%,
+  100% {
+    border-color: var(--color-primary);
+  }
+  50% {
+    border-color: var(--color-primary-dark);
+  }
+}
+.atendimento-fila--entrega.is-rejected .atendimento-dropzone {
+  border-color: var(--color-danger);
+  animation: atendimento-entrega-shake 0.4s ease;
+}
+@keyframes atendimento-entrega-shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-6px);
+  }
+  75% {
+    transform: translateX(6px);
+  }
+}
+.atendimento-dropzone__rejeicao {
+  margin-top: var(--space-3);
+}
+@media (prefers-reduced-motion: reduce) {
+  .atendimento-dropzone {
+    transition: none;
+  }
+  .atendimento-fila--entrega.is-dragover .atendimento-dropzone,
+  .atendimento-fila--entrega.is-rejected .atendimento-dropzone {
+    animation: none;
+  }
+}
+.atendimento-excecao {
+  margin-top: var(--space-3);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--color-border);
 }

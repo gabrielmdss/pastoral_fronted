@@ -15,6 +15,7 @@ import {
 } from '../../../application/liberacoes/liberacoes.use-cases';
 import { LIBERACOES_API } from '../../../application/liberacoes/liberacoes-api.port';
 import { ObterDistribuicaoUseCase } from '../../../application/distribuicoes/obter-distribuicao.use-case';
+import { ObterHistoricoDistribuicaoUseCase } from '../../../application/atendimento/use-cases/obter-historico.use-cases';
 import { AbrirDistribuicaoUseCase } from '../../../application/distribuicoes/abrir-distribuicao.use-case';
 import { EncerrarDistribuicaoUseCase } from '../../../application/distribuicoes/encerrar-distribuicao.use-case';
 import { RemarcarDistribuicaoUseCase } from '../../../application/distribuicoes/remarcar-distribuicao.use-case';
@@ -27,6 +28,7 @@ import { SessionFacade } from '../../../infrastructure/auth/session.facade';
 import { appRoutes } from '../../../main/app.routes';
 import DetailPage from '../../distribuicoes/pages/distribuicao-detail.page';
 import Page from './liberacoes.page';
+import { responderConfirmacao } from '../../../shared/ui/confirm-dialog.testing';
 const d: Distribuicao = {
   id: '3',
   status: 'PLANEJADA',
@@ -100,6 +102,7 @@ async function setup(
         },
       },
       { provide: ObterDistribuicaoUseCase, useValue: obter },
+      { provide: ObterHistoricoDistribuicaoUseCase, useValue: { execute: () => of({ distribuicao: { id: '3', data: '', grupo: '' }, eventos: [] }) } },
       { provide: ListarLotesUseCase, useValue: lotes },
       {
         provide: ListarPlanejamentosUseCase,
@@ -172,20 +175,21 @@ describe('Liberações: fluxo frontend', () => {
     expect(api.liberar).not.toHaveBeenCalled();
   });
   it('confirma quantidade, modelo/lote e destino; cancelamento não envia', async () => {
-    const { page, api } = await setup();
+    const { page, api, fixture } = await setup();
     page.form.patchValue({ loteMontagemId: '2', quantidade: 3 });
-    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false);
-    await page.liberar();
-    expect(confirm.mock.calls[0]?.[0]).toContain('3 cestas');
-    expect(confirm.mock.calls[0]?.[0]).toContain('Lote 2 · Regular');
-    expect(confirm.mock.calls[0]?.[0]).toContain('Grupo A · 9/2026 · 12/09/2026');
+    const acao = page.liberar();
+    const confirm = await responderConfirmacao(fixture, false);
+    await acao;
+    expect(confirm).toContain('3 cestas');
+    expect(confirm).toContain('Lote 2 · Regular');
+    expect(confirm).toContain('Grupo A · 09/2026 · 12/09/2026');
     expect(api.liberar).not.toHaveBeenCalled();
   });
   it('bloqueia duplicidade, espera HTTP e recarrega os totais reais em todas as consultas', async () => {
     const { page, api, obter, lotes, response, fixture } = await setup();
     page.form.patchValue({ loteMontagemId: '2', quantidade: 3 });
-    vi.spyOn(window, 'confirm').mockReturnValue(true);
     const pending = page.liberar();
+    await responderConfirmacao(fixture);
     await page.liberar();
     expect(api.liberar).toHaveBeenCalledExactlyOnceWith('3', {
       loteMontagemId: '2',
@@ -214,9 +218,8 @@ describe('Liberações: fluxo frontend', () => {
     expect(detail.componentInstance.distribuicao()?.cestasDisponiveis).toBe(3);
   });
   it('liberações sucessivas preservam registros e acumulado retornado, sem somar localmente', async () => {
-    const { page, api, obter } = await setup();
+    const { page, api, obter, fixture } = await setup();
     api.liberar.mockReturnValue(of({ id: '10' }));
-    vi.spyOn(window, 'confirm').mockReturnValue(true);
     api.listar.mockReturnValue(
       of([release, { ...release, id: '10', quantidadeLiberada: 2, quantidadeDisponivel: 2 }]),
     );
@@ -225,7 +228,9 @@ describe('Liberações: fluxo frontend', () => {
     );
     for (let i = 0; i < 2; i++) {
       page.form.patchValue({ loteMontagemId: '2', quantidade: 2 });
-      await page.liberar();
+      const acao = page.liberar();
+      await responderConfirmacao(fixture);
+      await acao;
     }
     expect(api.liberar).toHaveBeenCalledTimes(2);
     expect(page.liberacoes()).toHaveLength(2);
@@ -234,8 +239,8 @@ describe('Liberações: fluxo frontend', () => {
   it('409 atualiza lote e distribuição encerrada sem sucesso presumido', async () => {
     const { page, api, obter, lotes, response, fixture } = await setup();
     page.form.patchValue({ loteMontagemId: '2', quantidade: 3 });
-    vi.spyOn(window, 'confirm').mockReturnValue(true);
     const pending = page.liberar();
+    await responderConfirmacao(fixture);
     obter.execute.mockReturnValue(of({ ...d, status: 'ENCERRADA', cestasRetornadas: 3 }));
     lotes.execute.mockReturnValue(of([{ ...lote, status: 'ESGOTADO', quantidadeDisponivel: 0 }]));
     response.error(
@@ -277,8 +282,9 @@ describe('Liberações: fluxo frontend', () => {
       );
     const fixture = TestBed.createComponent(DetailPage);
     fixture.detectChanges();
+    // O link acompanha os dois guards da rota.
     expect(!!fixture.nativeElement.querySelector('a[href="/distribuicoes/3/liberacoes"]')).toBe(
-      permissions.includes('ESTOQUE_VISUALIZAR'),
+      permissions.length === 2,
     );
   });
 });

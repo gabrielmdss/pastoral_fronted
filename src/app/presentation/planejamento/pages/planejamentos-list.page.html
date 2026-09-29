@@ -1,47 +1,63 @@
-<header class="ui-header">
-  <div>
-    <p class="eyebrow">Preparação</p>
-    <h1>Planejamento</h1>
-    <p>Antes de montar, simule a necessidade de insumos e aprove o planejamento.</p>
+<app-page-header
+  eyebrow="Preparação"
+  title="Planejamento"
+  description="Antes de montar, simule a necessidade de insumos e aprove o planejamento."
+>
+  <div actions class="ui-actions">
+    <button class="btn--ghost" (click)="carregar()" [disabled]="loading()">
+      <app-icon name="refresh" /> Atualizar
+    </button>
+    <a class="btn btn--primary" routerLink="/planejamentos/novo">
+      <app-icon name="plus" />
+      {{ session.hasPermission('CESTA_PLANEJAMENTO_APROVAR') ? 'Novo planejamento' : 'Simular produção' }}
+    </a>
   </div>
-  <div class="actions">
-    <a class="btn" routerLink="/planejamentos/novo">{{
-      session.hasPermission('CESTA_PLANEJAMENTO_APROVAR') ? 'Novo planejamento' : 'Simular produção'
-    }}</a
-    ><button class="secondary" (click)="carregar()" [disabled]="loading()">Atualizar</button>
-  </div>
-</header>
+</app-page-header>
+
+<ol class="ui-steps" aria-label="Etapas da preparação">
+  <li class="ui-steps__item is-current" aria-current="step"><span class="ui-tone ui-tone--primary"><app-icon name="calendar-range" /></span> 1. Planejamento</li>
+  <li class="ui-steps__item"><span class="ui-tone ui-tone--neutral"><app-icon name="boxes" /></span> 2. Montagem</li>
+  <li class="ui-steps__item"><span class="ui-tone ui-tone--neutral"><app-icon name="send" /></span> 3. Liberação</li>
+</ol>
+
 @if (loading()) {
-  <app-loading-state label="Consultando planejamentos…" />
+  <app-loading-state variant="table" [rows]="5" [columns]="4" label="Consultando planejamentos…" />
 } @else if (error()) {
-  <app-error-state [message]="error()" (retry)="carregar()" />
+  <app-error-state [message]="error()" (retry)="carregar()" title="Não foi possível carregar os planejamentos" />
 } @else if (!items().length) {
-  <app-empty-state title="Nenhum planejamento" message="Nenhum planejamento encontrado." />
+  <app-empty-state title="Nenhum planejamento" message="Nenhum planejamento encontrado." icon="calendar-range" />
 } @else {
-  <div class="table-scroll" tabindex="0" role="region" aria-label="Planejamentos">
-    <table>
-      <thead>
-        <tr>
-          <th scope="col">Competência</th>
-          <th scope="col">Modelo</th>
-          <th scope="col">Criado em</th>
-          <th scope="col">Consulta</th>
-        </tr>
-      </thead>
-      <tbody>
-        @for (p of items(); track p.id) {
+  <app-section-card [flush]="true" title="Planejamentos" [description]="(items().length | number) + ' registrados'">
+    <div class="ui-table-wrap" tabindex="0" role="region" aria-label="Planejamentos">
+      <table class="ui-table ui-table--cards">
+        <thead>
           <tr>
-            <td>{{ p.mes }}/{{ p.ano }}</td>
-            <td>{{ p.modelo }}</td>
-            <td>{{ p.criadoEm | date: 'dd/MM/yyyy HH:mm' }}</td>
-            <td>
-              <a class="button-link" [routerLink]="['/planejamentos', p.id]"
-                >Consultar planejamento</a
-              >
-            </td>
+            <th scope="col">Planejamento</th>
+            <th scope="col">Competência</th>
+            <th scope="col">Modelo</th>
+            <th scope="col">Criado em</th>
+            <th scope="col" class="ui-table__actions"><span class="sr-only">Consulta</span></th>
           </tr>
-        }
-      </tbody>
-    </table>
-  </div>
+        </thead>
+        <tbody>
+          @for (p of items(); track p.id) {
+            <tr>
+              <td data-label="Planejamento"><strong class="mono">#{{ p.id }}</strong></td>
+              <td data-label="Competência">{{ { mes: p.mes, ano: p.ano } | competencia }}</td>
+              <td data-label="Modelo">{{ p.modelo }}</td>
+              <td data-label="Criado em">
+                {{ p.criadoEm | dataBr: 'dataHora' }}
+                <span class="text-xs text-muted">· {{ p.criadoEm | dataBr: 'relativa' }}</span>
+              </td>
+              <td class="ui-table__actions">
+                <a class="btn btn--ghost btn--sm" [routerLink]="['/planejamentos', p.id]">
+                  Consultar planejamento <app-icon name="chevron-right" />
+                </a>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </app-section-card>
 }

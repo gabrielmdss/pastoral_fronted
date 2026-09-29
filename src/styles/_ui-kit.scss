@@ -1,0 +1,957 @@
+// Blocos compartilhados (espelham ui-kit.tsx do protótipo). Documentação: docs/ui-guidelines.md.
+
+// ---------- Layout helpers ----------
+.ui-stack {
+  display: grid;
+  gap: var(--space-5);
+  align-content: start;
+}
+.ui-stack--sm {
+  gap: var(--space-3);
+}
+.ui-grid {
+  display: grid;
+  gap: var(--space-4);
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr));
+}
+.ui-grid--kpi {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 13rem), 1fr));
+}
+.ui-grid--2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.ui-grid--3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.ui-grid--sidebar {
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+}
+@media (max-width: 900px) {
+  .ui-grid--2,
+  .ui-grid--3,
+  .ui-grid--sidebar {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.ui-card--flush > .ui-card__body,
+.ui-card__body--flush {
+  padding: 0;
+}
+.ui-card__footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  padding: var(--space-3) 1.25rem;
+  border-top: 1px solid var(--color-border);
+  background: var(--color-surface-soft);
+  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+}
+.ui-card__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+// Tabela direto dentro do card: sem borda/sombra duplicadas.
+.ui-card :is(.table-scroll, .ui-table-wrap) {
+  border: 0;
+  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+  box-shadow: none;
+}
+.text-muted {
+  color: var(--color-text-muted);
+}
+.text-sm {
+  font-size: var(--font-size-md);
+}
+.text-xs {
+  font-size: var(--font-size-xs);
+}
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+.mono {
+  font-family: ui-monospace, 'SFMono-Regular', Consolas, monospace;
+  font-size: 0.8125rem;
+}
+
+// ---------- Botões: variantes e tamanhos ----------
+.btn--primary {
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+  border-color: transparent;
+}
+.btn--ghost {
+  background: transparent;
+  color: var(--color-text);
+  border-color: transparent;
+  &:hover:not(:disabled) {
+    background: var(--color-surface-muted);
+    color: var(--color-text);
+    box-shadow: none;
+  }
+}
+.btn--sm {
+  min-height: 2.25rem;
+  padding: 0.375rem 0.75rem;
+  font-size: 0.8125rem;
+  border-radius: var(--radius-sm);
+}
+.btn--lg {
+  min-height: 3rem;
+  padding: 0.75rem 1.375rem;
+  font-size: 0.9375rem;
+}
+.btn--block {
+  width: 100%;
+}
+.btn--icon {
+  width: 2.75rem;
+  padding: 0;
+  &.btn--sm {
+    width: 2.25rem;
+  }
+}
+// Estado carregando: <button class="is-loading" [disabled]="salvando">Salvar</button>
+.is-loading {
+  position: relative;
+  color: transparent !important;
+  pointer-events: none;
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    margin: auto;
+    width: 1rem;
+    height: 1rem;
+    border: 2px solid var(--color-text-muted);
+    border-right-color: transparent;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+  }
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.ui-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+.ui-actions--end {
+  justify-content: flex-end;
+}
+
+// ---------- Campos ----------
+.ui-field {
+  display: grid;
+  gap: 0.375rem;
+  min-width: 0;
+  > :is(input, select, textarea) {
+    width: 100%;
+  }
+}
+.ui-field__label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+.ui-field__hint {
+  color: var(--color-text-muted);
+  font-size: 0.75rem;
+  font-weight: 400;
+}
+.ui-field__error {
+  color: var(--color-danger);
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+.ui-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 2.25rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+.ui-input-icon {
+  position: relative;
+  display: flex;
+  align-items: center;
+  > app-icon {
+    position: absolute;
+    left: 0.75rem;
+    color: var(--color-text-muted);
+    pointer-events: none;
+  }
+  > input {
+    width: 100%;
+    padding-left: 2.25rem !important;
+  }
+}
+
+// ---------- Toolbar / filtros ----------
+.ui-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
+  > .ui-field {
+    flex: 1 1 12rem;
+  }
+}
+.ui-toolbar--plain {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+.ui-toolbar__grow {
+  flex: 2 1 16rem;
+}
+.ui-toolbar__end {
+  margin-left: auto;
+}
+.ui-card__header + .ui-toolbar,
+.ui-card > .ui-toolbar {
+  border: 0;
+  border-bottom: 1px solid var(--color-border);
+  border-radius: 0;
+  box-shadow: none;
+}
+.ui-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  min-height: 2rem;
+  padding: 0.25rem 0.75rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  &:hover:not(:disabled) {
+    background: var(--color-surface-muted);
+    color: var(--color-text);
+    box-shadow: none;
+  }
+  &[aria-pressed='true'],
+  &.is-active {
+    background: var(--color-primary-soft);
+    border-color: color-mix(in oklch, var(--color-primary) 35%, transparent);
+    color: var(--color-primary-dark);
+  }
+}
+
+// ---------- Tabs ----------
+.ui-tabs {
+  display: flex;
+  gap: 0.25rem;
+  overflow-x: auto;
+  border-bottom: 1px solid var(--color-border);
+  scrollbar-width: none;
+}
+.ui-tab {
+  position: relative;
+  min-height: 2.5rem;
+  padding: 0.5rem 0.875rem;
+  border: 0;
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+  background: transparent;
+  color: var(--color-text-muted);
+  font-weight: 600;
+  white-space: nowrap;
+  text-decoration: none;
+  &:hover:not(:disabled) {
+    background: var(--color-surface-muted);
+    color: var(--color-text);
+    box-shadow: none;
+  }
+  &:active:not(:disabled) {
+    transform: none;
+  }
+  &[aria-selected='true'],
+  &.is-active {
+    color: var(--color-primary-dark);
+    &::after {
+      content: '';
+      position: absolute;
+      left: 0.5rem;
+      right: 0.5rem;
+      bottom: -1px;
+      height: 2px;
+      border-radius: 2px;
+      background: var(--color-primary);
+    }
+  }
+}
+.ui-tabs--pill {
+  width: fit-content;
+  max-width: 100%;
+  padding: 0.25rem;
+  border: 0;
+  border-radius: var(--radius-md);
+  background: var(--color-surface-muted);
+  .ui-tab {
+    min-height: 2.25rem;
+    border-radius: var(--radius-sm);
+    &[aria-selected='true'],
+    &.is-active {
+      background: var(--color-surface);
+      box-shadow: var(--shadow-sm);
+      &::after {
+        display: none;
+      }
+    }
+  }
+}
+
+// ---------- Lista de definição (Field do protótipo) ----------
+.ui-dl {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 12rem), 1fr));
+  gap: var(--space-4) var(--space-5);
+  margin: 0;
+  > div {
+    min-width: 0;
+  }
+  dt {
+    color: var(--color-text-muted);
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+  }
+  dd {
+    margin: 0.25rem 0 0;
+    color: var(--color-text);
+    font-size: 0.875rem;
+    font-weight: 500;
+  }
+}
+.ui-dl--2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.ui-dl--3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.ui-dl--inline {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0;
+  > div {
+    display: flex;
+    justify-content: space-between;
+    gap: var(--space-3);
+    padding: 0.625rem 0;
+    border-bottom: 1px solid var(--color-border);
+  }
+  > div:last-child {
+    border-bottom: 0;
+  }
+  dd {
+    margin: 0;
+    text-align: right;
+  }
+}
+@media (max-width: 600px) {
+  .ui-dl--2,
+  .ui-dl--3 {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+// ---------- Tabelas ----------
+.ui-table-wrap {
+  overflow: auto;
+  max-height: var(--table-max-height, none);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
+}
+.ui-table {
+  min-width: 38rem;
+  th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    padding-block: 0.625rem;
+    font-size: 0.6875rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+  tbody tr {
+    transition: background-color 0.12s ease;
+  }
+  td.ui-table__actions,
+  th.ui-table__actions {
+    width: 1%;
+    text-align: right;
+    white-space: nowrap;
+  }
+}
+.ui-table--striped tbody tr:nth-child(even) {
+  background: color-mix(in oklch, var(--color-surface-muted) 45%, transparent);
+}
+.ui-table--striped tbody tr:hover {
+  background: var(--color-surface-soft);
+}
+.ui-table--compact :is(th, td) {
+  padding: 0.5rem 0.75rem;
+}
+.ui-table tr.is-clickable {
+  cursor: pointer;
+}
+.ui-table tr.is-selected {
+  background: var(--color-primary-soft);
+}
+// Modo cartão no celular: <table class="ui-table ui-table--cards"> e <td data-label="Nome">.
+@media (max-width: 700px) {
+  .ui-table--cards {
+    min-width: 0;
+    thead {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip-path: inset(50%);
+    }
+    tbody {
+      display: grid;
+      gap: var(--space-3);
+      padding: var(--space-3);
+    }
+    tr {
+      display: grid;
+      gap: 0.25rem;
+      padding: var(--space-3) var(--space-4);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      background: var(--color-surface);
+    }
+    td {
+      display: flex;
+      justify-content: space-between;
+      gap: var(--space-3);
+      padding: 0.25rem 0;
+      border: 0;
+      text-align: right;
+    }
+    td[data-label]::before {
+      content: attr(data-label);
+      color: var(--color-text-muted);
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-align: left;
+    }
+    td.ui-table__actions {
+      width: auto;
+      justify-content: flex-end;
+      padding-top: var(--space-2);
+    }
+  }
+  :is(.ui-table-wrap, .table-scroll):has(.ui-table--cards) {
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+    tbody {
+      padding: 0;
+    }
+  }
+}
+
+// ---------- Skeletons ----------
+.skeleton--text {
+  height: 0.875rem;
+}
+.skeleton--title {
+  height: 1.25rem;
+  width: 40%;
+}
+.skeleton--block {
+  height: 6rem;
+  border-radius: var(--radius-lg);
+}
+.skeleton--circle {
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 50%;
+}
+
+// ---------- Dialog ----------
+.ui-dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-modal);
+  display: grid;
+  place-items: center;
+  padding: var(--space-4);
+  background: var(--color-overlay);
+  animation: fade-in 0.18s ease-out both;
+  backdrop-filter: blur(2px);
+}
+.ui-dialog {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  width: min(100%, var(--dialog-width, 32rem));
+  max-height: calc(100dvh - 2rem);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  background: var(--color-surface);
+  color: var(--color-text);
+  box-shadow: var(--shadow-lg);
+  animation: dialog-in 0.22s var(--ease-out) both;
+}
+.ui-dialog--lg {
+  --dialog-width: 48rem;
+}
+.ui-dialog__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: 1.25rem 1.25rem 0.75rem;
+  h2 {
+    margin: 0;
+    font-size: 1.0625rem;
+  }
+  p {
+    margin: 0.25rem 0 0;
+    color: var(--color-text-muted);
+    font-size: 0.875rem;
+  }
+}
+.ui-dialog__body {
+  overflow-y: auto;
+  padding: 0.5rem 1.25rem 1.25rem;
+}
+.ui-dialog__footer {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  padding: var(--space-3) 1.25rem;
+  border-top: 1px solid var(--color-border);
+  background: var(--color-surface-soft);
+  border-radius: 0 0 var(--radius-xl) var(--radius-xl);
+}
+
+// ---------- Toasts ----------
+.ui-toasts {
+  position: fixed;
+  right: var(--space-4);
+  bottom: var(--space-4);
+  z-index: calc(var(--z-modal) + 10);
+  display: grid;
+  gap: var(--space-2);
+  width: min(24rem, calc(100vw - 2rem));
+}
+.ui-toast {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: 0.75rem 0.5rem 0.75rem 0.875rem;
+  border: 1px solid var(--color-border);
+  border-left: 4px solid var(--tone, var(--color-info));
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  color: var(--color-text);
+  box-shadow: var(--shadow-lg);
+  font-size: 0.875rem;
+  animation: toast-in 0.26s var(--ease-out) both;
+  > button {
+    min-height: 2rem;
+    width: 2rem;
+    margin-left: auto;
+    color: var(--color-text-muted);
+  }
+}
+.ui-toast__icon {
+  margin-top: 0.125rem;
+  color: var(--tone, var(--color-info));
+}
+.ui-toast__body {
+  display: grid;
+  gap: 0.125rem;
+  min-width: 0;
+  padding-top: 0.0625rem;
+}
+.ui-toast--success {
+  --tone: var(--color-success);
+}
+.ui-toast--error {
+  --tone: var(--color-danger);
+}
+.ui-toast--warning {
+  --tone: var(--color-warning);
+}
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+// ---------- Tons (ícone tonal de KPI, avatares, etc.) ----------
+.ui-tone {
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  flex-shrink: 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-muted);
+  color: var(--color-text-muted);
+}
+.ui-tone--success {
+  background: var(--color-success-soft);
+  border-color: color-mix(in oklch, var(--color-success) 25%, transparent);
+  color: var(--color-success);
+}
+.ui-tone--warning {
+  background: var(--color-warning-soft);
+  border-color: color-mix(in oklch, var(--color-warning) 40%, transparent);
+  color: var(--color-warning-text);
+}
+.ui-tone--danger {
+  background: var(--color-danger-soft);
+  border-color: color-mix(in oklch, var(--color-danger) 25%, transparent);
+  color: var(--color-danger);
+}
+.ui-tone--info {
+  background: var(--color-info-soft);
+  border-color: color-mix(in oklch, var(--color-info) 25%, transparent);
+  color: var(--color-info);
+}
+.ui-tone--primary {
+  background: var(--color-primary-soft);
+  border-color: color-mix(in oklch, var(--color-primary) 25%, transparent);
+  color: var(--color-primary-dark);
+}
+
+// ---------- Página: ritmo vertical ----------
+// Host da página: `host: { class: 'ui-page' }`. Filhos diretos ganham espaçamento uniforme, sem margens locais.
+.ui-page {
+  display: grid;
+  gap: var(--space-5);
+  align-content: start;
+  min-width: 0;
+}
+.ui-page > * {
+  min-width: 0;
+  margin-block: 0;
+}
+.ui-page > app-page-header .page-header {
+  margin-bottom: 0;
+}
+// Overlays não ocupam espaço no grid.
+.ui-page > :is(app-confirm-dialog, app-image-lightbox) {
+  display: contents;
+}
+
+// ---------- Medidor (progresso / nível) ----------
+// Preferir <app-meter> (role=progressbar). Markup manual:
+// <div class="ui-meter ui-meter--warning" role="progressbar" aria-valuenow="40" aria-valuemin="0" aria-valuemax="100">
+//   <span class="ui-meter__fill" style="width: 40%"></span></div>
+.ui-meter {
+  --ui-meter-color: var(--color-primary);
+  width: 100%;
+  min-width: 4rem;
+  height: 0.5rem;
+  overflow: hidden;
+  border-radius: var(--radius-pill);
+  background: var(--color-surface-muted);
+}
+.ui-meter__fill {
+  display: block;
+  height: 100%;
+  max-width: 100%;
+  border-radius: inherit;
+  background: var(--ui-meter-color);
+  transition: width 0.6s ease-out, background-color 0.2s ease;
+}
+.ui-meter--sm {
+  height: 0.375rem;
+}
+.ui-meter--lg {
+  height: 0.75rem;
+}
+.ui-meter--success {
+  --ui-meter-color: var(--color-success);
+}
+.ui-meter--warning {
+  --ui-meter-color: var(--color-warning);
+}
+.ui-meter--danger {
+  --ui-meter-color: var(--color-danger);
+}
+.ui-meter--info {
+  --ui-meter-color: var(--color-info);
+}
+.ui-meter--primary {
+  --ui-meter-color: var(--color-primary);
+}
+.ui-meter-group {
+  display: grid;
+  gap: var(--space-2);
+  min-width: 0;
+}
+.ui-meter-group__labels {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+.ui-meter-group__labels > :last-child {
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+// ---------- Etapas (stepper) ----------
+// <ol class="ui-steps" aria-label="Etapas">
+//   <li class="ui-steps__item is-done">…</li><li class="ui-steps__item is-current" aria-current="step">…</li></ol>
+// `.ui-steps--cards`: cartões com `<span class="ui-steps__text"><strong>…</strong><small>…</small></span>`.
+.ui-steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-5);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+}
+.ui-steps__item {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+.ui-steps:not(.ui-steps--cards) .ui-steps__item + .ui-steps__item::before {
+  content: '';
+  width: 1.5rem;
+  height: 2px;
+  margin-right: var(--space-3);
+  background: var(--color-border);
+}
+.ui-steps__item.is-current {
+  color: var(--color-text);
+  font-weight: 600;
+}
+.ui-steps__item.is-done {
+  color: var(--color-success);
+}
+.ui-steps__text {
+  display: grid;
+  line-height: 1.3;
+}
+.ui-steps__text small {
+  color: var(--color-text-muted);
+  font-size: 0.8125rem;
+  font-weight: 400;
+}
+.ui-steps--cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr));
+  gap: var(--space-3);
+  color: var(--color-text);
+}
+.ui-steps--cards .ui-steps__item {
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+}
+
+// ---------- Avatar ----------
+// <span class="ui-avatar" aria-hidden="true">M</span>
+// <button class="ui-avatar ui-avatar--lg ui-avatar--clickable"><img src="…" alt="…" /></button>
+.ui-avatar {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 2.3rem;
+  height: 2.3rem;
+  min-height: 0;
+  padding: 0;
+  overflow: hidden;
+  border: none;
+  border-radius: 50%;
+  background: var(--color-primary-soft);
+  color: var(--color-primary-dark);
+  font-weight: 700;
+  line-height: 1;
+  cursor: default;
+}
+button.ui-avatar:disabled {
+  background: var(--color-primary-soft);
+  color: var(--color-primary-dark);
+  opacity: 1;
+  cursor: default;
+}
+.ui-avatar--sm {
+  width: 1.75rem;
+  height: 1.75rem;
+  font-size: 0.75rem;
+}
+.ui-avatar--lg {
+  width: 4rem;
+  height: 4rem;
+  font-size: 1.4rem;
+}
+.ui-avatar--clickable {
+  cursor: zoom-in;
+}
+.ui-avatar > img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+// Avatar + nome lado a lado.
+.ui-person {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+// ---------- Linha do tempo ----------
+// <ol class="ui-timeline"><li class="ui-timeline__item"><span class="ui-tone ui-tone--info">ícone</span>
+//   <div class="ui-timeline__body"><div class="ui-timeline__head"><strong>…</strong>
+//   <time class="ui-timeline__meta">…</time></div></div></li></ol>
+// `.ui-timeline--plain`: sem ícone, com linha à esquerda.
+.ui-timeline {
+  display: grid;
+  gap: var(--space-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.ui-timeline__item {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: var(--space-3);
+}
+.ui-timeline__item:not(:last-child)::before {
+  content: '';
+  position: absolute;
+  top: 2.25rem;
+  bottom: calc(-1 * var(--space-4));
+  left: 1rem;
+  width: 2px;
+  background: var(--color-border);
+}
+.ui-timeline__body {
+  display: grid;
+  gap: var(--space-2);
+  min-width: 0;
+}
+.ui-timeline__body > p {
+  margin: 0;
+}
+.ui-timeline__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-1) var(--space-3);
+}
+.ui-timeline__meta {
+  color: var(--color-text-muted);
+  font-size: 0.8125rem;
+}
+.ui-timeline__details {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+  font-size: 0.8125rem;
+}
+.ui-timeline--plain .ui-timeline__item {
+  grid-template-columns: minmax(0, 1fr);
+  padding-left: var(--space-3);
+  border-left: 2px solid var(--color-border);
+}
+.ui-timeline--plain .ui-timeline__body {
+  gap: var(--space-1);
+}
+.ui-timeline--plain .ui-timeline__item::before {
+  content: none;
+}
+
+// ---------- Bloco de código / JSON ----------
+.ui-code {
+  max-height: 20rem;
+  margin: var(--space-2) 0 0;
+  padding: var(--space-3);
+  overflow: auto;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-muted);
+  font-family: ui-monospace, 'SFMono-Regular', Consolas, monospace;
+  font-size: 0.8125rem;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+// ---------- Formulário: fieldset sem moldura e linhas repetidas ----------
+.ui-fieldset--plain {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+// Linha de item repetido (FormArray): campo principal largo, demais iguais, botão remover no fim.
+// Padrão: principal + 2 campos + ação. `--3`: principal + 1 campo + ação. Empilha abaixo de 700px.
+.ui-form-row {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1fr) auto;
+  gap: var(--space-3);
+  align-items: end;
+}
+.ui-form-row--3 {
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) auto;
+}
+@media (max-width: 700px) {
+  .ui-form-row,
+  .ui-form-row--3 {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+// ---------- Nota dentro de card ----------
+// Em card `flush`, a nota mantém o respiro do card: `<p class="ui-message ui-card__note">…</p>`.
+.ui-card__note {
+  margin: var(--space-4) 1.25rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .is-loading::after,
+  .ui-toast,
+  .ui-dialog,
+  .ui-dialog-backdrop {
+    animation: none;
+  }
+  .ui-meter__fill {
+    transition: none;
+  }
+}

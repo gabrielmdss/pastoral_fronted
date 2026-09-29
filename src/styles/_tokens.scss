@@ -1,5 +1,6 @@
 :root {
   font-family:
+    'Plus Jakarta Sans',
     ui-sans-serif,
     system-ui,
     -apple-system,
@@ -36,6 +37,7 @@
   --space-6: 2rem;
   --space-7: 2.5rem;
   --space-8: 3rem;
+  --radius-sm: 0.5rem;
   --radius-md: 0.75rem;
   --radius-lg: 1rem;
   --radius-xl: 1.375rem;
@@ -49,6 +51,13 @@
   --font-size-2xl: 2rem;
   --font-weight-bold: 700;
   --shadow-sm: 0 1px 2px oklch(0.24 0.02 150 / 6%), 0 6px 20px oklch(0.24 0.02 150 / 5%);
+  --shadow-card: 0 1px 2px oklch(0.24 0.02 150 / 6%), 0 6px 20px oklch(0.24 0.02 150 / 5%);
+  --shadow-card-hover: 0 2px 4px oklch(0.24 0.02 150 / 6%), 0 12px 28px oklch(0.24 0.02 150 / 9%);
+  --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --color-header-bg: oklch(1 0 0 / 88%);
+  --color-sidebar-primary: oklch(0.72 0.13 150);
+  --color-sidebar-primary-text: oklch(0.2 0.03 152);
+  --color-warning-text: oklch(0.45 0.1 70);
   --shadow-md: 0 4px 20px -2px oklch(0.24 0.02 150 / 10%);
   --shadow-lg: 0 12px 32px -4px oklch(0.24 0.02 150 / 18%);
   --color-surface-muted: oklch(0.955 0.014 150);
@@ -59,6 +68,7 @@
   --color-sidebar-border: #ffffff30;
   --color-sidebar-text-muted: #c8dcd2;
   --color-sidebar-text: #d8e8df;
+  --color-sidebar-text-strong: #ffffff;
   --color-sidebar-hover: #ffffff10;
   --color-sidebar-active: #ffffff18;
   --color-sidebar-active-border: #b5dcc4;
@@ -66,6 +76,7 @@
   --color-sidebar-button-border: #ffffff70;
   --z-dropdown: 10;
   --z-sidebar: 20;
+  --z-header: 30;
   --z-modal: 200;
   --z-skip-link: 300;
 }
@@ -96,6 +107,11 @@
   --shadow-md: 0 4px 20px -2px oklch(0 0 0 / 35%);
   --shadow-lg: 0 12px 32px -4px oklch(0 0 0 / 45%);
   --color-on-primary: oklch(0.16 0.03 152);
+  --shadow-card: 0 1px 2px oklch(0 0 0 / 30%), 0 6px 20px oklch(0 0 0 / 22%);
+  --shadow-card-hover: 0 2px 4px oklch(0 0 0 / 35%), 0 12px 28px oklch(0 0 0 / 35%);
+  --color-header-bg: oklch(0.24 0.018 152 / 85%);
+  --color-sidebar-bg: oklch(0.22 0.03 152);
+  --color-warning-text: var(--color-warning);
 }
 * {
   box-sizing: border-box;

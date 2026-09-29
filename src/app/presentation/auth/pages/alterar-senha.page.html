@@ -4,52 +4,61 @@
   description="A alteração não afeta sua sessão atual — você continua conectado até o token expirar."
 />
 
-@if (feedback()) {
-  <p class="ui-message ui-message--success" role="status">{{ feedback() }}</p>
-}
-@if (errorMessage()) {
-  <p class="ui-message ui-message--error" role="alert">{{ errorMessage() }}</p>
-}
+<app-section-card title="Nova senha" description="Use no mínimo 8 caracteres.">
+  <span actions class="ui-tone ui-tone--primary"><app-icon name="key" /></span>
+  <form class="ui-stack" [formGroup]="form" (ngSubmit)="submit()" novalidate>
+    @if (errorMessage()) {
+      <p class="ui-message ui-message--error" role="alert">{{ errorMessage() }}</p>
+    }
+    <div class="ui-field">
+      <label class="ui-field__label" for="senhaAtual">Senha atual</label>
+      <app-password-field
+        id="senhaAtual"
+        formControlName="senhaAtual"
+        autocomplete="current-password"
+        [ariaInvalid]="form.controls.senhaAtual.invalid && form.controls.senhaAtual.touched"
+      />
+      @if (form.controls.senhaAtual.invalid && form.controls.senhaAtual.touched) {
+        <small class="ui-field__error">Informe sua senha atual.</small>
+      }
+    </div>
 
-<form class="form-grid ui-panel" [formGroup]="form" (ngSubmit)="submit()" novalidate>
-  <label for="senhaAtual">Senha atual</label>
-  <app-password-field
-    id="senhaAtual"
-    formControlName="senhaAtual"
-    autocomplete="current-password"
-    [ariaInvalid]="form.controls.senhaAtual.invalid && form.controls.senhaAtual.touched"
-  />
-  @if (form.controls.senhaAtual.invalid && form.controls.senhaAtual.touched) {
-    <small class="field-error">Informe sua senha atual.</small>
-  }
+    <div class="ui-field">
+      <label class="ui-field__label" for="novaSenha">Nova senha</label>
+      <app-password-field
+        id="novaSenha"
+        formControlName="novaSenha"
+        autocomplete="new-password"
+        [ariaInvalid]="form.controls.novaSenha.invalid && form.controls.novaSenha.touched"
+      />
+      @if (form.controls.novaSenha.touched && form.controls.novaSenha.hasError('required')) {
+        <small class="ui-field__error">Informe a nova senha.</small>
+      } @else if (form.controls.novaSenha.touched && form.controls.novaSenha.hasError('minlength')) {
+        <small class="ui-field__error">A nova senha deve ter no mínimo 8 caracteres.</small>
+      } @else {
+        <small class="ui-field__hint">Mínimo de 8 caracteres.</small>
+      }
+    </div>
 
-  <label for="novaSenha">Nova senha</label>
-  <app-password-field
-    id="novaSenha"
-    formControlName="novaSenha"
-    autocomplete="new-password"
-    [ariaInvalid]="form.controls.novaSenha.invalid && form.controls.novaSenha.touched"
-  />
-  @if (form.controls.novaSenha.touched && form.controls.novaSenha.hasError('required')) {
-    <small class="field-error">Informe a nova senha.</small>
-  } @else if (form.controls.novaSenha.touched && form.controls.novaSenha.hasError('minlength')) {
-    <small class="field-error">A nova senha deve ter no mínimo 8 caracteres.</small>
-  }
+    <div class="ui-field">
+      <label class="ui-field__label" for="confirmarNovaSenha">Confirmar nova senha</label>
+      <app-password-field
+        id="confirmarNovaSenha"
+        formControlName="confirmarNovaSenha"
+        autocomplete="new-password"
+        [ariaInvalid]="form.controls.confirmarNovaSenha.invalid && form.controls.confirmarNovaSenha.touched"
+      />
+      @if (form.controls.confirmarNovaSenha.touched && form.controls.confirmarNovaSenha.hasError('required')) {
+        <small class="ui-field__error">Confirme a nova senha.</small>
+      } @else if (form.controls.confirmarNovaSenha.touched && form.hasError('senhasDiferentes')) {
+        <small class="ui-field__error">As senhas não coincidem.</small>
+      }
+    </div>
 
-  <label for="confirmarNovaSenha">Confirmar nova senha</label>
-  <app-password-field
-    id="confirmarNovaSenha"
-    formControlName="confirmarNovaSenha"
-    autocomplete="new-password"
-    [ariaInvalid]="form.controls.confirmarNovaSenha.invalid && form.controls.confirmarNovaSenha.touched"
-  />
-  @if (form.controls.confirmarNovaSenha.touched && form.controls.confirmarNovaSenha.hasError('required')) {
-    <small class="field-error">Confirme a nova senha.</small>
-  } @else if (form.controls.confirmarNovaSenha.touched && form.hasError('senhasDiferentes')) {
-    <small class="field-error">As senhas não coincidem.</small>
-  }
-
-  <button type="submit" [disabled]="saving()">
-    {{ saving() ? 'Salvando…' : 'Salvar nova senha' }}
-  </button>
-</form>
+    <div class="ui-actions ui-actions--end">
+      <button type="submit" [disabled]="saving()" [class.is-loading]="saving()">
+        {{ saving() ? 'Salvando…' : 'Salvar nova senha' }}
+      </button>
+    </div>
+  </form>
+</app-section-card>

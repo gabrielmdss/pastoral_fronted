@@ -7,6 +7,7 @@ import { CestasAdicionaisComponent } from './cestas-adicionais.component';
 import * as U from '../../../application/atendimento/use-cases/cestas-adicionais.use-cases';
 import { CESTAS_ADICIONAIS_API } from '../../../application/atendimento/ports/cestas-adicionais-api.port';
 import { ObterDistribuicaoUseCase } from '../../../application/distribuicoes/obter-distribuicao.use-case';
+import { ObterHistoricoDistribuicaoUseCase } from '../../../application/atendimento/use-cases/obter-historico.use-cases';
 import { AbrirDistribuicaoUseCase } from '../../../application/distribuicoes/abrir-distribuicao.use-case';
 import { EncerrarDistribuicaoUseCase } from '../../../application/distribuicoes/encerrar-distribuicao.use-case';
 import { RemarcarDistribuicaoUseCase } from '../../../application/distribuicoes/remarcar-distribuicao.use-case';
@@ -16,6 +17,7 @@ import { SessionFacade } from '../../../infrastructure/auth/session.facade';
 import type { CestaAdicional } from '../../../domain/atendimento/cesta-adicional.model';
 import type { Distribuicao } from '../../../domain/distribuicoes/distribuicao.model';
 import DetailPage from '../../distribuicoes/pages/distribuicao-detail.page';
+import { responderConfirmacao } from '../../../shared/ui/confirm-dialog.testing';
 const d: Distribuicao = {
   id: '3',
   status: 'ABERTA',
@@ -88,6 +90,7 @@ async function setup(permissions = all) {
       ...Object.values(U),
       { provide: CESTAS_ADICIONAIS_API, useValue: api },
       { provide: ObterDistribuicaoUseCase, useValue: obter },
+      { provide: ObterHistoricoDistribuicaoUseCase, useValue: { execute: () => of({ distribuicao: { id: '3', data: '', grupo: '' }, eventos: [] }) } },
       { provide: BuscarBeneficiariosUseCase, useValue: beneficiarios },
       { provide: ListarModelosUseCase, useValue: modelos },
       {
@@ -133,7 +136,7 @@ describe('Cesta adicional no contexto da distribuição', () => {
       'Especial',
       'Necessidade avaliada',
       'coordenador',
-      'AUTORIZADA',
+      'Autorizada',
     ])
       expect(fixture.nativeElement.textContent).toContain(text);
   });
@@ -159,12 +162,14 @@ describe('Cesta adicional no contexto da distribuição', () => {
     expect(api.autorizar).not.toHaveBeenCalled();
   });
   it('autoriza uma vez, preserva dados antes do HTTP e recarrega após sucesso', async () => {
-    const { page, api, response, obter } = await setup();
+    const { page, api, response, obter, fixture } = await setup();
     await fill(page);
-    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(true);
     const pending = page.autorizar();
+    const segunda = page.autorizar();
+    const confirm = await responderConfirmacao(fixture);
+    await segunda;
     await page.autorizar();
-    expect(confirm).toHaveBeenCalledOnce();
+    expect(confirm).toContain('Autorizar');
     expect(api.autorizar).toHaveBeenCalledExactlyOnceWith('3', {
       beneficiarioId: '1',
       modeloCestaId: '2',
@@ -183,8 +188,8 @@ describe('Cesta adicional no contexto da distribuição', () => {
   });
   it('entrega uma vez e reflete resposta consultada, sem descontar saldo local', async () => {
     const { page, api, obter, response, fixture } = await setup();
-    vi.spyOn(window, 'confirm').mockReturnValue(true);
     const pending = page.entregar('7');
+    await responderConfirmacao(fixture);
     await page.entregar('7');
     expect(api.entregar).toHaveBeenCalledExactlyOnceWith('7');
     expect(page.items()[0]?.status).toBe('AUTORIZADA');
@@ -204,25 +209,25 @@ describe('Cesta adicional no contexto da distribuição', () => {
     expect(emit).toHaveBeenCalledWith(expect.objectContaining({ cestasDisponiveis: 3 }));
     fixture.detectChanges();
     expect(fixture.nativeElement.textContent).toContain('entregador');
-    expect(fixture.nativeElement.textContent).toContain('ENTREGUE');
+    expect(fixture.nativeElement.textContent).toContain('Entregue');
   });
   it.each(['autorizar', 'entregar'] as const)(
     'cancelar confirmação não envia %s',
     async (action) => {
-      const { page, api } = await setup();
+      const { page, api, fixture } = await setup();
       await fill(page);
-      vi.spyOn(window, 'confirm').mockReturnValue(false);
-      if (action === 'autorizar') await page.autorizar();
-      else await page.entregar('7');
+      const acao = action === 'autorizar' ? page.autorizar() : page.entregar('7');
+      await responderConfirmacao(fixture, false);
+      await acao;
       expect(api[action]).not.toHaveBeenCalled();
     },
   );
   it('autorizador sem retirada não lista nem entrega; mostra retorno da autorização', async () => {
-    const { page, api, response } = await setup(all.filter((p) => p !== 'RETIRADA_REGISTRAR'));
+    const { page, api, response, fixture } = await setup(all.filter((p) => p !== 'RETIRADA_REGISTRAR'));
     expect(api.listar).not.toHaveBeenCalled();
     await fill(page);
-    vi.spyOn(window, 'confirm').mockReturnValue(true);
     const pending = page.autorizar();
+    await responderConfirmacao(fixture);
     response.next(row);
     response.complete();
     await pending;
@@ -232,7 +237,7 @@ describe('Cesta adicional no contexto da distribuição', () => {
     expect(api.listar).not.toHaveBeenCalled();
   });
   it('entregador sem autorização ou permission de modelos consulta e entrega sem catálogos', async () => {
-    const { page, api, modelos, beneficiarios, response } = await setup([
+    const { page, api, modelos, beneficiarios, response, fixture } = await setup([
       'BENEFICIARIO_VISUALIZAR',
       'RETIRADA_REGISTRAR',
     ]);
@@ -241,8 +246,8 @@ describe('Cesta adicional no contexto da distribuição', () => {
     expect(api.autorizar).not.toHaveBeenCalled();
     expect(modelos.execute).not.toHaveBeenCalled();
     expect(beneficiarios.execute).not.toHaveBeenCalled();
-    vi.spyOn(window, 'confirm').mockReturnValue(true);
     const pending = page.entregar('7');
+    await responderConfirmacao(fixture);
     response.next({ ...row, status: 'ENTREGUE' });
     response.complete();
     await pending;
@@ -255,7 +260,11 @@ describe('Cesta adicional no contexto da distribuição', () => {
     ]);
     await page.abrirFormulario();
     fixture.detectChanges();
-    expect(fixture.nativeElement.textContent).toContain('solicite acesso');
+    const texto: string = fixture.nativeElement.textContent;
+    expect(texto).toContain('solicite acesso');
+    expect(texto).toContain('CESTA_MODELO_GERENCIAR');
+    expect(texto).not.toContain('(BENEFICIARIO_VISUALIZAR)');
+    expect(fixture.nativeElement.querySelector('select')).toBeNull();
     expect(modelos.execute).not.toHaveBeenCalled();
     await page.autorizar();
     expect(api.autorizar).not.toHaveBeenCalled();
@@ -284,7 +293,7 @@ describe('Cesta adicional no contexto da distribuição', () => {
       await page.entregar('7');
       fixture.detectChanges();
       expect(api.entregar).not.toHaveBeenCalled();
-      expect(fixture.nativeElement.textContent).toContain(status);
+      expect(fixture.nativeElement.textContent.toLowerCase()).toContain(status.toLowerCase());
       expect(fixture.nativeElement.textContent).not.toContain('Cancelar cesta');
     },
   );
@@ -300,10 +309,10 @@ describe('Cesta adicional no contexto da distribuição', () => {
     expect(page.items()).toHaveLength(1);
   });
   it('409 de autorização preserva formulário e reconsulta encerramento', async () => {
-    const { page, api, obter, response } = await setup();
+    const { page, api, obter, response, fixture } = await setup();
     await fill(page);
-    vi.spyOn(window, 'confirm').mockReturnValue(true);
     const pending = page.autorizar();
+    await responderConfirmacao(fixture);
     obter.execute.mockReturnValue(of({ ...d, status: 'ENCERRADA' }));
     response.error(
       new HttpErrorResponse({
@@ -321,9 +330,9 @@ describe('Cesta adicional no contexto da distribuição', () => {
     expect(page.saving()).toBe(false);
   });
   it('409 de entrega reconsulta sem presumir consumo', async () => {
-    const { page, api, response, obter } = await setup();
-    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    const { page, api, response, obter, fixture } = await setup();
     const pending = page.entregar('7');
+    await responderConfirmacao(fixture);
     response.error(
       new HttpErrorResponse({ status: 409, error: { error: { code: 'SEM_CESTA_DISPONIVEL' } } }),
     );

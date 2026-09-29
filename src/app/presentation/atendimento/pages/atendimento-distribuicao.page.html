@@ -1,143 +1,95 @@
 <section class="atendimento-page">
-  <a class="atendimento-page__back back-link" [routerLink]="['/distribuicoes', distribuicao()?.id]">
-    ← Voltar para distribuição
-  </a>
-
   @if (loading()) {
-    <app-loading-state label="Carregando atendimento…" />
+    <a class="back-link" [routerLink]="['/distribuicoes', distribuicao()?.id]"><app-icon name="arrow-left" /> Voltar para distribuição</a>
+    <app-loading-state variant="detail" label="Carregando atendimento…" />
   } @else if (error(); as msg) {
+    <a class="back-link" [routerLink]="['/distribuicoes', distribuicao()?.id]"><app-icon name="arrow-left" /> Voltar para distribuição</a>
     <app-error-state [message]="msg" (retry)="carregar()" />
   } @else if (distribuicao(); as distribuicao) {
-    <header class="atendimento-header ui-header">
-      <div>
-        <div class="atendimento-header__eyebrow eyebrow">
-          Atendimento · Competência
-          {{ competenciaLabel(distribuicao) }}
-        </div>
-
-        <h1 class="atendimento-header__title">
-          {{ distribuicao.grupo.nome }}
-        </h1>
-
-        <div class="atendimento-header__meta">
-          <span>
-            Data:
-            <strong>
-              {{ dataLabel(distribuicao.dataPrevista) }}
-            </strong>
-          </span>
-
-          <span>
-            Status:
-            <strong class="ui-badge" [attr.data-status]="distribuicao.status"
-              >{{ distribuicao.status }}
-            </strong>
-          </span>
-        </div>
+    <app-page-header
+      eyebrow="Atendimento"
+      title="Fila de atendimento"
+      [description]="distribuicao.grupo.nome + ' — ' + (distribuicao.dataPrevista | dataBr) + ' · chegada registrada por ordem de comparecimento.'"
+      [backLink]="'/distribuicoes/' + distribuicao.id"
+      backLabel="Voltar para distribuição"
+    >
+      <div meta class="ui-actions atendimento-header__meta">
+        <app-status-badge [status]="distribuicao.status" />
+        <span class="ui-chip"><app-icon name="calendar-range" /> Competência {{ distribuicao.competencia | competencia }}</span>
+        <span class="ui-chip"><app-icon name="calendar" /> {{ distribuicao.dataPrevista | dataBr: 'longa' }}</span>
       </div>
-
-      <div class="atendimento-header__actions">
+      <div actions class="ui-actions">
         @if (podeCestasAdicionais) {
-          <a [routerLink]="['/distribuicoes', distribuicao.id]" fragment="cestas-adicionais">Cestas adicionais</a>
+          <a class="btn btn--ghost" [routerLink]="['/distribuicoes', distribuicao.id]" fragment="cestas-adicionais">
+            <app-icon name="package-plus" /> Cestas adicionais
+          </a>
         }
-        <button
-          type="button"
-          class="btn btn-secondary"
-          (click)="carregar()"
-          [disabled]="encerrando()"
-        >
-          Atualizar
+        <button type="button" class="secondary" (click)="carregar()" [disabled]="encerrando()">
+          <app-icon name="refresh" /> Atualizar
         </button>
         @if (distribuicao.status === 'ABERTA' && podeEncerrar) {
-          <button
-            type="button"
-            class="btn btn-danger"
-            (click)="encerrar()"
-            [disabled]="encerrando()"
-          >
-            {{ encerrando() ? 'Encerrando...' : 'Encerrar distribuição' }}
+          <button type="button" class="danger" (click)="encerrar()" [disabled]="encerrando()" [class.is-loading]="encerrando()">
+            {{ encerrando() ? 'Encerrando…' : 'Encerrar distribuição' }}
           </button>
         }
       </div>
-    </header>
+    </app-page-header>
 
     @if (distribuicao.status !== 'ABERTA') {
-      <div class="atendimento-warning ui-message ui-message--warning">
+      <div class="ui-message ui-message--warning" role="status">
         Esta distribuição não está aberta para atendimento.
       </div>
     }
 
-    <section class="atendimento-summary ui-metrics">
-      <article class="atendimento-summary__item ui-metric">
-        <span>Previstos</span>
-        <strong>{{ distribuicao.previstos }}</strong>
-      </article>
+    <div class="ui-grid ui-grid--kpi atendimento-summary">
+      <app-metric-card label="Previstos" icon="users" tone="info" [delayMs]="0">{{ distribuicao.previstos | number }}</app-metric-card>
+      <app-metric-card label="Presentes" icon="clipboard-check" tone="primary" [delayMs]="30">{{ distribuicao.checkIns | number }}</app-metric-card>
+      <app-metric-card label="Regulares" icon="check-circle" tone="success" [delayMs]="60">{{ distribuicao.regularesPresentes | number }}</app-metric-card>
+      <app-metric-card label="Pendentes" icon="alert-triangle" [tone]="distribuicao.pendentesPresentes > 0 ? 'warning' : 'neutral'" [delayMs]="90">{{ distribuicao.pendentesPresentes | number }}</app-metric-card>
+      <app-metric-card label="Retiradas" icon="package-open" tone="success" [delayMs]="120">{{ distribuicao.retiradas | number }}</app-metric-card>
+      <app-metric-card label="Cestas disponíveis" icon="boxes" [tone]="distribuicao.cestasDisponiveis > 0 ? 'primary' : 'danger'" [delayMs]="150">{{ distribuicao.cestasDisponiveis | number }}</app-metric-card>
+    </div>
 
-      <article class="atendimento-summary__item ui-metric">
-        <span>Presentes</span>
-        <strong>{{ distribuicao.checkIns }}</strong>
-      </article>
+    <ol class="ui-steps ui-steps--cards" aria-label="Etapas do atendimento">
+      <li class="ui-steps__item"><span class="ui-tone ui-tone--primary"><app-icon name="search" /></span> <span class="ui-steps__text"><strong>1. Check-in</strong><small>Busque e registre a chegada</small></span></li>
+      <li class="ui-steps__item"><span class="ui-tone ui-tone--info"><app-icon name="clipboard-list" /></span> <span class="ui-steps__text"><strong>2. Fila</strong><small>Principal e conferência</small></span></li>
+      <li class="ui-steps__item"><span class="ui-tone ui-tone--success"><app-icon name="package-open" /></span> <span class="ui-steps__text"><strong>3. Entrega</strong><small>Clique ou arraste para entregar</small></span></li>
+    </ol>
 
-      <article class="atendimento-summary__item ui-metric">
-        <span>Regulares</span>
-        <strong>{{ distribuicao.regularesPresentes }}</strong>
-      </article>
-
-      <article class="atendimento-summary__item ui-metric">
-        <span>Pendentes</span>
-        <strong>{{ distribuicao.pendentesPresentes }}</strong>
-      </article>
-
-      <article class="atendimento-summary__item ui-metric">
-        <span>Retiradas</span>
-        <strong>{{ distribuicao.retiradas }}</strong>
-      </article>
-
-      <article class="atendimento-summary__item ui-metric">
-        <span>Cestas disponíveis</span>
-        <strong>{{ distribuicao.cestasDisponiveis }}</strong>
-      </article>
-    </section>
-
-    <section class="atendimento-search-section ui-panel">
-      <div class="atendimento-section-header ui-section-header">
+    <section class="atendimento-search-section ui-card">
+      <header class="ui-card__header">
         <div>
           <h2>Registrar chegada</h2>
           <p>Busque o beneficiário por nome ou documento para realizar o check-in.</p>
         </div>
-      </div>
-
-      <div class="atendimento-search">
-        <label class="atendimento-search__label" for="beneficiario-search">
-          Nome ou documento
-        </label>
-
+      </header>
+      <div class="ui-card__body atendimento-search">
+        <label class="ui-field__label" for="beneficiario-search">Nome ou documento</label>
         <div class="atendimento-search__control">
-          <input
-            #buscaInput
-            id="beneficiario-search"
-            type="search"
-            class="form-control"
-            autocomplete="off"
-            placeholder="Digite o nome ou documento"
-            [value]="busca()"
-            [disabled]="distribuicao.status !== 'ABERTA' || checkInEmAndamento()"
-            (input)="onBuscaChange($any($event.target).value)"
-          />
-
+          <div class="ui-input-icon">
+            <app-icon name="search" />
+            <input
+              #buscaInput
+              id="beneficiario-search"
+              type="search"
+              autocomplete="off"
+              placeholder="Digite o nome ou documento"
+              [value]="busca()"
+              [disabled]="distribuicao.status !== 'ABERTA' || checkInEmAndamento()"
+              (input)="onBuscaChange($any($event.target).value)"
+            />
+          </div>
           @if (buscando()) {
-            <span class="atendimento-search__loading"> Buscando... </span>
+            <span class="atendimento-search__loading" role="status">Buscando…</span>
           }
         </div>
 
         @if (buscaError()) {
-          <div class="atendimento-search__error ui-message ui-message--error" role="alert">
-            {{ buscaError() }}
-          </div>
+          <div class="ui-message ui-message--error" role="alert">{{ buscaError() }}</div>
         }
 
         @if (busca().trim() && !buscando() && resultadosBusca().length === 0 && !buscaError()) {
-          <app-empty-state title="Nenhum resultado" message="Nenhum beneficiário ativo encontrado." />
+          <app-empty-state icon="search" title="Nenhum resultado" message="Nenhum beneficiário ativo encontrado." />
         }
 
         @if (resultadosBusca().length > 0) {
@@ -150,18 +102,12 @@
                 (click)="registrarChegada(beneficiario)"
               >
                 <div>
-                  <strong>
-                    {{ beneficiario.nomeCompleto }}
-                  </strong>
-
+                  <strong>{{ beneficiario.nomeCompleto }}</strong>
                   @if (beneficiario.documentos && beneficiario.documentos.length > 0) {
-                    <span>
-                      {{ beneficiario.documentos[0].numeroMascarado }}
-                    </span>
+                    <span class="text-muted">{{ beneficiario.documentos[0].numeroMascarado }}</span>
                   }
                 </div>
-
-                <span class="atendimento-search-result__action"> Registrar chegada </span>
+                <span class="atendimento-search-result__action"><app-icon name="check" /> Registrar chegada</span>
               </button>
             }
           </div>
@@ -190,11 +136,6 @@
       </div>
     }
 
-    @if (justificativaFeedback()) {
-      <div class="atendimento-success ui-message ui-message--success" role="status">
-        {{ justificativaFeedback() }}
-      </div>
-    }
     @if (justificativaError()) {
       <div class="atendimento-error-inline ui-message ui-message--error" role="alert">
         {{ justificativaError() }}
@@ -205,7 +146,7 @@
       <article class="atendimento-fila ui-panel">
         <header class="atendimento-fila__header ui-section-header">
           <div>
-            <h2>Fila principal</h2>
+            <h2><app-icon name="users" /> Fila principal</h2>
             <p>Beneficiários regulares presentes.</p>
           </div>
 
@@ -215,9 +156,9 @@
         </header>
 
         @if (loadingFilas()) {
-          <app-loading-state label="Carregando fila principal…" />
+          <app-loading-state variant="cards" [rows]="3" label="Carregando fila principal…" />
         } @else if (filaRegular().length === 0) {
-          <app-empty-state title="Fila vazia" message="Nenhum beneficiário regular aguardando." />
+          <app-empty-state icon="users" title="Fila vazia" message="Nenhum beneficiário regular aguardando." />
         } @else {
           <div class="atendimento-fila__list">
             @for (checkIn of filaRegular(); track checkIn.id; let index = $index) {
@@ -233,12 +174,12 @@
                 </div>
 
                 <div class="atendimento-checkin-card__content">
-                  <strong class="atendimento-checkin-card__nome">
+                  <a class="atendimento-checkin-card__nome" [routerLink]="['/beneficiarios', checkIn.beneficiario.id]">
                     {{ checkIn.beneficiario.nomeCompleto }}
-                  </strong>
+                  </a>
 
                   <div class="atendimento-checkin-card__meta">
-                    <span> Chegada: {{ horaLabel(checkIn.ocorridoEm) }} </span>
+                    <span><app-icon name="clock" /> Chegada {{ checkIn.ocorridoEm | dataBr: 'hora' }}</span>
 
                     <span
                       class="atendimento-checkin-card__badge ui-badge atendimento-checkin-card__badge--regular ui-badge--success"
@@ -283,7 +224,7 @@
                 <div class="atendimento-checkin-card__actions">
                   <button
                     type="button"
-                    class="btn btn-primary"
+                    class="btn--sm"
                     [disabled]="!podeRegistrarRetirada(checkIn) || retiradaEmAndamentoId() !== null"
                     (click)="registrarRetiradaTitular(checkIn)"
                   >
@@ -295,11 +236,19 @@
                   </button>
                   <button
                     type="button"
-                    class="btn btn-secondary"
+                    class="secondary btn--sm"
                     [disabled]="!podeRegistrarRetirada(checkIn) || retiradaEmAndamentoId() !== null"
                     (click)="registrarRetiradaRepresentante(checkIn)"
                   >
                     Representante
+                  </button>
+                  <button
+                    type="button"
+                    class="secondary btn--sm"
+                    [disabled]="!podeRegistrarExcecao(checkIn) || retiradaEmAndamentoId() !== null"
+                    (click)="abrirExcecao(checkIn)"
+                  >
+                    Exceção
                   </button>
                 </div>
               </article>
@@ -311,8 +260,8 @@
       <article class="atendimento-fila ui-panel atendimento-fila--pendente">
         <header class="atendimento-fila__header ui-section-header">
           <div>
-            <h2>Fila secundária</h2>
-            <p>Beneficiários com pendências.</p>
+            <h2><app-icon name="alert-triangle" /> Conferência</h2>
+            <p>Fila secundária: beneficiários com pendências.</p>
           </div>
 
           <span class="atendimento-fila__count">
@@ -321,9 +270,9 @@
         </header>
 
         @if (loadingFilas()) {
-          <app-loading-state label="Carregando fila secundária…" />
+          <app-loading-state variant="cards" [rows]="2" label="Carregando fila secundária…" />
         } @else if (filaPendente().length === 0) {
-          <app-empty-state title="Fila vazia" message="Nenhum beneficiário pendente aguardando." />
+          <app-empty-state icon="check-circle" title="Fila vazia" message="Nenhum beneficiário pendente aguardando." />
         } @else {
           <div class="atendimento-fila__list">
             @for (checkIn of filaPendente(); track checkIn.id; let index = $index) {
@@ -339,12 +288,12 @@
                 </div>
 
                 <div class="atendimento-checkin-card__content">
-                  <strong class="atendimento-checkin-card__nome">
+                  <a class="atendimento-checkin-card__nome" [routerLink]="['/beneficiarios', checkIn.beneficiario.id]">
                     {{ checkIn.beneficiario.nomeCompleto }}
-                  </strong>
+                  </a>
 
                   <div class="atendimento-checkin-card__meta">
-                    <span> Chegada: {{ horaLabel(checkIn.ocorridoEm) }} </span>
+                    <span><app-icon name="clock" /> Chegada {{ checkIn.ocorridoEm | dataBr: 'hora' }}</span>
 
                     <span
                       class="atendimento-checkin-card__badge ui-badge atendimento-checkin-card__badge--pendente ui-badge--warning"
@@ -404,7 +353,7 @@
                 <div class="atendimento-checkin-card__actions">
                   <button
                     type="button"
-                    class="btn btn-secondary"
+                    class="secondary btn--sm"
                     [disabled]="historicoAusenciaLoadingId() !== null"
                     (click)="carregarAusencias(checkIn.beneficiario.id)"
                   >
@@ -416,7 +365,7 @@
                   </button>
                   <button
                     type="button"
-                    class="btn btn-secondary"
+                    class="secondary btn--sm"
                     [disabled]="!podeRegistrarRetirada(checkIn) || retiradaEmAndamentoId() !== null"
                     (click)="registrarRetiradaTitular(checkIn)"
                   >
@@ -428,11 +377,19 @@
                   </button>
                   <button
                     type="button"
-                    class="btn btn-secondary"
+                    class="secondary btn--sm"
                     [disabled]="!podeRegistrarRetirada(checkIn) || retiradaEmAndamentoId() !== null"
                     (click)="registrarRetiradaRepresentante(checkIn)"
                   >
                     Representante
+                  </button>
+                  <button
+                    type="button"
+                    class="secondary btn--sm"
+                    [disabled]="!podeRegistrarExcecao(checkIn) || retiradaEmAndamentoId() !== null"
+                    (click)="abrirExcecao(checkIn)"
+                  >
+                    Exceção
                   </button>
                 </div>
                 @if (ausenciasPorBeneficiario()[checkIn.beneficiario.id]; as ausencias) {
@@ -446,7 +403,7 @@
                             <strong>{{ statusAusenciaLabel(ausencia.status) }}</strong>
                             <span
                               >Ausência {{ ausencia.id }} ·
-                              {{ horaLabel(ausencia.ocorridoEm) }}</span
+                              {{ ausencia.ocorridoEm | dataBr: 'dataHora' }}</span
                             >
                             @for (justificativa of ausencia.justificativas; track $index) {
                               <span
@@ -460,7 +417,7 @@
                             @if (podeRegistrarJustificativa) {
                               <button
                                 type="button"
-                                class="btn btn-secondary"
+                                class="secondary btn--sm"
                                 [disabled]="justificativaLoadingId() !== null"
                                 (click)="registrarJustificativa(checkIn.beneficiario.id, ausencia)"
                               >
@@ -470,7 +427,7 @@
                             @if (podeAvaliarJustificativa && justificativaPendenteId(ausencia)) {
                               <button
                                 type="button"
-                                class="btn btn-primary"
+                                class="btn--sm"
                                 [disabled]="justificativaLoadingId() !== null"
                                 (click)="
                                   avaliarJustificativa(checkIn.beneficiario.id, ausencia, 'ACEITA')
@@ -480,7 +437,7 @@
                               </button>
                               <button
                                 type="button"
-                                class="btn btn-danger"
+                                class="danger btn--sm"
                                 [disabled]="justificativaLoadingId() !== null"
                                 (click)="
                                   avaliarJustificativa(
@@ -516,14 +473,57 @@
         >
           <header class="atendimento-fila__header ui-section-header">
             <div>
-              <h2>Entregar cesta</h2>
+              <h2><app-icon name="package-open" /> Entregar cesta</h2>
               <p>Arraste um beneficiário da fila até aqui para registrar a retirada.</p>
             </div>
           </header>
           <div class="atendimento-dropzone" role="button" tabindex="0" aria-label="Soltar beneficiário aqui para registrar a retirada">
-            <span class="atendimento-dropzone__icon" aria-hidden="true">🧺</span>
+            <span class="atendimento-dropzone__icon ui-tone ui-tone--primary"><app-icon name="package-open" [size]="28" /></span>
             <span class="atendimento-dropzone__label">Solte aqui para entregar a cesta</span>
           </div>
+          @if (excecaoCheckIn(); as alvo) {
+            <form class="atendimento-excecao form-grid" (submit)="$event.preventDefault(); registrarExcecao()">
+              <fieldset class="form-grid" [disabled]="retiradaEmAndamentoId() !== null">
+                <legend>Retirada com exceção · {{ alvo.beneficiario.nomeCompleto }}</legend>
+                <label
+                  >Tipo
+                  <select name="tipo" [value]="excecaoTipo()" (change)="excecaoTipo.set($any($event.target).value)">
+                    @for (t of tiposExcecao; track t) {
+                      <option [value]="t">{{ tipoRetiradaLabel(t) }}</option>
+                    }
+                  </select>
+                </label>
+                <label
+                  >Forma de identificação
+                  <select name="forma" [value]="excecaoForma()" (change)="excecaoForma.set($any($event.target).value)">
+                    <option value="">Não informada</option>
+                    @for (f of formasIdentificacao; track f) {
+                      <option [value]="f">{{ formaIdentificacaoLabel(f) }}</option>
+                    }
+                  </select>
+                </label>
+                <label
+                  >Justificativa da exceção
+                  <textarea
+                    name="justificativa"
+                    [value]="excecaoJustificativa()"
+                    (input)="excecaoJustificativa.set($any($event.target).value)"
+                  ></textarea>
+                </label>
+                @if (excecaoTipo() === 'ANTECIPADA') {
+                  <p class="hint">
+                    Antecipação exige justificativa e autorização superior; o sistema validará o seu acesso.
+                  </p>
+                }
+              </fieldset>
+              <div class="atendimento-checkin-card__actions">
+                <button type="submit" class="btn--sm" [disabled]="retiradaEmAndamentoId() !== null">
+                  {{ retiradaEmAndamentoId() === alvo.id ? 'Registrando...' : 'Registrar retirada' }}
+                </button>
+                <button type="button" class="secondary btn--sm" (click)="excecaoCheckIn.set(null)">Cancelar</button>
+              </div>
+            </form>
+          }
           @if (dropRejeitado()) {
             <div class="atendimento-dropzone__rejeicao ui-message ui-message--error" role="alert">
               {{ dropRejeitado() }}
@@ -537,7 +537,7 @@
       <section class="atendimento-retiradas ui-panel">
         <header class="atendimento-section-header ui-section-header">
           <div>
-            <h2>Histórico de check-ins</h2>
+            <h2><app-icon name="scroll-text" /> Histórico de check-ins</h2>
             <p>Registros preservados após o encerramento da distribuição.</p>
           </div>
         </header>
@@ -549,7 +549,7 @@
         } @else if (loadingHistoricoCheckIns()) {
           <app-loading-state label="Carregando histórico…" />
         } @else if (historicoCheckIns().length === 0) {
-          <app-empty-state title="Sem registros" message="Nenhum check-in registrado." />
+          <app-empty-state icon="clipboard-check" title="Sem registros" message="Nenhum check-in registrado." />
         } @else {
           <div class="atendimento-retiradas__list">
             @for (checkIn of historicoCheckIns(); track checkIn.id) {
@@ -568,7 +568,7 @@
                   <span class="ui-badge" [attr.data-status]="checkIn.situacaoOperacional">{{
                     situacaoOperacionalLabel(checkIn.situacaoOperacional)
                   }}</span>
-                  <span>{{ horaLabel(checkIn.ocorridoEm) }}</span>
+                  <span>{{ checkIn.ocorridoEm | dataBr: 'hora' }}</span>
                 </div>
               </article>
             }
@@ -577,11 +577,6 @@
       </section>
     }
 
-    @if (retiradaFeedback()) {
-      <div class="atendimento-success ui-message ui-message--success" role="status">
-        {{ retiradaFeedback() }}
-      </div>
-    }
 
     @if (retiradasError()) {
       <div class="atendimento-error-inline ui-message ui-message--error" role="alert">
@@ -593,13 +588,13 @@
       <section class="atendimento-retiradas ui-panel">
         <header class="atendimento-section-header ui-section-header">
           <div>
-            <h2>Retiradas da distribuição</h2>
+            <h2><app-icon name="package-open" /> Retiradas da distribuição</h2>
             <p>Entregas registradas, incluindo eventuais registros estornados.</p>
           </div>
 
           <button
             type="button"
-            class="btn btn-secondary"
+            class="secondary btn--sm"
             (click)="carregarRetiradas()"
             [disabled]="loadingRetiradas()"
           >
@@ -608,15 +603,15 @@
         </header>
 
         @if (loadingRetiradas()) {
-          <app-loading-state label="Carregando retiradas…" />
+          <app-loading-state variant="cards" [rows]="3" label="Carregando retiradas…" />
         } @else if (retiradas().length === 0) {
-          <app-empty-state title="Sem registros" message="Nenhuma retirada registrada." />
+          <app-empty-state icon="package" title="Sem registros" message="Nenhuma retirada registrada." />
         } @else {
           <div class="atendimento-retiradas__list">
             @for (retirada of retiradas(); track retirada.id) {
               <article class="atendimento-retirada">
                 <div>
-                  <strong>{{ retirada.beneficiario.nomeCompleto }}</strong>
+                  <a [routerLink]="['/beneficiarios', retirada.beneficiario.id]"><strong>{{ retirada.beneficiario.nomeCompleto }}</strong></a>
                   <span
                     >{{ tipoRetiradaLabel(retirada.tipo) }} ·
                     {{ formaIdentificacaoLabel(retirada.formaIdentificacao) }}</span
@@ -632,18 +627,17 @@
                 </div>
 
                 <div class="atendimento-retirada__meta">
-                  <span
-                    class="atendimento-retirada__status ui-badge"
-                    [attr.data-status]="retirada.status"
-                  >
-                    {{ retirada.status === 'VALIDA' ? 'Válida' : 'Estornada' }}
-                  </span>
-                  <span>{{ retirada.operador.login }}</span>
-                  <span>{{ horaLabel(retirada.ocorridoEm) }}</span>
+                  <app-status-badge
+                    [status]="retirada.status"
+                    [tone]="retirada.status === 'VALIDA' ? 'success' : 'danger'"
+                    [label]="retirada.status === 'VALIDA' ? 'Válida' : 'Estornada'"
+                  />
+                  <span><app-icon name="user" /> {{ retirada.operador.login }}</span>
+                  <span><app-icon name="clock" /> {{ retirada.ocorridoEm | dataBr: 'hora' }}</span>
                   @if (podeEstornar(retirada)) {
                     <button
                       type="button"
-                      class="btn btn-secondary"
+                      class="secondary btn--sm"
                       [disabled]="estornoEmAndamentoId() !== null"
                       (click)="solicitarEstorno(retirada)"
                     >
@@ -663,3 +657,17 @@
     }
   }
 </section>
+
+@if (confirmacao.atual(); as c) {
+  <app-confirm-dialog
+    [title]="c.title"
+    [message]="c.message ?? ''"
+    [confirmLabel]="c.confirmLabel ?? 'Confirmar'"
+    [danger]="!!c.danger"
+    [campos]="c.campos ?? []"
+    [valores]="confirmacao.valores()"
+    (campoAlterado)="confirmacao.alterarCampo($event)"
+    (confirm)="confirmacao.responder(true)"
+    (dismiss)="confirmacao.responder(false)"
+  />
+}

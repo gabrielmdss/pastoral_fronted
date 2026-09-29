@@ -78,6 +78,19 @@ describe('AtendimentoApiService - retiradas', () => {
     estorno.flush(null);
   });
 
+  it('envia tipos de exceção com forma e justificativa aceitas pelo backend', () => {
+    service.registrarRetirada('3', {
+      beneficiarioId: '1', tipo: 'ANTECIPADA', formaIdentificacao: 'FOTO_HISTORICO',
+      representante: null, justificativaExcecao: '  Viagem médica  ',
+    }).subscribe();
+    const request = http.expectOne('http://localhost:3101/api/v1/distribuicoes/3/retiradas');
+    expect(request.request.body).toEqual({
+      beneficiarioId: '1', tipo: 'ANTECIPADA', formaIdentificacao: 'FOTO_HISTORICO',
+      representante: null, justificativaExcecao: 'Viagem médica',
+    });
+    request.flush({ data: { id: '18' } });
+  });
+
   it('consulta histórico, registra e avalia justificativa pelos contratos reais', () => {
     service.listarAusenciasBeneficiario('1').subscribe();
     const historico = http.expectOne('http://localhost:3101/api/v1/beneficiarios/1/historico');

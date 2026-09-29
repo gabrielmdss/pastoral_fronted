@@ -1,108 +1,150 @@
-@if (id()) {
-  <a class="back-link" routerLink="/montagem">← Voltar para lotes</a>
+@if (distribuicaoDestino(); as distribuicaoId) {
+  <a class="back-link" [routerLink]="['/distribuicoes', distribuicaoId, 'liberacoes']">
+    <app-icon name="arrow-left" /> Voltar para a liberação da distribuição {{ distribuicaoId }}
+  </a>
 }
-<header class="ui-header">
-  <div>
-    <p class="eyebrow">Preparação</p>
-    <h1>{{ id() ? 'Lote de cestas ' + id() : 'Montagem e lotes' }}</h1>
-    <p>Cada lote consome insumos do estoque e registra a versão do modelo usada.</p>
-  </div>
-  <div class="actions">
-    <button type="button" class="secondary" (click)="carregar()" [disabled]="loading() || saving()">
-      Atualizar consulta
+@if (id()) {
+  <a
+    class="back-link"
+    routerLink="/montagem"
+    [queryParams]="distribuicaoDestino() ? { distribuicao: distribuicaoDestino() } : {}"
+  >
+    <app-icon name="arrow-left" /> Voltar para lotes
+  </a>
+}
+<app-page-header
+  eyebrow="Preparação"
+  [title]="id() ? 'Lote de cestas #' + id() : 'Montagem e lotes'"
+  description="Cada lote consome insumos do estoque e registra a versão do modelo usada."
+>
+  @if (lote(); as l) {
+    <span meta class="ui-actions">
+      <app-status-badge [status]="l.status" />
+      @if (l.possuiAjustes) {
+        <app-status-badge status="AJUSTADO" label="Composição ajustada" />
+      }
+    </span>
+  }
+  <div actions class="ui-actions">
+    <button type="button" class="btn--ghost" (click)="carregar()" [disabled]="loading() || saving()">
+      <app-icon name="refresh" /> Atualizar consulta
     </button>
     @if (!id() && podeMontar) {
       <button type="button" (click)="criando.set(!criando())" [disabled]="loading() || saving()">
-        {{ criando() ? 'Fechar montagem' : 'Montar novo lote' }}
+        <app-icon [name]="criando() ? 'x' : 'package-plus'" /> {{ criando() ? 'Fechar montagem' : 'Montar novo lote' }}
       </button>
     }
+    @if (lote()) {
+      @if (podeAjustar()) {
+        <button type="button" class="secondary" data-action="ajustar" (click)="abrirAcao('ajuste')" [disabled]="saving() || loading()">
+          <app-icon name="wrench" /> Ajustar lote
+        </button>
+      }
+      @if (podeDesmontar()) {
+        <button type="button" class="danger" data-action="desmontar" (click)="abrirAcao('desmontagem')" [disabled]="saving() || loading()">
+          <app-icon name="trash" /> Desmontar cestas
+        </button>
+      }
+    }
   </div>
-</header>
-@if (feedback()) {
-  <p class="ui-message ui-message--success" role="status">{{ feedback() }}</p>
-}
-@if (mutationError()) {
+</app-page-header>
+
+<ol class="ui-steps" aria-label="Etapas da preparação">
+  <li class="ui-steps__item is-done"><span class="ui-tone ui-tone--success"><app-icon name="check" /></span> 1. Planejamento</li>
+  <li class="ui-steps__item is-current" aria-current="step"><span class="ui-tone ui-tone--primary"><app-icon name="boxes" /></span> 2. Montagem</li>
+  <li class="ui-steps__item"><span class="ui-tone ui-tone--neutral"><app-icon name="send" /></span> 3. Liberação</li>
+</ol>
+
+@if (mutationError() && !acao() && !criando()) {
   <p class="ui-message ui-message--error" role="alert">{{ mutationError() }}</p>
 }
+
 @if (loading()) {
-  <app-loading-state label="Consultando lotes e estoque…" />
+  <app-loading-state [variant]="id() ? 'detail' : 'table'" [rows]="5" [columns]="7" label="Consultando lotes e estoque…" />
 } @else if (error()) {
-  <app-error-state [message]="error()" (retry)="carregar()" />
+  <app-error-state [message]="error()" (retry)="carregar()" title="Não foi possível carregar a montagem" />
 } @else {
   @if (!id()) {
     @if (criando() && podeMontar) {
-      <form class="form-grid ui-panel" [formGroup]="form" (ngSubmit)="montar()">
-        <h2>Montar novo lote</h2>
-        <fieldset class="form-grid" [disabled]="saving()">
-          <legend>Planejamento e quantidade</legend>
-          <label
-            >Planejamento<select formControlName="planejamentoId">
-              <option value="">Selecione</option>
-              @for (p of planos(); track p.id) {
-                <option [value]="p.id">{{ p.modelo }} · {{ p.mes }}/{{ p.ano }}</option>
-              }
-            </select></label
-          >
-          @if (!planos().length) {
-            <app-empty-state title="Sem planejamentos" message="Nenhum planejamento disponível." />
-          }
-          @if (planLoading()) {
-            <p role="status">Consultando versões…</p>
-          }
-          @if (planError()) {
-            <p role="alert" class="ui-message ui-message--error">{{ planError() }}</p>
-            <button type="button" class="secondary" (click)="carregarPlano()">
-              Tentar consultar planejamento novamente
+      <div class="ui-dialog-backdrop">
+        <form class="ui-dialog" role="dialog" aria-modal="true" aria-labelledby="dlg-montar" [formGroup]="form" (ngSubmit)="montar()">
+          <header class="ui-dialog__header">
+            <div>
+              <h2 id="dlg-montar">Montar novo lote</h2>
+              <p>A montagem consome insumos. A disponibilidade e as reservas serão verificadas pelo estoque.</p>
+            </div>
+            <button type="button" class="btn--ghost btn--icon btn--sm" aria-label="Fechar" [disabled]="saving()" (click)="criando.set(false)">
+              <app-icon name="x" />
             </button>
-          }
-          <label
-            >Versão aprovada do planejamento<select formControlName="planejamentoVersaoId">
-              <option value="">Selecione</option>
-              @for (v of aprovadas(); track v.id) {
-                <option [value]="v.id">
-                  Versão {{ v.numeroVersao }} · {{ v.quantidadePlanejada }} cestas planejadas
-                </option>
+          </header>
+          <div class="ui-dialog__body">
+            <fieldset class="ui-fieldset--plain ui-stack" [disabled]="saving()">
+              <legend class="sr-only">Planejamento e quantidade</legend>
+              @if (mutationError()) {
+                <p class="ui-message ui-message--error" role="alert">{{ mutationError() }}</p>
               }
-            </select></label
-          >
-          @if (plano() && !aprovadas().length) {
-            <app-empty-state title="Sem versão aprovada" message="Este planejamento não possui versão aprovada para montagem." />
-          }
-          <label
-            >Quantidade de cestas<input
-              type="number"
-              formControlName="quantidade"
-              min="1"
-              step="1"
-              required
-          /></label>
-          @if (form.controls.quantidade.touched && form.controls.quantidade.invalid) {
-            <p class="field-error">Informe uma quantidade inteira maior que zero.</p>
-          }
-        </fieldset>
-        <p class="hint">
-          A montagem consome insumos. A disponibilidade e as reservas serão verificadas pelo
-          estoque.
-        </p>
-        <button
-          type="submit"
-          [disabled]="saving() || planLoading() || form.invalid || !!planError()"
-        >
-          {{ saving() ? 'Montando…' : 'Confirmar montagem' }}
-        </button>
-      </form>
+              <label class="ui-field">
+                <span class="ui-field__label">Planejamento</span>
+                <select formControlName="planejamentoId">
+                  <option value="">Selecione</option>
+                  @for (p of planos(); track p.id) {
+                    <option [value]="p.id">{{ p.modelo }} · {{ { mes: p.mes, ano: p.ano } | competencia }}</option>
+                  }
+                </select>
+              </label>
+              @if (!planos().length) {
+                <app-empty-state title="Sem planejamentos" message="Nenhum planejamento disponível." icon="calendar-range" />
+              }
+              @if (planLoading()) {
+                <p class="text-sm text-muted" role="status">Consultando versões…</p>
+              }
+              @if (planError()) {
+                <div role="alert" class="ui-message ui-message--error">
+                  {{ planError() }}
+                  <button type="button" class="secondary btn--sm" (click)="carregarPlano()">Tentar consultar planejamento novamente</button>
+                </div>
+              }
+              <label class="ui-field">
+                <span class="ui-field__label">Versão aprovada do planejamento</span>
+                <select formControlName="planejamentoVersaoId">
+                  <option value="">Selecione</option>
+                  @for (v of aprovadas(); track v.id) {
+                    <option [value]="v.id">Versão {{ v.numeroVersao }} · {{ v.quantidadePlanejada | number }} cestas planejadas</option>
+                  }
+                </select>
+              </label>
+              @if (plano() && !aprovadas().length) {
+                <app-empty-state title="Sem versão aprovada" message="Este planejamento não possui versão aprovada para montagem." icon="calendar-range" />
+              }
+              <label class="ui-field">
+                <span class="ui-field__label">Quantidade de cestas</span>
+                <input type="number" formControlName="quantidade" min="1" step="1" required />
+                @if (form.controls.quantidade.touched && form.controls.quantidade.invalid) {
+                  <span class="ui-field__error">Informe uma quantidade inteira maior que zero.</span>
+                }
+              </label>
+            </fieldset>
+          </div>
+          <footer class="ui-dialog__footer">
+            <button type="button" class="secondary" [disabled]="saving()" (click)="criando.set(false)">Cancelar</button>
+            <button type="submit" [class.is-loading]="saving()" [disabled]="saving() || planLoading() || form.invalid || !!planError()">
+              {{ saving() ? 'Montando…' : 'Confirmar montagem' }}
+            </button>
+          </footer>
+        </form>
+      </div>
     }
     @if (!lotes().length) {
-      <app-empty-state title="Sem lotes" message="Nenhum lote de montagem encontrado." />
+      <app-empty-state title="Sem lotes" message="Nenhum lote de montagem encontrado." icon="boxes" />
     } @else {
-      <section class="ui-panel">
-        <div class="table-scroll" tabindex="0" role="region" aria-label="Lotes de montagem">
-          <table>
+      <app-section-card [flush]="true" title="Lotes" [description]="(lotes().length | number) + ' lotes montados'">
+        <div class="ui-table-wrap" tabindex="0" role="region" aria-label="Lotes de montagem">
+          <table class="ui-table ui-table--cards">
             <thead>
               <tr>
                 <th scope="col">Lote</th>
                 <th scope="col">Modelo / competência</th>
-                <th scope="col">Versão do planejamento</th>
+                <th scope="col" class="number">Versão</th>
                 <th scope="col" class="number">Montadas</th>
                 <th scope="col" class="number">Disponíveis</th>
                 <th scope="col">Estado</th>
@@ -113,292 +155,334 @@
             <tbody>
               @for (l of lotes(); track l.id) {
                 <tr>
-                  <td>
-                    <a [routerLink]="['/montagem', l.id]">Lote {{ l.id }}</a>
+                  <td data-label="Lote">
+                    <a
+                      [routerLink]="['/montagem', l.id]"
+                      [queryParams]="distribuicaoDestino() ? { distribuicao: distribuicaoDestino() } : {}"
+                      ><strong>Lote {{ l.id }}</strong></a
+                    >
+                    @if (l.possuiAjustes) {
+                      <span class="ui-badge ui-badge--warning">Composição ajustada</span>
+                    }
                   </td>
-                  <td>
+                  <td data-label="Modelo / competência">
                     @if (planoPorId().get(l.planejamento.id); as p) {
-                      {{ p.modelo }} · {{ p.mes }}/{{ p.ano }}
+                      {{ p.modelo }} · {{ { mes: p.mes, ano: p.ano } | competencia }}
                     } @else {
                       Planejamento {{ l.planejamento.id }}
                     }
                   </td>
-                  <td>{{ l.planejamento.numeroVersao }}</td>
-                  <td class="number">{{ l.quantidadeMontada }}</td>
-                  <td class="number">{{ l.quantidadeDisponivel }}</td>
-                  <td>
-                    <app-status-badge [status]="l.status" />
-                  </td>
-                  <td>{{ l.montadoEm | date: 'dd/MM/yyyy HH:mm' }}</td>
-                  <td>{{ l.responsavel.login }}</td>
+                  <td class="number" data-label="Versão">v{{ l.planejamento.numeroVersao }}</td>
+                  <td class="number" data-label="Montadas">{{ l.quantidadeMontada | number }}</td>
+                  <td class="number" data-label="Disponíveis"><strong>{{ l.quantidadeDisponivel | number }}</strong></td>
+                  <td data-label="Estado"><app-status-badge [status]="l.status" /></td>
+                  <td data-label="Montagem">{{ l.montadoEm | dataBr: 'dataHora' }}</td>
+                  <td data-label="Responsável" class="text-muted">{{ l.responsavel.login }}</td>
                 </tr>
               }
             </tbody>
           </table>
         </div>
-      </section>
+      </app-section-card>
     }
   }
+
   @if (lote(); as l) {
-    <section class="ui-panel">
-      <header class="ui-section-header">
-        <div>
-          <h2>{{ l.quantidadeDisponivel }} cestas disponíveis</h2>
-          <p>
-            {{ l.quantidadeMontada }} cestas montadas ·
-            {{ l.montadoEm | date: 'dd/MM/yyyy HH:mm' }} · {{ l.responsavel.login }}
-          </p>
-        </div>
-        <app-status-badge [status]="l.status" />
-      </header>
-      <p>
-        <a [routerLink]="['/planejamentos', l.planejamento.id]">
-          @if (planoPorId().get(l.planejamento.id); as p) {
-            {{ p.modelo }} · {{ p.mes }}/{{ p.ano }}
-          } @else {
-            Planejamento {{ l.planejamento.id }}
-          }
-          · Versão {{ l.planejamento.numeroVersao }} do planejamento</a
-        >
-      </p>
-    </section>
-    <section class="ui-panel">
-      <h2>Composição efetiva do lote</h2>
-      @if (!l.itens.length) {
-        <app-empty-state title="Sem itens" message="Nenhum item retornado para este lote." />
-      } @else {
-        <div class="table-scroll" tabindex="0" role="region" aria-label="Composição do lote">
-          <table>
-            <thead>
-              <tr>
-                <th scope="col">Insumo</th>
-                <th scope="col">Apresentação</th>
-                <th scope="col" class="number">Total no lote</th>
-                <th scope="col" class="number">Saldo físico atual</th>
-                <th scope="col" class="number">Reservado atual</th>
-                <th scope="col" class="number">Disponível atual</th>
-              </tr>
-            </thead>
-            <tbody>
-              @for (i of l.itens; track i.apresentacaoInsumoId) {
-                <tr>
-                  <td>
-                    {{
-                      insumoPorId().get(i.apresentacaoInsumoId)?.insumo || 'Insumo não encontrado'
-                    }}
-                  </td>
-                  <td>
-                    {{
-                      insumoPorId().get(i.apresentacaoInsumoId)?.apresentacao ||
-                        i.apresentacaoInsumoId
-                    }}
-                  </td>
-                  <td class="number">{{ i.quantidadeTotal ?? '—' }}</td>
-                  <td class="number">
-                    {{ insumoPorId().get(i.apresentacaoInsumoId)?.saldoFisico ?? '—' }}
-                  </td>
-                  <td class="number">
-                    {{ insumoPorId().get(i.apresentacaoInsumoId)?.saldoReservado ?? '—' }}
-                  </td>
-                  <td class="number">
-                    {{ insumoPorId().get(i.apresentacaoInsumoId)?.saldoDisponivel ?? '—' }}
-                  </td>
-                </tr>
-              }
-            </tbody>
-          </table>
-        </div>
-      }
-      <p class="hint">
-        Saldos da consulta atual de estoque, compartilhados entre as operações. Não representam o
-        consumo histórico deste lote.
-      </p>
-    </section>
-    <div class="actions">
-      @if (podeAjustar()) {
-        <button
-          type="button"
-          class="secondary"
-          data-action="ajustar"
-          (click)="abrirAcao('ajuste')"
-          [disabled]="saving() || loading()"
-        >
-          Ajustar lote
-        </button>
-      }
-      @if (podeDesmontar()) {
-        <button
-          type="button"
-          class="danger"
-          data-action="desmontar"
-          (click)="abrirAcao('desmontagem')"
-          [disabled]="saving() || loading()"
-        >
-          Desmontar cestas
-        </button>
-      }
+    <div class="ui-grid ui-grid--3">
+      <app-metric-card label="Cestas disponíveis" icon="package" tone="success" [delayMs]="0">
+        {{ l.quantidadeDisponivel | number }}
+      </app-metric-card>
+      <app-metric-card label="Cestas montadas" icon="boxes" tone="primary" [delayMs]="60">
+        {{ l.quantidadeMontada | number }}
+      </app-metric-card>
+      <app-metric-card label="Itens na composição" icon="layers" tone="info" [delayMs]="120">
+        {{ l.itens.length | number }}
+      </app-metric-card>
     </div>
+
     @if (l.possuiAjustes) {
       <p class="ui-message ui-message--warning" role="status">
         Este lote possui ajustes e só pode ser desmontado integralmente, com todas as cestas
         disponíveis.
       </p>
     }
-    @if (acao() === 'ajuste' && podeAjustar()) {
-      <form class="form-grid ui-panel" [formGroup]="ajusteForm" (ngSubmit)="confirmarAcao()">
-        <h2>Ajustar lote</h2>
-        <fieldset class="form-grid" [disabled]="saving()">
-          <legend>Cestas e itens do ajuste</legend>
-          <label
-            >Quantidade de cestas afetadas<input
-              type="number"
-              formControlName="quantidadeCestasAfetadas"
-              min="1"
-              [max]="l.quantidadeDisponivel"
-              step="1"
-              required
-          /></label>
-          <label>Motivo<textarea formControlName="motivo" required></textarea></label>
 
-          <div class="dnd-layout">
-            <div class="dnd-source" aria-label="Insumos disponíveis para arrastar até a cesta">
-              <p class="dnd-hint">
-                Arraste um insumo até a cesta para adicioná-lo, ou use o formulário abaixo.
+    <div class="ui-grid ui-grid--sidebar">
+      <app-section-card title="Composição efetiva do lote" [flush]="true">
+        @if (!l.itens.length) {
+          <app-empty-state title="Sem itens" message="Nenhum item retornado para este lote." icon="layers" />
+        } @else {
+          <div class="ui-table-wrap" tabindex="0" role="region" aria-label="Composição do lote">
+            <table class="ui-table ui-table--cards">
+              <thead>
+                <tr>
+                  <th scope="col">Insumo</th>
+                  <th scope="col">Apresentação</th>
+                  <th scope="col" class="number">Média por cesta</th>
+                  <th scope="col" class="number">Total no lote</th>
+                  <th scope="col" class="number">Saldo físico atual</th>
+                  <th scope="col" class="number">Reservado atual</th>
+                  <th scope="col" class="number">Disponível atual</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (i of l.itens; track i.apresentacaoInsumoId) {
+                  @let saldo = insumoPorId().get(i.apresentacaoInsumoId);
+                  <tr>
+                    <td data-label="Insumo"><strong>{{ saldo?.insumo || 'Insumo não encontrado' }}</strong></td>
+                    <td data-label="Apresentação" class="text-muted">{{ saldo?.apresentacao || i.apresentacaoInsumoId }}</td>
+                    <td class="number" data-label="Média por cesta">{{ i.quantidadePorCesta | number: '1.0-2' }}</td>
+                    <td class="number" data-label="Total no lote">{{ (i.quantidadeTotal | number) ?? '—' }}</td>
+                    <td class="number" data-label="Saldo físico atual">{{ (saldo?.saldoFisico | number) ?? '—' }}</td>
+                    <td class="number" data-label="Reservado atual">{{ (saldo?.saldoReservado | number) ?? '—' }}</td>
+                    <td class="number" data-label="Disponível atual">{{ (saldo?.saldoDisponivel | number) ?? '—' }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+        <p footer class="ui-card__footer text-xs text-muted">
+          Saldos da consulta atual de estoque, compartilhados entre as operações. Não representam o
+          consumo histórico deste lote.
+        </p>
+      </app-section-card>
+
+      <div class="ui-stack">
+        <app-section-card title="Dados do lote">
+          <dl class="ui-dl">
+            <div>
+              <dt>Planejamento de origem</dt>
+              <dd>
+                <a [routerLink]="['/planejamentos', l.planejamento.id]">
+                  @if (planoPorId().get(l.planejamento.id); as p) {
+                    {{ p.modelo }} · {{ { mes: p.mes, ano: p.ano } | competencia }}
+                  } @else {
+                    Planejamento {{ l.planejamento.id }}
+                  }
+                  · Versão {{ l.planejamento.numeroVersao }} do planejamento
+                </a>
+              </dd>
+            </div>
+            <div><dt>Montagem</dt><dd>{{ l.montadoEm | dataBr: 'dataHora' }}</dd></div>
+            <div><dt>Responsável</dt><dd>{{ l.responsavel.login }}</dd></div>
+          </dl>
+        </app-section-card>
+
+        @if (l.status === 'ATIVO' && l.quantidadeDisponivel > 0) {
+          <app-section-card title="Liberação para distribuição" data-section="liberacao">
+            @if (!podeLiberar) {
+              <p class="text-sm text-muted">
+                <app-icon name="shield" /> A liberação de cestas para uma distribuição exige a permissão de liberar cestas.
               </p>
-              <div class="dnd-source__list">
-                @for (insumo of estoque(); track insumo.apresentacaoId) {
-                  <div
-                    class="dnd-card"
-                    [class.is-dragging]="arrastandoInsumoId() === insumo.apresentacaoId"
-                    [attr.draggable]="!saving()"
-                    tabindex="0"
-                    role="button"
-                    [attr.aria-label]="'Adicionar ' + insumo.insumo + ' · ' + insumo.apresentacao + ' à cesta'"
-                    (dragstart)="onDragStartInsumo($event, insumo)"
-                    (dragend)="onDragEndInsumo()"
-                    (keydown.enter)="adicionarItemArrastado(insumo.apresentacaoId)"
-                    (keydown.space)="$event.preventDefault(); adicionarItemArrastado(insumo.apresentacaoId)"
-                  >
-                    <span class="dnd-card__grip" aria-hidden="true">⠿⠿</span>
-                    <span class="dnd-card__label">{{ insumo.insumo }} · {{ insumo.apresentacao }}</span>
+            } @else if (distribuicaoDestino(); as distribuicaoId) {
+              <a class="btn btn--primary btn--block" data-action="liberar" [routerLink]="['/distribuicoes', distribuicaoId, 'liberacoes']">
+                <app-icon name="send" /> Liberar cestas deste lote para a distribuição {{ distribuicaoId }}
+              </a>
+            } @else if (podeDistribuicoes) {
+              <div class="ui-stack ui-stack--sm">
+                <p class="text-sm text-muted">
+                  O lote não está vinculado a uma distribuição. Escolha a distribuição e, na tela de
+                  liberação, selecione o lote {{ l.id }}.
+                </p>
+                <a class="btn btn--secondary" data-action="escolher-distribuicao" routerLink="/distribuicoes">
+                  Escolher distribuição <app-icon name="arrow-right" />
+                </a>
+              </div>
+            } @else {
+              <p class="text-sm text-muted">Para liberar, é necessário acesso à consulta de distribuições.</p>
+            }
+          </app-section-card>
+        }
+      </div>
+    </div>
+
+    @if (acao() === 'ajuste' && podeAjustar()) {
+      <div class="ui-dialog-backdrop">
+        <form class="ui-dialog ui-dialog--lg" role="dialog" aria-modal="true" aria-labelledby="dlg-ajuste" [formGroup]="ajusteForm" (ngSubmit)="confirmarAcao()">
+          <header class="ui-dialog__header">
+            <div>
+              <h2 id="dlg-ajuste">Ajustar lote</h2>
+              <p>O estoque validará o conteúdo efetivo e a disponibilidade dos insumos.</p>
+            </div>
+            <button type="button" class="btn--ghost btn--icon btn--sm" aria-label="Fechar" (click)="acao.set(null)" [disabled]="saving()">
+              <app-icon name="x" />
+            </button>
+          </header>
+          <div class="ui-dialog__body">
+            <fieldset class="ui-fieldset--plain ui-stack" [disabled]="saving()">
+              <legend class="sr-only">Cestas e itens do ajuste</legend>
+              @if (mutationError()) {
+                <p class="ui-message ui-message--error" role="alert">{{ mutationError() }}</p>
+              }
+              <div class="ui-grid ui-grid--2">
+                <label class="ui-field">
+                  <span class="ui-field__label">Quantidade de cestas afetadas</span>
+                  <input type="number" formControlName="quantidadeCestasAfetadas" min="1" [max]="l.quantidadeDisponivel" step="1" required />
+                  <span class="ui-field__hint">Até {{ l.quantidadeDisponivel | number }} cestas disponíveis</span>
+                </label>
+                <label class="ui-field">
+                  <span class="ui-field__label">Motivo</span>
+                  <textarea rows="2" formControlName="motivo" required></textarea>
+                </label>
+              </div>
+
+              <div class="dnd-layout">
+                <div class="dnd-source" aria-label="Insumos disponíveis para arrastar até a cesta">
+                  <p class="dnd-hint">Arraste um insumo até a cesta para adicioná-lo, ou use o formulário abaixo.</p>
+                  <div class="dnd-source__list">
+                    @for (insumo of estoque(); track insumo.apresentacaoId) {
+                      <div
+                        class="dnd-card"
+                        [class.is-dragging]="arrastandoInsumoId() === insumo.apresentacaoId"
+                        [attr.draggable]="!saving()"
+                        tabindex="0"
+                        role="button"
+                        [attr.aria-label]="'Adicionar ' + insumo.insumo + ' · ' + insumo.apresentacao + ' à cesta'"
+                        (dragstart)="onDragStartInsumo($event, insumo)"
+                        (dragend)="onDragEndInsumo()"
+                        (keydown.enter)="adicionarItemArrastado(insumo.apresentacaoId)"
+                        (keydown.space)="$event.preventDefault(); adicionarItemArrastado(insumo.apresentacaoId)"
+                      >
+                        <app-icon name="chevrons-up-down" />
+                        <span class="dnd-card__label">{{ insumo.insumo }} · {{ insumo.apresentacao }}</span>
+                      </div>
+                    }
+                  </div>
+                </div>
+                <div
+                  class="dnd-basket"
+                  [class.is-dragover]="dragOverDropzone()"
+                  [class.is-dropped]="!!ultimoItemEncaixado()"
+                  role="button"
+                  tabindex="0"
+                  aria-label="Soltar insumo aqui para adicionar à composição do lote"
+                  (dragover)="onDragOverDropzone($event)"
+                  (dragleave)="onDragLeaveDropzone()"
+                  (drop)="onDropInsumo($event)"
+                >
+                  <app-icon name="package-plus" [size]="32" />
+                  <span class="dnd-basket__label">Solte aqui para adicionar à cesta</span>
+                </div>
+              </div>
+              @if (ultimoItemEncaixado()) {
+                <p class="ui-badge ui-badge--success" role="status">{{ ultimoItemEncaixado() }} adicionado à cesta.</p>
+              }
+
+              <div formArrayName="itens" class="ui-stack ui-stack--sm">
+                @for (item of ajusteForm.controls.itens.controls; track item; let index = $index) {
+                  <div class="ui-panel ui-form-row" [formGroupName]="index">
+                    <label class="ui-field">
+                      <span class="ui-field__label">Item {{ index + 1 }} · Apresentação</span>
+                      <select formControlName="apresentacaoInsumoId" required>
+                        <option value="">Selecione</option>
+                        @for (insumo of estoque(); track insumo.apresentacaoId) {
+                          <option [value]="insumo.apresentacaoId">{{ insumo.insumo }} · {{ insumo.apresentacao }}</option>
+                        }
+                      </select>
+                    </label>
+                    <label class="ui-field">
+                      <span class="ui-field__label">Operação</span>
+                      <select formControlName="operacao">
+                        <option value="ADICIONAR">Adicionar ao lote</option>
+                        <option value="REMOVER">Remover do lote</option>
+                      </select>
+                    </label>
+                    <label class="ui-field">
+                      <span class="ui-field__label">Unidades por cesta afetada</span>
+                      <input type="number" formControlName="quantidadePorCesta" min="1" step="1" required />
+                    </label>
+                    <button
+                      type="button"
+                      class="btn--ghost btn--icon"
+                      [attr.aria-label]="'Remover item ' + (index + 1) + ' do formulário'"
+                      (click)="removerItemAjuste(index)"
+                      [disabled]="saving() || ajusteForm.controls.itens.length === 1"
+                    >
+                      <app-icon name="trash" />
+                    </button>
                   </div>
                 }
+                <div>
+                  <button type="button" class="secondary btn--sm" (click)="adicionarItemAjuste()">
+                    <app-icon name="plus" /> Adicionar item ao formulário
+                  </button>
+                </div>
               </div>
-            </div>
-            <div
-              class="dnd-basket"
-              [class.is-dragover]="dragOverDropzone()"
-              [class.is-dropped]="!!ultimoItemEncaixado()"
-              role="button"
-              tabindex="0"
-              aria-label="Soltar insumo aqui para adicionar à composição do lote"
-              (dragover)="onDragOverDropzone($event)"
-              (dragleave)="onDragLeaveDropzone()"
-              (drop)="onDropInsumo($event)"
-            >
-              <span class="dnd-basket__icon" aria-hidden="true">🧺</span>
-              <span class="dnd-basket__label">Solte aqui para adicionar à cesta</span>
-            </div>
-          </div>
-          @if (ultimoItemEncaixado()) {
-            <p class="dnd-toast" role="status">{{ ultimoItemEncaixado() }} adicionado à cesta.</p>
-          }
-
-          <div formArrayName="itens">
-            @for (item of ajusteForm.controls.itens.controls; track item; let index = $index) {
-              <fieldset class="form-grid" [formGroupName]="index">
-                <legend>Item {{ index + 1 }}</legend>
-                <label
-                  >Apresentação<select formControlName="apresentacaoInsumoId" required>
-                    <option value="">Selecione</option>
-                    @for (insumo of estoque(); track insumo.apresentacaoId) {
-                      <option [value]="insumo.apresentacaoId">
-                        {{ insumo.insumo }} · {{ insumo.apresentacao }}
-                      </option>
-                    }
-                  </select></label
-                >
-                <label
-                  >Operação<select formControlName="operacao">
-                    <option value="ADICIONAR">Adicionar ao lote</option>
-                    <option value="REMOVER">Remover do lote</option>
-                  </select></label
-                >
-                <label
-                  >Unidades por cesta afetada<input
-                    type="number"
-                    formControlName="quantidadePorCesta"
-                    min="1"
-                    step="1"
-                    required
-                /></label>
-                <button
-                  type="button"
-                  class="secondary"
-                  (click)="removerItemAjuste(index)"
-                  [disabled]="saving() || ajusteForm.controls.itens.length === 1"
-                >
-                  Remover item {{ index + 1 }} do formulário
-                </button>
-              </fieldset>
+            </fieldset>
+            @if (ajusteForm.touched && ajusteForm.invalid) {
+              <p class="ui-field__error" role="alert">
+                Informe o motivo, as apresentações e quantidades inteiras positivas dentro do limite de
+                cestas disponíveis.
+              </p>
             }
           </div>
-          <button type="button" class="secondary" (click)="adicionarItemAjuste()">
-            Adicionar item ao formulário
-          </button>
-        </fieldset>
-        @if (ajusteForm.touched && ajusteForm.invalid) {
-          <p class="field-error" role="alert">
-            Informe o motivo, as apresentações e quantidades inteiras positivas dentro do limite de
-            cestas disponíveis.
-          </p>
-        }
-        <p class="hint">O estoque validará o conteúdo efetivo e a disponibilidade dos insumos.</p>
-        <div class="actions">
-          <button type="submit" [disabled]="saving() || ajusteForm.invalid">
-            {{ saving() ? 'Ajustando…' : 'Confirmar ajuste' }}
-          </button>
-          <button type="button" class="secondary" (click)="acao.set(null)" [disabled]="saving()">
-            Cancelar
-          </button>
-        </div>
-      </form>
+          <footer class="ui-dialog__footer">
+            <button type="button" class="secondary" (click)="acao.set(null)" [disabled]="saving()">Cancelar</button>
+            <button type="submit" [class.is-loading]="saving()" [disabled]="saving() || ajusteForm.invalid">
+              {{ saving() ? 'Ajustando…' : 'Confirmar ajuste' }}
+            </button>
+          </footer>
+        </form>
+      </div>
     }
     @if (acao() === 'desmontagem' && podeDesmontar()) {
-      <form class="form-grid ui-panel" [formGroup]="desmontagemForm" (ngSubmit)="confirmarAcao()">
-        <h2>Desmontar cestas</h2>
-        <fieldset class="form-grid" [disabled]="saving()">
-          <legend>Quantidade e motivo da desmontagem</legend>
-          @if (l.permiteDesmontagemParcial) {
-            <label
-              >Quantidade de cestas<input
-                type="number"
-                formControlName="quantidade"
-                min="1"
-                [max]="l.quantidadeDisponivel"
-                step="1"
-                required
-            /></label>
-          } @else {
-            <p>Desmontagem integral: {{ l.quantidadeMontada }} cestas.</p>
-          }
-          <label>Motivo<textarea formControlName="motivo" required></textarea></label>
-        </fieldset>
-        @if (desmontagemForm.touched && desmontagemForm.invalid) {
-          <p class="field-error" role="alert">
-            Informe um motivo e uma quantidade inteira positiva dentro do limite de cestas
-            disponíveis.
-          </p>
-        }
-        <div class="actions">
-          <button type="submit" class="danger" [disabled]="saving() || desmontagemForm.invalid">
-            {{ saving() ? 'Desmontando…' : 'Confirmar desmontagem' }}
-          </button>
-          <button type="button" class="secondary" (click)="acao.set(null)" [disabled]="saving()">
-            Cancelar
-          </button>
-        </div>
-      </form>
+      <div class="ui-dialog-backdrop">
+        <form class="ui-dialog" role="dialog" aria-modal="true" aria-labelledby="dlg-desmontar" [formGroup]="desmontagemForm" (ngSubmit)="confirmarAcao()">
+          <header class="ui-dialog__header">
+            <div>
+              <h2 id="dlg-desmontar">Desmontar cestas</h2>
+              <p>Informe a quantidade e o motivo da desmontagem.</p>
+            </div>
+            <button type="button" class="btn--ghost btn--icon btn--sm" aria-label="Fechar" (click)="acao.set(null)" [disabled]="saving()">
+              <app-icon name="x" />
+            </button>
+          </header>
+          <div class="ui-dialog__body">
+            <fieldset class="ui-fieldset--plain ui-stack" [disabled]="saving()">
+              <legend class="sr-only">Quantidade e motivo da desmontagem</legend>
+              @if (mutationError()) {
+                <p class="ui-message ui-message--error" role="alert">{{ mutationError() }}</p>
+              }
+              @if (l.permiteDesmontagemParcial) {
+                <label class="ui-field">
+                  <span class="ui-field__label">Quantidade de cestas</span>
+                  <input type="number" formControlName="quantidade" min="1" [max]="l.quantidadeDisponivel" step="1" required />
+                </label>
+              } @else {
+                <p class="ui-message ui-message--warning">Desmontagem integral: {{ l.quantidadeMontada }} cestas.</p>
+              }
+              <label class="ui-field">
+                <span class="ui-field__label">Motivo</span>
+                <textarea rows="3" formControlName="motivo" required></textarea>
+              </label>
+            </fieldset>
+            @if (desmontagemForm.touched && desmontagemForm.invalid) {
+              <p class="ui-field__error" role="alert">
+                Informe um motivo e uma quantidade inteira positiva dentro do limite de cestas
+                disponíveis.
+              </p>
+            }
+          </div>
+          <footer class="ui-dialog__footer">
+            <button type="button" class="secondary" (click)="acao.set(null)" [disabled]="saving()">Cancelar</button>
+            <button type="submit" class="danger" [class.is-loading]="saving()" [disabled]="saving() || desmontagemForm.invalid">
+              {{ saving() ? 'Desmontando…' : 'Confirmar desmontagem' }}
+            </button>
+          </footer>
+        </form>
+      </div>
     }
   }
+}
+
+@if (confirmacao.atual(); as c) {
+  <app-confirm-dialog
+    [title]="c.title"
+    [message]="c.message ?? ''"
+    [confirmLabel]="c.confirmLabel ?? 'Confirmar'"
+    [danger]="!!c.danger"
+    (confirm)="confirmacao.responder(true)"
+    (dismiss)="confirmacao.responder(false)"
+  />
 }

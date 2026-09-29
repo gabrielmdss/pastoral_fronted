@@ -15,6 +15,10 @@ import type {
   AvaliarJustificativaInput,
   RegistrarJustificativaInput,
 } from '../../domain/atendimento/justificativa.model';
+import type {
+  HistoricoBeneficiario,
+  HistoricoDistribuicao,
+} from '../../domain/atendimento/historico.model';
 
 export interface AtendimentoApiPort {
   listarCheckIns(
@@ -38,6 +42,10 @@ export interface AtendimentoApiPort {
   estornarRetirada(retiradaId: string, motivo: string): Observable<void>;
 
   listarAusenciasBeneficiario(beneficiarioId: string): Observable<AusenciaAtendimento[]>;
+
+  obterHistoricoBeneficiario(beneficiarioId: string): Observable<HistoricoBeneficiario>;
+
+  obterHistoricoDistribuicao(distribuicaoId: string): Observable<HistoricoDistribuicao>;
 
   registrarJustificativa(
     ausenciaId: string,

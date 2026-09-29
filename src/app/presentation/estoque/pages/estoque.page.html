@@ -1,332 +1,446 @@
-<header class="ui-header">
-  <div>
-    <p class="eyebrow">Preparação</p>
-    <h1>Estoque</h1>
-    <p>Insumos disponíveis para a montagem das cestas.</p>
+<app-page-header
+  eyebrow="Preparação"
+  title="Estoque"
+  description="Insumos disponíveis para a montagem das cestas."
+>
+  <div actions class="ui-actions">
+    <button class="btn--ghost" (click)="carregar()" [disabled]="loading() || saving()">
+      <app-icon name="refresh" /> Atualizar
+    </button>
+    @if (session.hasPermission('ESTOQUE_INSUMO_CADASTRAR')) {
+      <button class="secondary" (click)="abrir('insumo')" [disabled]="saving()">
+        <app-icon name="package-plus" /> Cadastrar insumo
+      </button>
+    }
+    @if (session.hasPermission('ESTOQUE_ENTRADA')) {
+      <button class="secondary" (click)="abrir('doador')" [disabled]="saving()">
+        <app-icon name="heart-handshake" /> Cadastrar doador
+      </button>
+    }
+    @if (session.hasPermission('ESTOQUE_PERDA')) {
+      <button class="secondary" (click)="abrir('perda')" [disabled]="saving()">
+        <app-icon name="file-warning" /> Registrar perda
+      </button>
+    }
+    @if (session.hasPermission('ESTOQUE_ENTRADA')) {
+      <button (click)="abrir('entrada')" [disabled]="saving()">
+        <app-icon name="plus" /> Registrar entrada
+      </button>
+    }
   </div>
-  <button class="secondary" (click)="carregar()" [disabled]="loading() || saving()">
-    Atualizar
-  </button>
-</header>
-<div class="actions">
-  @if (session.hasPermission('ESTOQUE_ENTRADA')) {
-    <button (click)="abrir('entrada')" [disabled]="saving()">Registrar entrada</button>
-  }
-  @if (session.hasPermission('ESTOQUE_PERDA')) {
-    <button class="danger" (click)="abrir('perda')" [disabled]="saving()">Registrar perda</button>
-  }
-  @if (session.hasPermission('ESTOQUE_INSUMO_CADASTRAR')) {
-    <button class="secondary" (click)="abrir('insumo')" [disabled]="saving()">
-      Cadastrar insumo
-    </button>
-  }
-  @if (session.hasPermission('ESTOQUE_ENTRADA')) {
-    <button class="secondary" (click)="abrir('doador')" [disabled]="saving()">
-      Cadastrar doador
-    </button>
-  }
-</div>
-@if (feedback()) {
-  <p class="ui-message ui-message--success" role="status">{{ feedback() }}</p>
-}
-@if (mutationError()) {
+</app-page-header>
+
+@if (mutationError() && !mode()) {
   <p class="ui-message ui-message--error" role="alert">{{ mutationError() }}</p>
 }
+
 @if (mode(); as activeMode) {
-  <section class="ui-panel">
+  <div class="ui-dialog-backdrop">
     @if (activeMode === 'entrada') {
-      <form class="form-grid" [formGroup]="entrada" (ngSubmit)="salvar()">
-        <h2>Registrar entrada</h2>
-        <fieldset class="form-section">
-          <legend>Origem da entrada</legend>
-          <label
-            >Tipo<select formControlName="tipo">
-              <option value="DOACAO">Doação</option>
-              <option value="COMPRA">Compra</option>
-              <option value="SALDO_INICIAL">Saldo inicial</option>
-              <option value="AJUSTE_POSITIVO">Ajuste positivo</option>
-            </select></label
-          >
-          <label
-            >Doador (opcional)<select formControlName="doadorId">
-              <option value="">Não informado</option>
-              @for (d of doadores(); track d.id) {
-                <option [value]="d.id">{{ d.nome }}{{ d.ativo ? '' : ' (inativo)' }}</option>
-              }
-            </select></label
-          >
-          <label
-            >Data da entrada (opcional)<input type="date" formControlName="dataEntrada"
-          /></label>
-        </fieldset>
-        <fieldset class="form-section">
-          <legend>Itens recebidos</legend>
-          <div formArrayName="itens" class="form-section__items">
+      <form
+        class="ui-dialog ui-dialog--lg"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="dlg-entrada"
+        [formGroup]="entrada"
+        (ngSubmit)="salvar()"
+      >
+        <header class="ui-dialog__header">
+          <div>
+            <h2 id="dlg-entrada">Registrar entrada</h2>
+            <p>A quantidade será somada ao saldo físico de cada insumo.</p>
+          </div>
+          <button type="button" class="btn--ghost btn--icon btn--sm" aria-label="Fechar" [disabled]="saving()" (click)="mode.set(null)">
+            <app-icon name="x" />
+          </button>
+        </header>
+        <div class="ui-dialog__body ui-stack">
+          @if (mutationError()) {
+            <p class="ui-message ui-message--error" role="alert">{{ mutationError() }}</p>
+          }
+          <div class="ui-grid ui-grid--3">
+            <label class="ui-field">
+              <span class="ui-field__label">Tipo</span>
+              <select formControlName="tipo">
+                <option value="DOACAO">Doação</option>
+                <option value="COMPRA">Compra</option>
+                <option value="SALDO_INICIAL">Saldo inicial</option>
+                <option value="AJUSTE_POSITIVO">Ajuste positivo</option>
+              </select>
+            </label>
+            <label class="ui-field">
+              <span class="ui-field__label">Doador (opcional)</span>
+              <select formControlName="doadorId">
+                <option value="">Não informado</option>
+                @for (d of doadores(); track d.id) {
+                  <option [value]="d.id">{{ d.nome }}{{ d.ativo ? '' : ' (inativo)' }}</option>
+                }
+              </select>
+            </label>
+            <label class="ui-field">
+              <span class="ui-field__label">Data da entrada (opcional)</span>
+              <input type="date" formControlName="dataEntrada" />
+            </label>
+          </div>
+          <div formArrayName="itens" class="ui-stack ui-stack--sm">
+            <h3 class="text-sm">Itens recebidos</h3>
             @for (row of entrada.controls.itens.controls; track row; let index = $index) {
-              <fieldset class="form-grid item-row" [formGroupName]="index">
-                <legend>Item {{ index + 1 }}</legend>
-                <label
-                  >Produto / apresentação<select formControlName="apresentacaoInsumoId">
+              <div class="ui-panel ui-form-row" [formGroupName]="index">
+                <label class="ui-field">
+                  <span class="ui-field__label">Item {{ index + 1 }} · Produto / apresentação</span>
+                  <select formControlName="apresentacaoInsumoId">
                     <option value="">Selecione</option>
                     @for (i of insumos(); track i.apresentacaoId) {
-                      <option [value]="i.apresentacaoId">
-                        {{ i.insumo }} · {{ i.apresentacao }}
-                      </option>
+                      <option [value]="i.apresentacaoId">{{ i.insumo }} · {{ i.apresentacao }}</option>
                     }
-                  </select></label
-                >
-                <label
-                  >Quantidade<input type="number" min="1" step="1" formControlName="quantidade"
-                /></label>
-                <label>Validade (opcional)<input type="date" formControlName="validade" /></label>
+                  </select>
+                </label>
+                <label class="ui-field">
+                  <span class="ui-field__label">Quantidade</span>
+                  <input type="number" min="1" step="1" formControlName="quantidade" />
+                </label>
+                <label class="ui-field">
+                  <span class="ui-field__label">Validade (opcional)</span>
+                  <input type="date" formControlName="validade" />
+                </label>
                 <button
                   type="button"
-                  class="secondary"
+                  class="btn--ghost btn--icon"
+                  aria-label="Remover item"
                   [disabled]="saving() || entrada.controls.itens.length === 1"
                   (click)="entrada.controls.itens.removeAt(index)"
                 >
-                  Remover item
+                  <app-icon name="trash" />
                 </button>
-              </fieldset>
+              </div>
             }
+            <div>
+              <button type="button" class="secondary btn--sm" [disabled]="saving()" (click)="entrada.controls.itens.push(itemEntrada())">
+                <app-icon name="plus" /> Adicionar item
+              </button>
+            </div>
           </div>
-          <button
-            type="button"
-            class="secondary"
-            [disabled]="saving()"
-            (click)="entrada.controls.itens.push(itemEntrada())"
-          >
-            Adicionar item
+          <label class="ui-field">
+            <span class="ui-field__label">Observação (opcional)</span>
+            <textarea rows="2" formControlName="observacao"></textarea>
+          </label>
+        </div>
+        <footer class="ui-dialog__footer">
+          <button type="button" class="secondary" [disabled]="saving()" (click)="mode.set(null)">Cancelar</button>
+          <button [class.is-loading]="saving()" [disabled]="entrada.invalid || saving() || loading() || !!error()">
+            {{ saving() ? 'Salvando…' : 'Confirmar entrada' }}
           </button>
-        </fieldset>
-        <fieldset class="form-section">
-          <legend>Observações</legend>
-          <label>Observação (opcional)<textarea formControlName="observacao"></textarea></label>
-        </fieldset>
-        <button [disabled]="entrada.invalid || saving() || loading() || !!error()">
-          {{ saving() ? 'Salvando…' : 'Confirmar entrada' }}
-        </button>
+        </footer>
       </form>
     }
     @if (activeMode === 'perda') {
-      <form class="form-grid" [formGroup]="perda" (ngSubmit)="salvar()">
-        <h2>Registrar perda</h2>
-        <fieldset class="form-section">
-          <legend>Item afetado</legend>
-          <label
-            >Produto / apresentação<select formControlName="apresentacaoInsumoId">
+      <form class="ui-dialog" role="dialog" aria-modal="true" aria-labelledby="dlg-perda" [formGroup]="perda" (ngSubmit)="salvar()">
+        <header class="ui-dialog__header">
+          <div>
+            <h2 id="dlg-perda">Registrar perda</h2>
+            <p>A quantidade será descontada do saldo físico.</p>
+          </div>
+          <button type="button" class="btn--ghost btn--icon btn--sm" aria-label="Fechar" [disabled]="saving()" (click)="mode.set(null)">
+            <app-icon name="x" />
+          </button>
+        </header>
+        <div class="ui-dialog__body ui-stack">
+          @if (mutationError()) {
+            <p class="ui-message ui-message--error" role="alert">{{ mutationError() }}</p>
+          }
+          <label class="ui-field">
+            <span class="ui-field__label">Produto / apresentação</span>
+            <select formControlName="apresentacaoInsumoId">
               <option value="">Selecione</option>
               @for (i of insumos(); track i.apresentacaoId) {
                 <option [value]="i.apresentacaoId">{{ i.insumo }} · {{ i.apresentacao }}</option>
               }
-            </select></label
-          >
-          <label
-            >Quantidade<input type="number" min="1" step="1" formControlName="quantidade"
-          /></label>
-        </fieldset>
-        <fieldset class="form-section">
-          <legend>Motivo</legend>
-          <label
-            >Código do motivo de perda<input
-              inputmode="numeric"
-              formControlName="motivoId"
-              aria-describedby="motivo-hint"
-          /></label>
-          <p class="hint" id="motivo-hint">
-            Informe o código de um motivo já cadastrado, fornecido pela coordenação. O sistema
-            ainda não disponibiliza a consulta de motivos de perda.
+            </select>
+          </label>
+          <div class="ui-grid ui-grid--2">
+            <label class="ui-field">
+              <span class="ui-field__label">Quantidade</span>
+              <input type="number" min="1" step="1" formControlName="quantidade" />
+            </label>
+            <label class="ui-field">
+              <span class="ui-field__label">Código do motivo de perda</span>
+              <input inputmode="numeric" formControlName="motivoId" aria-describedby="motivo-hint" />
+            </label>
+          </div>
+          <p class="ui-message ui-message--warning" id="motivo-hint">
+            Informe o código de um motivo já cadastrado, fornecido pela coordenação. O sistema ainda
+            não disponibiliza a consulta de motivos de perda.
           </p>
-          <label>Observação (opcional)<textarea formControlName="observacao"></textarea></label>
-        </fieldset>
-        <button class="danger" [disabled]="perda.invalid || saving() || loading() || !!error()">
-          {{ saving() ? 'Salvando…' : 'Confirmar perda' }}
-        </button>
+          <label class="ui-field">
+            <span class="ui-field__label">Observação (opcional)</span>
+            <textarea rows="2" formControlName="observacao"></textarea>
+          </label>
+        </div>
+        <footer class="ui-dialog__footer">
+          <button type="button" class="secondary" [disabled]="saving()" (click)="mode.set(null)">Cancelar</button>
+          <button class="danger" [class.is-loading]="saving()" [disabled]="perda.invalid || saving() || loading() || !!error()">
+            {{ saving() ? 'Salvando…' : 'Confirmar perda' }}
+          </button>
+        </footer>
       </form>
     }
     @if (activeMode === 'insumo') {
-      <form class="form-grid" [formGroup]="insumo" (ngSubmit)="salvar()">
-        <h2>Cadastrar insumo e apresentação</h2>
-        <label>Nome<input formControlName="nome" required /></label>
-        <label
-          >Categoria (opcional)<select formControlName="categoriaPrioridadeId">
-            <option value="">Sem categoria</option>
-            @for (c of categorias(); track c.id) {
-              <option [value]="c.id">{{ c.descricao }}</option>
-            }
-          </select></label
-        >
-        <label
-          >Apresentação<input
-            formControlName="descricao"
-            required
-            placeholder="Descrição da embalagem"
-        /></label>
-        <label
-          >Quantidade de referência (opcional)<input
-            type="number"
-            step="any"
-            formControlName="quantidadeReferencia"
-        /></label>
-        <label>Unidade de medida (opcional)<input formControlName="unidadeMedida" /></label>
-        <button [disabled]="insumo.invalid || saving() || loading() || !!error()">
-          {{ saving() ? 'Salvando…' : 'Cadastrar insumo' }}
-        </button>
+      <form class="ui-dialog" role="dialog" aria-modal="true" aria-labelledby="dlg-insumo" [formGroup]="insumo" (ngSubmit)="salvar()">
+        <header class="ui-dialog__header">
+          <div>
+            <h2 id="dlg-insumo">Cadastrar insumo e apresentação</h2>
+            <p>O insumo passa a aparecer nos saldos e nas entradas.</p>
+          </div>
+          <button type="button" class="btn--ghost btn--icon btn--sm" aria-label="Fechar" [disabled]="saving()" (click)="mode.set(null)">
+            <app-icon name="x" />
+          </button>
+        </header>
+        <div class="ui-dialog__body ui-stack">
+          @if (mutationError()) {
+            <p class="ui-message ui-message--error" role="alert">{{ mutationError() }}</p>
+          }
+          <label class="ui-field">
+            <span class="ui-field__label">Nome</span>
+            <input formControlName="nome" required />
+          </label>
+          <label class="ui-field">
+            <span class="ui-field__label">Categoria (opcional)</span>
+            <select formControlName="categoriaPrioridadeId">
+              <option value="">Sem categoria</option>
+              @for (c of categorias(); track c.id) {
+                <option [value]="c.id">{{ c.descricao }}</option>
+              }
+            </select>
+          </label>
+          <label class="ui-field">
+            <span class="ui-field__label">Apresentação</span>
+            <input formControlName="descricao" required placeholder="Descrição da embalagem" />
+          </label>
+          <div class="ui-grid ui-grid--2">
+            <label class="ui-field">
+              <span class="ui-field__label">Quantidade de referência (opcional)</span>
+              <input type="number" step="any" formControlName="quantidadeReferencia" />
+            </label>
+            <label class="ui-field">
+              <span class="ui-field__label">Unidade de medida (opcional)</span>
+              <input formControlName="unidadeMedida" />
+            </label>
+          </div>
+        </div>
+        <footer class="ui-dialog__footer">
+          <button type="button" class="secondary" [disabled]="saving()" (click)="mode.set(null)">Cancelar</button>
+          <button [class.is-loading]="saving()" [disabled]="insumo.invalid || saving() || loading() || !!error()">
+            {{ saving() ? 'Salvando…' : 'Cadastrar insumo' }}
+          </button>
+        </footer>
       </form>
     }
     @if (activeMode === 'doador') {
-      <form class="form-grid" [formGroup]="doador" (ngSubmit)="salvar()">
-        <h2>{{ doadorId() ? 'Editar doador' : 'Cadastrar doador' }}</h2>
-        <label
-          >Tipo<select formControlName="tipo">
-            <option value="PESSOA">Pessoa</option>
-            <option value="INSTITUICAO">Instituição</option>
-          </select></label
-        >
-        <label>Nome<input formControlName="nome" required /></label>
-        <label>Telefone (opcional)<input type="tel" formControlName="telefone" /></label>
-        <label>Observação (opcional)<textarea formControlName="observacao"></textarea></label>
-        @if (doadorId()) {
-          <label class="check"><input type="checkbox" formControlName="ativo" />Ativo</label>
-        }
-        <button [disabled]="doador.invalid || saving() || loading() || !!error()">
-          {{ saving() ? 'Salvando…' : 'Salvar doador' }}
-        </button>
+      <form class="ui-dialog" role="dialog" aria-modal="true" aria-labelledby="dlg-doador" [formGroup]="doador" (ngSubmit)="salvar()">
+        <header class="ui-dialog__header">
+          <div>
+            <h2 id="dlg-doador">{{ doadorId() ? 'Editar doador' : 'Cadastrar doador' }}</h2>
+            <p>Pessoas e instituições que doam insumos.</p>
+          </div>
+          <button type="button" class="btn--ghost btn--icon btn--sm" aria-label="Fechar" [disabled]="saving()" (click)="mode.set(null)">
+            <app-icon name="x" />
+          </button>
+        </header>
+        <div class="ui-dialog__body ui-stack">
+          @if (mutationError()) {
+            <p class="ui-message ui-message--error" role="alert">{{ mutationError() }}</p>
+          }
+          <div class="ui-grid ui-grid--2">
+            <label class="ui-field">
+              <span class="ui-field__label">Tipo</span>
+              <select formControlName="tipo">
+                <option value="PESSOA">Pessoa</option>
+                <option value="INSTITUICAO">Instituição</option>
+              </select>
+            </label>
+            <label class="ui-field">
+              <span class="ui-field__label">Telefone (opcional)</span>
+              <input type="tel" formControlName="telefone" />
+            </label>
+          </div>
+          <label class="ui-field">
+            <span class="ui-field__label">Nome</span>
+            <input formControlName="nome" required />
+          </label>
+          <label class="ui-field">
+            <span class="ui-field__label">Observação (opcional)</span>
+            <textarea rows="2" formControlName="observacao"></textarea>
+          </label>
+          @if (doadorId()) {
+            <label class="ui-check"><input type="checkbox" formControlName="ativo" /> Ativo</label>
+          }
+        </div>
+        <footer class="ui-dialog__footer">
+          <button type="button" class="secondary" [disabled]="saving()" (click)="mode.set(null)">Cancelar</button>
+          <button [class.is-loading]="saving()" [disabled]="doador.invalid || saving() || loading() || !!error()">
+            {{ saving() ? 'Salvando…' : 'Salvar doador' }}
+          </button>
+        </footer>
       </form>
     }
-    <button class="btn-text" [disabled]="saving()" (click)="mode.set(null)">Cancelar</button>
-  </section>
+  </div>
 }
-@if (!loading() && !error()) {
-  <section class="metric-grid" aria-label="Indicadores de estoque">
-    <app-metric-card label="Itens em estoque" [delayMs]="0">{{ totalFisico() }}</app-metric-card>
-    <app-metric-card label="Reservados" [delayMs]="60">{{ totalReservado() }}</app-metric-card>
+
+@if (loading()) {
+  <app-loading-state variant="cards" [rows]="3" />
+  <app-loading-state variant="table" [rows]="6" [columns]="6" label="Consultando estoque…" />
+} @else if (error()) {
+  <app-error-state [message]="error()" (retry)="carregar()" title="Não foi possível carregar o estoque" />
+} @else {
+  <section class="ui-grid ui-grid--3" aria-label="Indicadores de estoque">
+    <app-metric-card label="Itens em estoque" icon="boxes" tone="info" hint="unidades no saldo físico" [delayMs]="0">
+      {{ totalFisico() | number }}
+    </app-metric-card>
+    <app-metric-card label="Reservados" icon="package" tone="neutral" hint="comprometidos com lotes" [delayMs]="60">
+      {{ totalReservado() | number }}
+    </app-metric-card>
     <app-metric-card
       label="Insumos críticos"
+      icon="alert-triangle"
+      [tone]="itensCriticos() > 0 ? 'warning' : 'success'"
+      hint="sem saldo disponível"
       [delayMs]="120"
       [variant]="itensCriticos() > 0 ? 'attention' : 'default'"
-      >{{ itensCriticos() }}</app-metric-card
     >
+      {{ itensCriticos() | number }}
+    </app-metric-card>
   </section>
-}
-<nav class="actions" aria-label="Consultas de estoque">
-  <button class="secondary" (click)="tab.set('saldos')" [attr.aria-pressed]="tab() === 'saldos'">
-    Saldos</button
-  ><button
-    class="secondary"
-    (click)="tab.set('doadores')"
-    [attr.aria-pressed]="tab() === 'doadores'"
-  >
-    Doadores
-  </button>
-</nav>
-@if (loading()) {
-  <app-loading-state label="Consultando estoque…" />
-} @else if (error()) {
-  <app-error-state [message]="error()" (retry)="carregar()" />
-} @else if (tab() === 'saldos') {
-  <section class="filters">
-    <label
-      >Localizar na lista carregada<input
-        type="search"
-        [value]="busca()"
-        (input)="busca.set($any($event.target).value)"
-    /></label>
-  </section>
-  @if (!filtrados().length) {
-    <app-empty-state title="Nenhum insumo" message="Nenhum insumo encontrado." />
-  } @else {
-    <div class="estoque-silo-grid" aria-hidden="true">
-      @for (i of filtrados(); track i.apresentacaoId) {
-        <div class="estoque-silo" [class.is-empty]="i.saldoDisponivel <= 0">
-          <div class="estoque-silo__vessel">
-            <div class="estoque-silo__fill" [style.height.%]="nivelPercentual(i)"></div>
-          </div>
-          <div class="estoque-silo__info">
-            <strong class="estoque-silo__nome">{{ i.insumo }}</strong>
-            <span class="estoque-silo__apresentacao">{{ i.apresentacao }}</span>
-            <span class="estoque-silo__percentual">{{ nivelPercentual(i) }}%</span>
-            <span class="estoque-silo__detalhe">
-              Reservado {{ i.saldoReservado }} · Disponível {{ i.saldoDisponivel }}
-            </span>
-          </div>
+
+  <div class="ui-tabs" role="tablist" aria-label="Consultas de estoque">
+    <button class="ui-tab" role="tab" [attr.aria-selected]="tab() === 'saldos'" (click)="tab.set('saldos')">
+      <app-icon name="boxes" /> Saldos
+    </button>
+    <button class="ui-tab" role="tab" [attr.aria-selected]="tab() === 'doadores'" (click)="tab.set('doadores')">
+      <app-icon name="heart-handshake" /> Doadores
+    </button>
+  </div>
+
+  @if (tab() === 'saldos') {
+    <app-section-card title="Insumos" description="Saldo físico, reservado e disponível por apresentação." [flush]="true">
+      <div actions class="ui-input-icon">
+        <app-icon name="search" />
+        <input
+          type="search"
+          aria-label="Localizar na lista carregada"
+          placeholder="Localizar insumo"
+          [value]="busca()"
+          (input)="busca.set($any($event.target).value)"
+        />
+      </div>
+      @if (!filtrados().length) {
+        <app-empty-state title="Nenhum insumo" message="Nenhum insumo encontrado." icon="package-open" />
+      } @else {
+        <div class="ui-table-wrap" tabindex="0" role="region" aria-label="Saldos de estoque">
+          <table class="ui-table ui-table--cards">
+            <thead>
+              <tr>
+                <th>Produto</th>
+                <th>Apresentação</th>
+                <th>Categoria</th>
+                <th class="number">Físico</th>
+                <th class="number">Reservado</th>
+                <th class="number">Disponível</th>
+                <th>Nível</th>
+                <th>Situação</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (i of filtrados(); track i.apresentacaoId) {
+                <tr [class.row--attention]="i.saldoDisponivel <= 0">
+                  <td data-label="Produto"><strong>{{ i.insumo }}</strong></td>
+                  <td data-label="Apresentação" class="text-muted">
+                    {{ i.apresentacao }}
+                    @if (i.quantidadeReferencia !== null) {
+                      · {{ i.quantidadeReferencia | number }} {{ i.unidadeMedida }}
+                    }
+                  </td>
+                  <td data-label="Categoria">{{ i.categoria?.codigo || 'Sem categoria' }}</td>
+                  <td class="number" data-label="Físico">{{ i.saldoFisico | number }}</td>
+                  <td class="number" data-label="Reservado">{{ i.saldoReservado | number }}</td>
+                  <td class="number" data-label="Disponível"><strong>{{ i.saldoDisponivel | number }}</strong></td>
+                  <td data-label="Nível">
+                    <span class="ui-actions" [attr.title]="nivelPercentual(i) + '% do físico disponível'">
+                      <app-meter
+                        size="sm"
+                        [label]="'Nível disponível de ' + i.insumo"
+                        [value]="nivelPercentual(i)"
+                        [tone]="i.saldoDisponivel <= 0 ? 'danger' : 'success'"
+                      />
+                      <span class="text-xs tabular">{{ nivelPercentual(i) }}%</span>
+                    </span>
+                  </td>
+                  <td data-label="Situação">
+                    @if (i.saldoDisponivel <= 0) {
+                      <app-status-badge status="SEM_SALDO" label="Sem saldo" />
+                    } @else {
+                      <app-status-badge status="REGULAR" label="Disponível" />
+                    }
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
         </div>
       }
-    </div>
-    <div class="table-scroll" tabindex="0" role="region" aria-label="Saldos de estoque">
-      <table>
-        <thead>
-          <tr>
-            <th>Produto</th>
-            <th>Apresentação</th>
-            <th>Categoria</th>
-            <th>Físico</th>
-            <th>Reservado</th>
-            <th>Disponível</th>
-          </tr>
-        </thead>
-        <tbody>
-          @for (i of filtrados(); track i.apresentacaoId) {
-            <tr [class.row--attention]="i.saldoDisponivel <= 0">
-              <td>{{ i.insumo }}</td>
-              <td>
-                {{ i.apresentacao }}
-                @if (i.quantidadeReferencia !== null) {
-                  · {{ i.quantidadeReferencia }} {{ i.unidadeMedida }}
-                }
-              </td>
-              <td>{{ i.categoria?.codigo || 'Sem categoria' }}</td>
-              <td class="number">{{ i.saldoFisico }}</td>
-              <td class="number">{{ i.saldoReservado }}</td>
-              <td class="number">
-                {{ i.saldoDisponivel }}
-                @if (i.saldoDisponivel <= 0) {
-                  <span class="ui-badge ui-badge--danger" title="Sem saldo disponível para novas retiradas">Sem saldo</span>
-                }
-              </td>
-            </tr>
-          }
-        </tbody>
-      </table>
-    </div>
-  }
-  <p class="hint">
-    A consulta de históricos de entradas e perdas ainda não está disponível. Após cada registro, os
-    saldos são atualizados.
-  </p>
-} @else {
-  @if (!doadores().length) {
-    <app-empty-state title="Nenhum doador" message="Nenhum doador cadastrado." />
+      <p footer class="ui-card__footer text-xs text-muted">
+        <app-icon name="info" /> A consulta de históricos de entradas e perdas ainda não está disponível.
+        Após cada registro, os saldos são atualizados.
+      </p>
+    </app-section-card>
   } @else {
-    <div class="table-scroll" tabindex="0" role="region" aria-label="Doadores">
-      <table>
-        <thead>
-          <tr>
-            <th>Nome</th>
-            <th>Tipo</th>
-            <th>Telefone</th>
-            <th>Status</th>
-            <th>Observação</th>
-            <th>Ações</th>
-          </tr>
-        </thead>
-        <tbody>
-          @for (d of doadores(); track d.id) {
-            <tr>
-              <td>{{ d.nome }}</td>
-              <td>{{ d.tipo === 'PESSOA' ? 'Pessoa' : 'Instituição' }}</td>
-              <td>{{ d.telefone || 'Não informado' }}</td>
-              <td><app-status-badge [status]="d.ativo ? 'ATIVO' : 'INATIVO'" /></td>
-              <td>{{ d.observacao || '—' }}</td>
-              <td>
-                @if (session.hasPermission('ESTOQUE_ENTRADA')) {
-                  <button class="secondary" (click)="abrir('doador', d)">Editar</button>
-                }
-              </td>
-            </tr>
-          }
-        </tbody>
-      </table>
-    </div>
+    <app-section-card title="Doadores" description="Origem das doações registradas nas entradas." [flush]="true">
+      @if (!doadores().length) {
+        <app-empty-state title="Nenhum doador" message="Nenhum doador cadastrado." icon="heart-handshake" />
+      } @else {
+        <div class="ui-table-wrap" tabindex="0" role="region" aria-label="Doadores">
+          <table class="ui-table ui-table--cards">
+            <thead>
+              <tr>
+                <th>Nome</th>
+                <th>Tipo</th>
+                <th>Telefone</th>
+                <th>Status</th>
+                <th>Observação</th>
+                <th class="ui-table__actions"><span class="sr-only">Ações</span></th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (d of doadores(); track d.id) {
+                <tr>
+                  <td data-label="Nome"><strong>{{ d.nome }}</strong></td>
+                  <td data-label="Tipo">{{ d.tipo === 'PESSOA' ? 'Pessoa' : 'Instituição' }}</td>
+                  <td data-label="Telefone">{{ d.telefone || 'Não informado' }}</td>
+                  <td data-label="Status"><app-status-badge [status]="d.ativo ? 'ATIVO' : 'INATIVO'" /></td>
+                  <td data-label="Observação" class="text-muted">{{ d.observacao || '—' }}</td>
+                  <td class="ui-table__actions">
+                    @if (session.hasPermission('ESTOQUE_ENTRADA')) {
+                      <button class="btn--ghost btn--sm" (click)="abrir('doador', d)">
+                        <app-icon name="pencil" /> Editar
+                      </button>
+                    }
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </app-section-card>
   }
+}
+
+@if (confirmacao.atual(); as c) {
+  <app-confirm-dialog
+    [title]="c.title"
+    [message]="c.message ?? ''"
+    [confirmLabel]="c.confirmLabel ?? 'Confirmar'"
+    [danger]="!!c.danger"
+    (confirm)="confirmacao.responder(true)"
+    (dismiss)="confirmacao.responder(false)"
+  />
 }

@@ -1,18 +1,24 @@
-<section class="competencias-page">
-  <app-page-header
-    eyebrow="Organização das distribuições"
-    [title]="id ? 'Detalhe da competência' : 'Competências'"
-    description="Consulte os períodos e os totais de distribuições e direitos."
-  />
-  @if (id) {
-    <a class="back-link" routerLink="/competencias">Voltar para competências</a>
+<app-page-header
+  eyebrow="Organização das distribuições"
+  [title]="detalhe() ? (detalhe()! | competencia) : id ? 'Detalhe da competência' : 'Competências'"
+  [description]="
+    id ? 'Totais de distribuições e direitos da competência.' : 'Cada competência é um ciclo mensal que gera o direito de retirada das famílias.'
+  "
+  [backLink]="id ? '/competencias' : ''"
+  backLabel="Competências"
+>
+  @if (detalhe(); as item) {
+    <span meta><app-status-badge [status]="item.status" /></span>
   }
+</app-page-header>
+
+<div class="ui-stack">
   @if (!id && podeGerar) {
-    <form class="form-grid ui-panel" [formGroup]="form" (ngSubmit)="gerarCompetencia()">
-      <h2>Gerar competência</h2>
-      <div class="form-row">
-        <label
-          >Ano (obrigatório)<input
+    <app-section-card title="Gerar competência" description="Gera os direitos de retirada das famílias ativas para o período.">
+      <form class="ui-toolbar ui-toolbar--plain" [formGroup]="form" (ngSubmit)="gerarCompetencia()">
+        <label class="ui-field">
+          <span class="ui-field__label">Ano (obrigatório)</span>
+          <input
             type="number"
             formControlName="ano"
             min="2000"
@@ -20,16 +26,15 @@
             step="1"
             required
             [attr.aria-invalid]="form.controls.ano.touched && form.controls.ano.invalid"
-            [attr.aria-describedby]="
-              form.controls.ano.touched && form.controls.ano.invalid ? 'ano-hint' : null
-            "
+            [attr.aria-describedby]="form.controls.ano.touched && form.controls.ano.invalid ? 'ano-hint' : null"
           />
           @if (form.controls.ano.touched && form.controls.ano.invalid) {
-            <span id="ano-hint" class="field-error">Informe um ano inteiro entre 2000 e 2200.</span>
+            <span id="ano-hint" class="ui-field__error">Informe um ano inteiro entre 2000 e 2200.</span>
           }
         </label>
-        <label
-          >Mês (obrigatório)<input
+        <label class="ui-field">
+          <span class="ui-field__label">Mês (obrigatório)</span>
+          <input
             type="number"
             formControlName="mes"
             min="1"
@@ -37,88 +42,88 @@
             step="1"
             required
             [attr.aria-invalid]="form.controls.mes.touched && form.controls.mes.invalid"
-            [attr.aria-describedby]="
-              form.controls.mes.touched && form.controls.mes.invalid ? 'mes-hint' : null
-            "
+            [attr.aria-describedby]="form.controls.mes.touched && form.controls.mes.invalid ? 'mes-hint' : null"
           />
           @if (form.controls.mes.touched && form.controls.mes.invalid) {
-            <span id="mes-hint" class="field-error">Informe um mês inteiro entre 1 e 12.</span>
+            <span id="mes-hint" class="ui-field__error">Informe um mês inteiro entre 1 e 12.</span>
           }
         </label>
-      </div>
-      <button type="submit" class="btn btn-primary" [disabled]="saving() || form.invalid">
-        {{ saving() ? 'Gerando...' : 'Gerar competência' }}
-      </button>
-    </form>
-  }
-  @if (feedback()) {
-    <p class="ui-message ui-message--success" role="status">{{ feedback() }}</p>
+        <div class="ui-toolbar__end ui-actions">
+          <button type="submit" [disabled]="saving() || form.invalid" [class.is-loading]="saving()">
+            <app-icon name="plus" /> {{ saving() ? 'Gerando...' : 'Gerar competência' }}
+          </button>
+        </div>
+      </form>
+    </app-section-card>
   }
   @if (mutationError()) {
     <p class="ui-message ui-message--error" role="alert">{{ mutationError() }}</p>
   }
   @if (loading()) {
-    <app-loading-state label="Carregando competências…" />
+    <app-loading-state [variant]="id ? 'cards' : 'table'" [rows]="4" label="Carregando competências…" />
   } @else if (error()) {
     <app-error-state [message]="error()" (retry)="carregar()" />
   } @else if (detalhe(); as item) {
-    <h2>{{ item.mes }}/{{ item.ano }}</h2>
-    <section class="metric-grid" aria-label="Indicadores da competência">
-      <app-metric-card label="Status" [delayMs]="0">
-        <span class="ui-badge" [attr.data-status]="item.status"
-          ><span aria-hidden="true">{{ statusIcone(item.status) }}</span> {{ item.status }}</span
-        >
-      </app-metric-card>
-      <app-metric-card label="Distribuições" [delayMs]="60">{{ item.distribuicoes }}</app-metric-card>
-      <app-metric-card label="Direitos" [delayMs]="120">{{ item.direitos }}</app-metric-card>
+    <section class="ui-grid ui-grid--kpi" aria-label="Indicadores da competência">
+      <app-metric-card label="Período" icon="calendar-range" tone="primary" [hint]="item | competencia: 'numerica'" [delayMs]="0">{{
+        item | competencia: 'curta'
+      }}</app-metric-card>
+      <app-metric-card label="Distribuições" icon="calendar" tone="info" [delayMs]="60">{{ item.distribuicoes | number }}</app-metric-card>
+      <app-metric-card label="Direitos" icon="users" tone="success" hint="direitos de retirada gerados" [delayMs]="120">{{
+        item.direitos | number
+      }}</app-metric-card>
       <app-metric-card label="ID" [delayMs]="180" [mono]="true">{{ item.id }}</app-metric-card>
     </section>
   } @else if (!items().length) {
-    <app-empty-state title="Nenhuma competência" message="Nenhuma competência encontrada." />
+    <app-empty-state icon="calendar-range" title="Nenhuma competência" message="Nenhuma competência encontrada." />
   } @else {
-    @if (items().length > 5) {
-      <app-search-field
-        label="Buscar competência"
-        [showLabel]="false"
-        placeholder="Buscar por período ou status…"
-        (termChange)="onFiltroChange($event)"
-      />
-    }
-    @if (itemsFiltrados().length) {
-      <div class="table-scroll" tabindex="0" role="region" aria-label="Lista de competências">
-        <table>
-          <thead>
-            <tr>
-              <th scope="col">Competência</th>
-              <th scope="col">Status</th>
-              <th scope="col" class="number">Distribuições</th>
-              <th scope="col" class="number">Direitos</th>
-              <th scope="col">Consulta</th>
-            </tr>
-          </thead>
-          <tbody>
-            @for (item of itemsFiltrados(); track item.id) {
-              <tr class="row-in">
-                <td>{{ item.mes }}/{{ item.ano }}</td>
-                <td>
-                  <span class="ui-badge" [attr.data-status]="item.status"
-                    ><span aria-hidden="true">{{ statusIcone(item.status) }}</span> {{ item.status }}</span
-                  >
-                </td>
-                <td class="number">{{ item.distribuicoes }}</td>
-                <td class="number">{{ item.direitos }}</td>
-                <td>
-                  <a [routerLink]="['/competencias', item.id]"
-                    >Consultar {{ item.mes }}/{{ item.ano }}</a
-                  >
-                </td>
+    <section class="ui-card">
+      @if (items().length > 5) {
+        <div class="ui-toolbar ui-toolbar--plain ui-card__header">
+          <app-search-field
+            class="ui-toolbar__grow"
+            label="Buscar competência"
+            [showLabel]="false"
+            placeholder="Buscar por período ou status…"
+            (termChange)="onFiltroChange($event)"
+          />
+        </div>
+      }
+      @if (itemsFiltrados().length) {
+        <div class="ui-table-wrap" tabindex="0" role="region" aria-label="Lista de competências">
+          <table class="ui-table ui-table--cards">
+            <thead>
+              <tr>
+                <th scope="col">Competência</th>
+                <th scope="col">Situação</th>
+                <th scope="col" class="number">Distribuições</th>
+                <th scope="col" class="number">Direitos</th>
+                <th scope="col" class="ui-table__actions"><span class="sr-only">Ações</span></th>
               </tr>
-            }
-          </tbody>
-        </table>
-      </div>
-    } @else {
-      <app-empty-state title="Nenhum resultado" message="Nenhuma competência corresponde à busca." />
-    }
+            </thead>
+            <tbody>
+              @for (item of itemsFiltrados(); track item.id; let i = $index) {
+                <tr class="fade-in-stagger" [style.--delay.ms]="i * 30">
+                  <td data-label="Competência">
+                    <strong>{{ item | competencia }}</strong>
+                  </td>
+                  <td data-label="Situação"><app-status-badge [status]="item.status" /></td>
+                  <td data-label="Distribuições" class="number">{{ item.distribuicoes | number }}</td>
+                  <td data-label="Direitos" class="number">{{ item.direitos | number }}</td>
+                  <td class="ui-table__actions">
+                    <a class="btn btn--ghost btn--sm" [routerLink]="['/competencias', item.id]" [attr.aria-label]="'Consultar ' + (item | competencia)"
+                      >Consultar <app-icon name="chevron-right"
+                    /></a>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+        <div class="ui-card__footer text-sm text-muted">{{ itemsFiltrados().length | number }} competência(s)</div>
+      } @else {
+        <div class="ui-card__body"><app-empty-state icon="search" title="Nenhum resultado" message="Nenhuma competência corresponde à busca." /></div>
+      }
+    </section>
   }
-</section>
+</div>

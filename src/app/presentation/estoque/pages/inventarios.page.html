@@ -1,103 +1,121 @@
-@if (id()) {
-  <a class="back-link" routerLink="/inventarios">← Voltar para inventários</a>
-}
-<header class="ui-header">
-  <div>
-    <p class="eyebrow">Preparação · Estoque</p>
-    <h1>{{ id() ? 'Inventário ' + id() : 'Inventário de estoque' }}</h1>
-    <p>Conferência física dos insumos para corrigir divergências de saldo.</p>
-  </div>
-  <div class="actions">
+<app-page-header
+  eyebrow="Preparação · Estoque"
+  [title]="id() ? 'Inventário ' + id() : 'Inventário de estoque'"
+  description="Conferência física dos insumos para corrigir divergências de saldo."
+  [backLink]="id() ? '/inventarios' : null"
+  backLabel="Voltar para inventários"
+>
+  @if (inventario(); as inv) {
+    <span meta><app-status-badge [status]="inv.status" /></span>
+  }
+  <div actions class="ui-actions">
     @if (id()) {
-      <button
-        type="button"
-        class="secondary"
-        (click)="carregar()"
-        [disabled]="loading() || saving()"
-      >
-        Atualizar consulta
+      <button type="button" class="btn--ghost" (click)="carregar()" [disabled]="loading() || saving()">
+        <app-icon name="refresh" /> Atualizar consulta
+      </button>
+    }
+    @if (permitido && inventario()?.status === 'ABERTO') {
+      <button type="button" class="secondary" (click)="concluir()" [disabled]="saving()">
+        <app-icon name="clipboard-check" /> Concluir inventário
       </button>
     }
     @if (permitido) {
-      <button type="button" (click)="criar()" [disabled]="loading() || saving()">
+      <button type="button" [class.is-loading]="saving() && !savingItem()" (click)="criar()" [disabled]="loading() || saving()">
+        <app-icon name="plus" />
         {{ saving() && !savingItem() ? 'Processando…' : 'Abrir novo inventário' }}
       </button>
     }
   </div>
-</header>
-@if (feedback()) {
-  <p class="ui-message ui-message--success" role="status">{{ feedback() }}</p>
-}
+</app-page-header>
+
 @if (mutationError()) {
   <p class="ui-message ui-message--error" role="alert">{{ mutationError() }}</p>
 }
+
 @if (!id()) {
-  <section class="ui-panel">
-    <h2>Consultar inventário</h2>
-    <p>
-      O backend não disponibiliza listagem de inventários. Consulte um inventário pelo código ou
-      abra um novo.
-    </p>
-    <form class="form-grid" (ngSubmit)="consultar()">
-      <label
-        >Código do inventário<input [formControl]="codigo" inputmode="numeric" required /></label
-      ><button type="submit" [disabled]="codigo.invalid || saving()">Consultar</button>
-    </form>
-  </section>
-}
-@if (loading()) {
-  <app-loading-state label="Consultando inventário…" />
-} @else if (error()) {
-  <app-error-state [message]="error()" (retry)="carregar()" />
-} @else if (inventario(); as inv) {
-  <section class="ui-panel">
-    <header class="ui-section-header">
-      <div>
-        <h2>Inventário {{ inv.id }}</h2>
-        <p>
-          Aberto em {{ inv.iniciadoEm | date: 'dd/MM/yyyy HH:mm' }} · Responsável: código
-          {{ inv.usuarioResponsavelId }}
+  <div class="ui-grid ui-grid--2" data-section="inventario-entrada">
+    <app-section-card title="Abrir novo inventário" description="Captura o saldo atual de todos os insumos.">
+      <div class="ui-stack ui-stack--sm">
+        <p class="text-muted">
+          Captura o saldo atual de todos os insumos para a contagem física. Use o botão “Abrir novo
+          inventário” no topo da página.
         </p>
-        @if (inv.concluidoEm) {
-          <p>Concluído em {{ inv.concluidoEm | date: 'dd/MM/yyyy HH:mm' }}</p>
+        @if (!permitido) {
+          <p class="text-sm text-muted"><app-icon name="shield" /> Requer a permissão de inventário de estoque.</p>
         }
       </div>
-      <app-status-badge [status]="inv.status" />
-    </header>
-    <p>{{ inv.itens.length }} itens retornados · {{ divergentes() }} com divergência registrada.</p>
-    <p class="hint">
-      A contagem é iniciada pelo backend com o saldo capturado. Não há indicação de quais itens já
-      foram conferidos. A divergência exibida corresponde ao último valor salvo.
-    </p>
-    @if (pendentesLocais()) {
-      <p role="status">{{ pendentesLocais() }} edição(ões) ainda não salva(s) nesta tela.</p>
-    }
-    @if (permitido && inv.status === 'ABERTO') {
-      <button type="button" (click)="concluir()" [disabled]="saving()">Concluir inventário</button>
-    }
-    @if (podeEstoque) {
-      <p><a routerLink="/estoque">Consultar estoque</a></p>
-    }
-  </section>
+    </app-section-card>
+    <app-section-card title="Consultar inventário existente" description="Continue a contagem ou consulte o resultado.">
+      <div class="ui-stack ui-stack--sm">
+        <p class="text-muted">
+          O backend não disponibiliza listagem de inventários. Informe o código do inventário
+          (exibido ao abri-lo) para continuar a contagem ou consultar o resultado.
+        </p>
+        <form class="ui-toolbar ui-toolbar--plain" (ngSubmit)="consultar()">
+          <label class="ui-field ui-toolbar__grow">
+            <span class="ui-field__label">Código do inventário</span>
+            <input [formControl]="codigo" inputmode="numeric" required />
+          </label>
+          <div class="ui-toolbar__end">
+            <button type="submit" [disabled]="codigo.invalid || saving()"><app-icon name="search" /> Consultar</button>
+          </div>
+        </form>
+      </div>
+    </app-section-card>
+  </div>
+}
+
+@if (loading()) {
+  <app-loading-state variant="detail" label="Consultando inventário…" />
+} @else if (error()) {
+  <app-error-state [message]="error()" (retry)="carregar()" title="Não foi possível consultar o inventário" />
+} @else if (inventario(); as inv) {
+  <div class="ui-grid ui-grid--sidebar">
+    <app-section-card [title]="'Inventário ' + inv.id">
+      <dl class="ui-dl ui-dl--3">
+        <div><dt>Abertura</dt><dd>{{ inv.iniciadoEm | dataBr: 'dataHora' }}</dd></div>
+        <div><dt>Responsável</dt><dd>Código {{ inv.usuarioResponsavelId }}</dd></div>
+        <div><dt>Conclusão</dt><dd>{{ inv.concluidoEm | dataBr: 'dataHora' : 'Em aberto' }}</dd></div>
+        <div><dt>Itens retornados</dt><dd>{{ inv.itens.length | number }} itens retornados</dd></div>
+        <div><dt>Divergências</dt><dd>{{ divergentes() | number }} com divergência registrada</dd></div>
+        <div><dt>Situação</dt><dd><app-status-badge [status]="inv.status" /></dd></div>
+      </dl>
+      @if (podeEstoque) {
+        <p footer class="ui-card__footer">
+          <a routerLink="/estoque"><app-icon name="boxes" /> Consultar estoque</a>
+        </p>
+      }
+    </app-section-card>
+    <app-section-card title="Atenção">
+      <div class="ui-stack ui-stack--sm">
+        <p class="ui-message ui-message--warning">
+          A contagem é iniciada pelo backend com o saldo capturado. Não há indicação de quais itens já
+          foram conferidos. A divergência exibida corresponde ao último valor salvo.
+        </p>
+        @if (pendentesLocais()) {
+          <p class="ui-message" role="status">{{ pendentesLocais() }} edição(ões) ainda não salva(s) nesta tela.</p>
+        }
+      </div>
+    </app-section-card>
+  </div>
   @if (estoqueError()) {
     <p class="ui-message ui-message--error" role="alert">{{ estoqueError() }}</p>
   }
-  <section class="ui-panel">
-    <h2>Contagens e divergências</h2>
+  <app-section-card title="Contagens e divergências" [flush]="true">
     @if (!inv.itens.length) {
-      <app-empty-state title="Sem itens" message="Nenhum item retornado para este inventário." />
+      <app-empty-state title="Sem itens" message="Nenhum item retornado para este inventário." icon="clipboard-list" />
     } @else {
-      <div class="table-scroll" tabindex="0" role="region" aria-label="Contagens do inventário">
-        <table>
+      <div class="ui-table-wrap" tabindex="0" role="region" aria-label="Contagens do inventário">
+        <table class="ui-table ui-table--cards">
           <thead>
             <tr>
               <th scope="col">Insumo</th>
               <th scope="col">Apresentação</th>
-              <th scope="col">Saldo capturado</th>
-              <th scope="col">Contagem registrada</th>
-              <th scope="col">Divergência registrada</th>
+              <th scope="col" class="number">Saldo capturado</th>
+              <th scope="col" class="number">Contagem registrada</th>
+              <th scope="col" class="number">Divergência registrada</th>
               @if (podeEstoque) {
-                <th scope="col">Saldo físico atual</th>
+                <th scope="col" class="number">Saldo físico atual</th>
               }
               @if (inv.status === 'ABERTO') {
                 <th scope="col">Nova contagem</th>
@@ -107,51 +125,50 @@
           <tbody>
             @for (i of inv.itens; track i.apresentacaoId) {
               <tr [class.row--attention]="i.diferenca !== 0">
-                <td>{{ i.insumo }}</td>
-                <td>{{ i.apresentacao }}</td>
-                <td class="number">{{ i.saldoSistema }}</td>
-                <td class="number">{{ i.saldoFisico }}</td>
-                <td class="number">
+                <td data-label="Insumo"><strong>{{ i.insumo }}</strong></td>
+                <td data-label="Apresentação" class="text-muted">{{ i.apresentacao }}</td>
+                <td class="number" data-label="Saldo capturado">{{ i.saldoSistema | number }}</td>
+                <td class="number" data-label="Contagem registrada">{{ i.saldoFisico | number }}</td>
+                <td class="number" data-label="Divergência registrada">
                   <span
                     class="ui-badge"
                     [class.ui-badge--warning]="i.diferenca !== 0"
+                    [class.ui-badge--success]="i.diferenca === 0"
                     [title]="
                       i.diferenca !== 0
                         ? 'Contagem diferente do saldo esperado pelo sistema'
                         : 'Contagem confere com o saldo esperado'
                     "
-                    >{{ i.diferenca > 0 ? '+' : '' }}{{ i.diferenca }}</span
+                    >{{ i.diferenca > 0 ? '+' : '' }}{{ i.diferenca | number }}</span
                   >
                 </td>
                 @if (podeEstoque) {
-                  <td class="number">
-                    {{ estoquePorId().get(i.apresentacaoId)?.saldoFisico ?? '—' }}
+                  <td class="number" data-label="Saldo físico atual">
+                    {{ (estoquePorId().get(i.apresentacaoId)?.saldoFisico | number) ?? '—' }}
                   </td>
                 }
                 @if (inv.status === 'ABERTO') {
-                  <td>
+                  <td data-label="Nova contagem">
                     @if (controles()[i.apresentacaoId]; as control) {
-                      <form class="form-grid" (ngSubmit)="contar(i.apresentacaoId)">
-                        <fieldset class="form-grid" [disabled]="saving()">
-                          <label
-                            >{{ i.insumo }} · {{ i.apresentacao
-                            }}<input
-                              type="number"
-                              [formControl]="control"
-                              min="0"
-                              step="1"
-                              required
-                              [attr.aria-invalid]="control.touched && control.invalid"
-                          /></label>
-                          @if (control.touched && control.invalid) {
-                            <p class="field-error">Informe um inteiro igual ou maior que zero.</p>
-                          }
-                          <button type="submit" [disabled]="control.invalid || !permitido">
-                            {{
-                              savingItem() === i.apresentacaoId ? 'Salvando…' : 'Salvar contagem'
-                            }}
+                      <form (ngSubmit)="contar(i.apresentacaoId)">
+                        <fieldset class="ui-fieldset--plain ui-actions" [disabled]="saving()">
+                          <input
+                            class="contagem-input"
+                            type="number"
+                            [formControl]="control"
+                            min="0"
+                            step="1"
+                            required
+                            [attr.aria-label]="i.insumo + ' · ' + i.apresentacao"
+                            [attr.aria-invalid]="control.touched && control.invalid"
+                          />
+                          <button type="submit" class="secondary btn--sm" [class.is-loading]="savingItem() === i.apresentacaoId" [disabled]="control.invalid || !permitido">
+                            {{ savingItem() === i.apresentacaoId ? 'Salvando…' : 'Salvar contagem' }}
                           </button>
                         </fieldset>
+                        @if (control.touched && control.invalid) {
+                          <p class="ui-field__error">Informe um inteiro igual ou maior que zero.</p>
+                        }
                       </form>
                     }
                   </td>
@@ -162,5 +179,16 @@
         </table>
       </div>
     }
-  </section>
+  </app-section-card>
+}
+
+@if (confirmacao.atual(); as c) {
+  <app-confirm-dialog
+    [title]="c.title"
+    [message]="c.message ?? ''"
+    [confirmLabel]="c.confirmLabel ?? 'Confirmar'"
+    [danger]="!!c.danger"
+    (confirm)="confirmacao.responder(true)"
+    (dismiss)="confirmacao.responder(false)"
+  />
 }

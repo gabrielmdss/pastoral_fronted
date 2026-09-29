@@ -6,10 +6,12 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { AbrirDistribuicaoUseCase } from '../../../application/distribuicoes/abrir-distribuicao.use-case';
 import { EncerrarDistribuicaoUseCase } from '../../../application/distribuicoes/encerrar-distribuicao.use-case';
 import { ObterDistribuicaoUseCase } from '../../../application/distribuicoes/obter-distribuicao.use-case';
+import { ObterHistoricoDistribuicaoUseCase } from '../../../application/atendimento/use-cases/obter-historico.use-cases';
 import { RemarcarDistribuicaoUseCase } from '../../../application/distribuicoes/remarcar-distribuicao.use-case';
 import type { Distribuicao } from '../../../domain/distribuicoes/distribuicao.model';
 import { SessionFacade } from '../../../infrastructure/auth/session.facade';
 import DistribuicaoDetailPage from './distribuicao-detail.page';
+import { responderConfirmacao } from '../../../shared/ui/confirm-dialog.testing';
 const item: Distribuicao = {
   id: '3', status: 'PLANEJADA', dataPrevista: '2026-09-12', dataReal: null,
   competencia: { id: '9', ano: 2026, mes: 9 }, grupo: { id: '2', codigo: 'A', nome: 'Grupo A' },
@@ -26,6 +28,7 @@ function setup(permission = true, status: Distribuicao['status'] = 'PLANEJADA') 
     { provide: ActivatedRoute, useValue: { snapshot: { paramMap: convertToParamMap({ id: '3' }) } } },
     { provide: SessionFacade, useValue: { hasPermission: (p: string) => permission && p === 'DISTRIBUICAO_REMARCAR' } },
     { provide: ObterDistribuicaoUseCase, useValue: { execute: obter } },
+    { provide: ObterHistoricoDistribuicaoUseCase, useValue: { execute: () => of({ distribuicao: { id: '3', data: '', grupo: '' }, eventos: [] }) } },
     { provide: RemarcarDistribuicaoUseCase, useValue: { execute: remarcar } },
     { provide: AbrirDistribuicaoUseCase, useValue: { execute: vi.fn() } },
     { provide: EncerrarDistribuicaoUseCase, useValue: { execute: vi.fn() } },
@@ -38,11 +41,13 @@ function setup(permission = true, status: Distribuicao['status'] = 'PLANEJADA') 
 }
 describe('remarcação no detalhe existente', () => {
   afterEach(() => { vi.restoreAllMocks(); TestBed.resetTestingModule(); });
-  it.each(['PLANEJADA', 'PREPARADA'] as const)('confirma, impede duplicação e recarrega: %s', status => {
-    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(true);
-    const { page, remarcar, obter, response } = setup(true, status);
-    page.remarcar(); page.remarcar();
-    expect(confirm).toHaveBeenCalledOnce();
+  it.each(['PLANEJADA', 'PREPARADA'] as const)('confirma, impede duplicação e recarrega: %s', async status => {
+    const { fixture, page, remarcar, obter, response } = setup(true, status);
+    const pending = page.remarcar();
+    const segunda = page.remarcar();
+    const texto = await responderConfirmacao(fixture);
+    await Promise.all([pending, segunda]);
+    expect(texto).toContain('Remarcar a distribuição');
     expect(remarcar).toHaveBeenCalledExactlyOnceWith('3', { novaData: '2026-09-19', motivo: 'Alteração local' });
     expect(page.remarcando()).toBe(true);
     response.next(); response.complete();
@@ -51,10 +56,11 @@ describe('remarcação no detalhe existente', () => {
     expect(page.distribuicao()?.dataPrevista).toBe('2026-09-19');
     expect(page.remarcacaoFeedback()).toContain('sucesso');
   });
-  it('não envia sem confirmação', () => {
-    vi.spyOn(window, 'confirm').mockReturnValue(false);
-    const { page, remarcar } = setup();
-    page.remarcar();
+  it('não envia sem confirmação', async () => {
+    const { fixture, page, remarcar } = setup();
+    const pending = page.remarcar();
+    await responderConfirmacao(fixture, false);
+    await pending;
     expect(remarcar).not.toHaveBeenCalled();
   });
   it.each([
@@ -73,10 +79,11 @@ describe('remarcação no detalhe existente', () => {
     page.remarcar();
     expect(remarcar).not.toHaveBeenCalled();
   });
-  it('trata conflito do backend e libera nova tentativa sem perder dados', () => {
-    vi.spyOn(window, 'confirm').mockReturnValue(true);
-    const { page, response, obter } = setup();
-    page.remarcar();
+  it('trata conflito do backend e libera nova tentativa sem perder dados', async () => {
+    const { fixture, page, response, obter } = setup();
+    const pending = page.remarcar();
+    await responderConfirmacao(fixture);
+    await pending;
     response.error(new HttpErrorResponse({ status: 409, error: { error: { code: 'DISTRIBUICAO_NAO_REMARCAVEL' } } }));
     expect(page.remarcacaoError()).toContain('status atual');
     expect(page.remarcando()).toBe(false);

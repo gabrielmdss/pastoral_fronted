@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { DatePipe } from '@angular/common';
+import { DecimalPipe } from '@angular/common';
 import { firstValueFrom, forkJoin, of } from 'rxjs';
 import * as U from '../../../application/cestas/modelos.use-cases';
 import { ListarInsumosUseCase } from '../../../application/estoque/estoque.use-cases';
@@ -15,14 +15,35 @@ import { userErrorMessage } from '../../../shared/errors/user-error';
 import { LoadingStateComponent } from '../../../shared/ui/loading-state.component';
 import { ErrorStateComponent } from '../../../shared/ui/error-state.component';
 import { EmptyStateComponent } from '../../../shared/ui/empty-state.component';
+import { PageHeaderComponent } from '../../../shared/ui/page-header.component';
+import { SectionCardComponent } from '../../../shared/ui/section-card.component';
+import { StatusBadgeComponent } from '../../../shared/ui/status-badge.component';
+import { IconComponent } from '../../../shared/ui/icon.component';
+import { ToastService } from '../../../shared/ui/toast.service';
+import { DataBrPipe } from '../../../shared/pipes/data-br.pipe';
 @Component({
   selector: 'app-modelos-page',
-  imports: [ReactiveFormsModule, DatePipe, LoadingStateComponent, ErrorStateComponent, EmptyStateComponent],
+  host: { class: 'ui-page' },
+  imports: [
+    ReactiveFormsModule,
+    DecimalPipe,
+    DataBrPipe,
+    LoadingStateComponent,
+    ErrorStateComponent,
+    EmptyStateComponent,
+    PageHeaderComponent,
+    SectionCardComponent,
+    StatusBadgeComponent,
+    IconComponent,
+  ],
   templateUrl: './modelos.page.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export default class ModelosPage {
   readonly session = inject(SessionFacade);
+  private readonly toast = inject(ToastService);
+  /** Estado apenas de apresentação: qual diálogo de cadastro está aberto. */
+  readonly dialogo = signal<'modelo' | 'versao' | null>(null);
   private fb = inject(FormBuilder).nonNullable;
   private listar = inject(U.ListarModelosUseCase);
   private obter = inject(U.ObterModeloUseCase);
@@ -47,6 +68,9 @@ export default class ModelosPage {
     metaItens: [1, this.positive],
     itens: this.fb.array([this.item()]),
   });
+  modelo(id: string): ModeloCesta | undefined {
+    return this.modelos().find((m) => m.id === id);
+  }
   item() {
     return this.fb.group({
       apresentacaoInsumoId: ['', Validators.required],
@@ -124,6 +148,8 @@ export default class ModelosPage {
           ? 'Modelo criado. Defina sua composição em uma versão.'
           : 'Versão criada com sucesso.',
       );
+      this.toast.success(this.feedback());
+      this.dialogo.set(null);
       await this.carregar();
     } catch (e) {
       this.mutationError.set(userErrorMessage(e));

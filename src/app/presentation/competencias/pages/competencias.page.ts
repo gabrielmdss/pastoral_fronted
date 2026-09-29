@@ -14,18 +14,25 @@ import { PageHeaderComponent } from '../../../shared/ui/page-header.component';
 import { SearchFieldComponent } from '../../../shared/ui/search-field.component';
 import { MetricCardComponent } from '../../../shared/ui/metric-card.component';
 
-const STATUS_ICONE: Record<string, string> = {
-  ABERTA: '🟢',
-  PREPARADA: '🟡',
-  ENCERRADA: '⚪',
-  CANCELADA: '⛔',
-};
+import { DecimalPipe } from '@angular/common';
+import { IconComponent } from '../../../shared/ui/icon.component';
+import { SectionCardComponent } from '../../../shared/ui/section-card.component';
+import { StatusBadgeComponent } from '../../../shared/ui/status-badge.component';
+import { ToastService } from '../../../shared/ui/toast.service';
+import { CompetenciaPipe, formatarCompetencia } from '../../../shared/pipes/competencia.pipe';
 
 @Component({
   selector: 'app-competencias-page',
-  imports: [ReactiveFormsModule, RouterLink, LoadingStateComponent, ErrorStateComponent, EmptyStateComponent, PageHeaderComponent, SearchFieldComponent, MetricCardComponent],
+  imports: [
+    ReactiveFormsModule, RouterLink, LoadingStateComponent, ErrorStateComponent, EmptyStateComponent, PageHeaderComponent, SearchFieldComponent,
+    MetricCardComponent,
+    DecimalPipe,
+    IconComponent,
+    SectionCardComponent,
+    StatusBadgeComponent,
+    CompetenciaPipe,
+  ],
   templateUrl: './competencias.page.html',
-  styleUrl: './competencias.page.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export default class CompetenciasPage {
@@ -33,6 +40,7 @@ export default class CompetenciasPage {
   private readonly obter = inject(ObterCompetenciaUseCase);
   private readonly gerar = inject(GerarCompetenciaUseCase);
   private readonly destroy = inject(DestroyRef);
+  private readonly toast = inject(ToastService);
   private readonly refreshRequested = new Subject<void>();
   readonly id = inject(ActivatedRoute).snapshot.paramMap.get('id');
   readonly podeGerar = inject(SessionFacade).hasPermission('DISTRIBUICAO_ABRIR');
@@ -53,7 +61,7 @@ export default class CompetenciasPage {
     const termo = this.filtro().toLowerCase().trim();
     if (!termo) return this.items();
     return this.items().filter((item) =>
-      [`${item.mes}/${item.ano}`, item.status].some((campo) => campo.toLowerCase().includes(termo)),
+      [`${item.mes}/${item.ano}`, formatarCompetencia(item), item.status].some((campo) => campo.toLowerCase().includes(termo)),
     );
   });
 
@@ -73,10 +81,6 @@ export default class CompetenciasPage {
     ).subscribe(items => { this.items.set(items); this.detalhe.set(this.id ? items[0] ?? null : null); });
   }
 
-  statusIcone(status: string): string {
-    return STATUS_ICONE[status] ?? '⚪';
-  }
-
   onFiltroChange(termo: string): void {
     this.filtro.set(termo);
   }
@@ -94,7 +98,8 @@ export default class CompetenciasPage {
       finalize(() => this.saving.set(false)),
     ).subscribe({
       next: item => {
-        this.feedback.set(`Competência ${item.mes}/${item.ano} gerada com sucesso.`);
+        this.feedback.set(`Competência ${formatarCompetencia(item)} gerada com sucesso.`);
+        this.toast.success(this.feedback());
         this.carregar();
       },
       error: e => this.mutationError.set(userErrorMessage(e, 'Não foi possível gerar a competência.')),

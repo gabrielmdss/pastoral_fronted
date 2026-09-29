@@ -6,7 +6,7 @@ import {
   inject,
   signal,
 } from '@angular/core';
-import { DatePipe } from '@angular/common';
+import { DecimalPipe } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
@@ -36,11 +36,27 @@ import { LoadingStateComponent } from '../../../shared/ui/loading-state.componen
 import { ErrorStateComponent } from '../../../shared/ui/error-state.component';
 import { EmptyStateComponent } from '../../../shared/ui/empty-state.component';
 import { StatusBadgeComponent } from '../../../shared/ui/status-badge.component';
+import { PageHeaderComponent } from '../../../shared/ui/page-header.component';
+import { SectionCardComponent } from '../../../shared/ui/section-card.component';
+import { MetricCardComponent } from '../../../shared/ui/metric-card.component';
+import { IconComponent } from '../../../shared/ui/icon.component';
+import { ToastService } from '../../../shared/ui/toast.service';
+import { DataBrPipe } from '../../../shared/pipes/data-br.pipe';
+import { CompetenciaPipe } from '../../../shared/pipes/competencia.pipe';
+import { Confirmacao, ConfirmDialogComponent } from '../../../shared/ui/confirm-dialog.component';
 
 @Component({
   selector: 'app-montagem',
+  host: { class: 'ui-page' },
   imports: [
-    DatePipe,
+    ConfirmDialogComponent,
+    DecimalPipe,
+    DataBrPipe,
+    CompetenciaPipe,
+    PageHeaderComponent,
+    SectionCardComponent,
+    MetricCardComponent,
+    IconComponent,
     ReactiveFormsModule,
     RouterLink,
     LoadingStateComponent,
@@ -66,7 +82,13 @@ export default class MontagemPage {
   private readonly planoUC = inject(ObterPlanejamentoUseCase);
   private readonly estoqueUC = inject(ListarInsumosUseCase);
   readonly session = inject(SessionFacade);
+  private readonly toast = inject(ToastService);
   readonly podeMontar = this.session.hasPermission('CESTA_MONTAR');
+  readonly podeLiberar = this.session.hasPermission('CESTA_LIBERAR_DISTRIBUICAO');
+  readonly podeDistribuicoes = this.session.hasPermission('BENEFICIARIO_VISUALIZAR');
+  /** Distribuição de origem informada na navegação (ex.: vindo da tela de liberação). */
+  readonly distribuicaoDestino = signal<string | null>(null);
+  private versaoPreSelecionada: string | null = null;
   readonly id = signal<string | null>(null);
   readonly lotes = signal<LoteMontagem[]>([]);
   readonly lote = signal<LoteMontagem | null>(null);
@@ -76,6 +98,8 @@ export default class MontagemPage {
   readonly loading = signal(false);
   readonly planLoading = signal(false);
   readonly saving = signal(false);
+  /** Confirmação das operações irreversíveis (substitui window.confirm). */
+  readonly confirmacao = new Confirmacao();
   readonly error = signal('');
   readonly planError = signal('');
   readonly mutationError = signal('');
@@ -132,6 +156,7 @@ export default class MontagemPage {
       this.plano.set(null);
       this.planError.set('');
       this.form.reset({}, { emitEvent: false });
+      this.aplicarContextoNavegacao();
       this.mutationError.set('');
       this.feedback.set(
         this.router.getCurrentNavigation()?.extras.state?.['montado'] === true
@@ -140,6 +165,17 @@ export default class MontagemPage {
       );
       void this.carregar();
     });
+  }
+  private aplicarContextoNavegacao() {
+    const query = this.route.snapshot?.queryParamMap;
+    const numerico = (v: string | null | undefined) => (v && /^\d+$/.test(v) ? v : null);
+    this.distribuicaoDestino.set(numerico(query?.get('distribuicao')));
+    const planejamentoId = numerico(query?.get('planejamento'));
+    this.versaoPreSelecionada = numerico(query?.get('versao'));
+    if (!this.id() && planejamentoId && this.podeMontar) {
+      this.criando.set(true);
+      this.form.controls.planejamentoId.setValue(planejamentoId);
+    }
   }
   async carregar() {
     const version = ++this.loadVersion,
@@ -183,6 +219,10 @@ export default class MontagemPage {
       );
       if (version !== this.planVersion) return;
       this.plano.set(result);
+      const pre = this.versaoPreSelecionada;
+      this.versaoPreSelecionada = null;
+      if (pre && this.aprovadas().some((v) => v.id === pre))
+        this.form.controls.planejamentoVersaoId.setValue(pre);
       if (!result) this.planError.set('Planejamento não encontrado. Atualize a consulta.');
     } catch (e) {
       if (!this.destroy.destroyed && version === this.planVersion)
@@ -295,22 +335,23 @@ export default class MontagemPage {
         return `${v.operacao === 'ADICIONAR' ? '+' : '-'}${v.quantidadePorCesta} ${nome}`;
       });
       const cestasAfetadas = this.ajusteForm.controls.quantidadeCestasAfetadas.value;
-      if (
-        !window.confirm(
-          `Ajustar o lote ${id} em ${cestasAfetadas} cesta(s)?\n` +
-            `Itens: ${itens.join(', ')}.\n` +
-            'Isso altera fisicamente o conteúdo do lote e não pode ser desfeito.',
-        )
-      )
-        return;
+      const confirmado = await this.confirmacao.pedir({
+        title: `Ajustar o lote ${id} em ${cestasAfetadas} cesta(s)?`,
+        message:
+          `Itens: ${itens.join(', ')}.\n` +
+          'Isso altera fisicamente o conteúdo do lote e não pode ser desfeito.',
+        confirmLabel: 'Ajustar lote',
+        danger: true,
+      });
+      if (!confirmado || this.saving()) return;
     } else {
-      if (
-        !window.confirm(
-          `Desmontar ${quantidade} de ${lote.quantidadeDisponivel} cesta(s) disponíveis do lote ${id}?\n` +
-            'Isso devolverá os insumos dessas cestas ao estoque e não pode ser desfeito.',
-        )
-      )
-        return;
+      const confirmado = await this.confirmacao.pedir({
+        title: `Desmontar ${quantidade} de ${lote.quantidadeDisponivel} cesta(s) disponíveis do lote ${id}?`,
+        message: 'Isso devolverá os insumos dessas cestas ao estoque e não pode ser desfeito.',
+        confirmLabel: 'Desmontar',
+        danger: true,
+      });
+      if (!confirmado || this.saving()) return;
     }
     this.saving.set(true);
     this.mutationError.set('');
@@ -341,6 +382,7 @@ export default class MontagemPage {
           this.ajusteForm.controls.itens.push(this.novoItemAjuste());
         }
         this.feedback.set(ajuste ? 'Ajuste confirmado.' : 'Desmontagem confirmada.');
+        this.toast.success(this.feedback());
         await this.carregar();
       }
     } catch (e) {
@@ -372,12 +414,12 @@ export default class MontagemPage {
     const { planejamentoVersaoId, quantidade } = this.form.getRawValue();
     const versao = this.aprovadas().find((v) => v.id === planejamentoVersaoId);
     if (!versao) return;
-    if (
-      !window.confirm(
-        `Montar ${quantidade} cestas de ${this.plano()?.modelo}, versão ${versao.numeroVersao} do planejamento? A operação consumirá os insumos conforme validação do estoque.`,
-      )
-    )
-      return;
+    const confirmado = await this.confirmacao.pedir({
+      title: 'Montar cestas',
+      message: `Montar ${quantidade} cestas de ${this.plano()?.modelo}, versão ${versao.numeroVersao} do planejamento? A operação consumirá os insumos conforme validação do estoque.`,
+      confirmLabel: 'Montar cestas',
+    });
+    if (!confirmado || this.saving()) return;
     this.saving.set(true);
     this.mutationError.set('');
     this.feedback.set('');
@@ -389,6 +431,7 @@ export default class MontagemPage {
       );
       if (!this.destroy.destroyed) {
         this.feedback.set('Montagem confirmada.');
+        this.toast.success(this.feedback());
         await this.carregar();
         await this.router.navigate(['/montagem', result.id], { state: { montado: true } });
       }

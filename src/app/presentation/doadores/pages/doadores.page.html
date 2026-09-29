@@ -1,0 +1,165 @@
+<app-page-header
+  eyebrow="Preparação"
+  title="Doadores"
+  description="Pessoas e instituições que contribuem com o estoque."
+>
+  <div actions class="ui-actions">
+    <button class="btn--ghost" (click)="carregar()" [disabled]="loading() || saving()">
+      <app-icon name="refresh" /> Atualizar
+    </button>
+    <button *appPermissionOnly="'ESTOQUE_ENTRADA'" (click)="abrir()" [disabled]="saving()">
+      <app-icon name="plus" /> Cadastrar doador
+    </button>
+  </div>
+</app-page-header>
+
+@if (formAberto()) {
+  <div class="ui-dialog-backdrop">
+    <form
+      class="ui-dialog"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="dlg-doador"
+      [formGroup]="form"
+      (ngSubmit)="salvar()"
+    >
+      <header class="ui-dialog__header">
+        <div>
+          <h2 id="dlg-doador">{{ editandoId() ? 'Editar doador' : 'Cadastrar doador' }}</h2>
+          <p>Origem das doações que abastecem o estoque.</p>
+        </div>
+        <button type="button" class="btn--ghost btn--icon btn--sm" aria-label="Fechar" (click)="cancelar()" [disabled]="saving()">
+          <app-icon name="x" />
+        </button>
+      </header>
+      <div class="ui-dialog__body ui-stack">
+        <div class="ui-grid ui-grid--2">
+          <label class="ui-field">
+            <span class="ui-field__label">Tipo</span>
+            <select formControlName="tipo">
+              <option value="PESSOA">Pessoa</option>
+              <option value="INSTITUICAO">Instituição</option>
+            </select>
+          </label>
+          <label class="ui-field">
+            <span class="ui-field__label">Telefone (opcional)</span>
+            <input formControlName="telefone" type="tel" />
+          </label>
+        </div>
+        <label class="ui-field">
+          <span class="ui-field__label">Nome</span>
+          <input formControlName="nome" required placeholder="Nome do doador" />
+        </label>
+        <label class="ui-field">
+          <span class="ui-field__label">Observação (opcional)</span>
+          <textarea rows="2" formControlName="observacao"></textarea>
+        </label>
+        @if (editandoId()) {
+          <label class="ui-check"><input type="checkbox" formControlName="ativo" /> Ativo</label>
+        }
+        @if (mutationError()) {
+          <p class="ui-message ui-message--error" role="alert">{{ mutationError() }}</p>
+        }
+      </div>
+      <footer class="ui-dialog__footer">
+        <button type="button" class="secondary" (click)="cancelar()" [disabled]="saving()">Cancelar</button>
+        <button type="submit" [class.is-loading]="saving()" [disabled]="form.invalid || saving()">
+          {{ saving() ? 'Salvando…' : 'Salvar doador' }}
+        </button>
+      </footer>
+    </form>
+  </div>
+}
+
+@if (!loading() && !error() && doadores().length) {
+  <section class="ui-grid ui-grid--3" aria-label="Indicadores de doadores">
+    <app-metric-card label="Doadores cadastrados" icon="heart-handshake" tone="primary" [delayMs]="0">
+      {{ doadores().length | number }}
+    </app-metric-card>
+    <app-metric-card label="Ativos" icon="check-circle" tone="success" [delayMs]="60">
+      {{ ativos() | number }}
+    </app-metric-card>
+    <app-metric-card label="Instituições" icon="users" tone="info" [delayMs]="120">
+      {{ instituicoes() | number }}
+    </app-metric-card>
+  </section>
+}
+
+<div class="ui-toolbar">
+  <div class="ui-input-icon ui-toolbar__grow">
+    <app-icon name="search" />
+    <input
+      type="search"
+      aria-label="Buscar"
+      placeholder="Buscar por nome ou telefone"
+      [value]="busca()"
+      (input)="busca.set($any($event.target).value)"
+    />
+  </div>
+  <div class="ui-actions" role="group" aria-label="Tipo">
+    <button type="button" class="ui-chip" [attr.aria-pressed]="filtroTipo() === ''" (click)="filtroTipo.set('')">Todos</button>
+    <button type="button" class="ui-chip" [attr.aria-pressed]="filtroTipo() === 'PESSOA'" (click)="filtroTipo.set('PESSOA')">Pessoa</button>
+    <button type="button" class="ui-chip" [attr.aria-pressed]="filtroTipo() === 'INSTITUICAO'" (click)="filtroTipo.set('INSTITUICAO')">Instituição</button>
+  </div>
+  <label class="ui-field ui-toolbar__end">
+    <span class="ui-field__label">Status</span>
+    <select [value]="filtroStatus()" (change)="filtroStatus.set($any($event.target).value)">
+      <option value="">Todos</option>
+      <option value="ATIVO">Ativos</option>
+      <option value="INATIVO">Inativos</option>
+    </select>
+  </label>
+</div>
+
+@if (loading() && !doadores().length) {
+  <app-loading-state variant="table" [rows]="5" [columns]="5" label="Consultando doadores…" />
+} @else if (error()) {
+  <app-error-state [message]="error()" (retry)="carregar()" title="Não foi possível carregar os doadores" />
+} @else if (!filtrados().length) {
+  <app-empty-state
+    title="Nenhum doador"
+    icon="heart-handshake"
+    [message]="doadores().length ? 'Nenhum doador corresponde aos filtros.' : 'Nenhum doador cadastrado.'"
+  />
+} @else {
+  <app-section-card [flush]="true" title="Doadores" [description]="(filtrados().length | number) + ' de ' + (doadores().length | number) + ' exibidos'">
+    <div class="ui-table-wrap" tabindex="0" role="region" aria-label="Doadores">
+      <table class="ui-table ui-table--cards">
+        <thead>
+          <tr>
+            <th>Doador</th>
+            <th>Tipo</th>
+            <th>Telefone</th>
+            <th>Status</th>
+            <th>Observação</th>
+            <th class="ui-table__actions"><span class="sr-only">Ações</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (d of filtrados(); track d.id) {
+            <tr>
+              <td data-label="Doador"><strong>{{ d.nome }}</strong></td>
+              <td data-label="Tipo">
+                <app-status-badge [status]="d.tipo" [dot]="false" />
+              </td>
+              <td data-label="Telefone">{{ d.telefone || 'Não informado' }}</td>
+              <td data-label="Status"><app-status-badge [status]="d.ativo ? 'ATIVO' : 'INATIVO'" /></td>
+              <td data-label="Observação" class="text-muted">{{ d.observacao || '—' }}</td>
+              <td class="ui-table__actions">
+                <button
+                  *appPermissionOnly="'ESTOQUE_ENTRADA'"
+                  type="button"
+                  class="btn--ghost btn--sm"
+                  (click)="abrir(d)"
+                  [disabled]="saving()"
+                >
+                  <app-icon name="pencil" /> Editar
+                </button>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </app-section-card>
+}

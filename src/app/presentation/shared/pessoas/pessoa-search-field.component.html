@@ -1,85 +1,97 @@
 <div class="person-picker">
   @if (selected(); as pessoa) {
     <div class="selected">
+      <span class="ui-avatar" aria-hidden="true">{{ pessoa.nomeCompleto.charAt(0) }}</span>
       <div>
-        <strong>{{ pessoa.nomeCompleto }}</strong
-        ><small>{{ pessoa.documentos[0]?.tipo }} {{ pessoa.documentos[0]?.numeroMascarado }}</small>
+        <strong>{{ pessoa.nomeCompleto }}</strong>
+        <small class="text-muted">{{ pessoa.documentos[0]?.tipo }} {{ pessoa.documentos[0]?.numeroMascarado }}</small>
         @if (pessoa.beneficiario) {
-          <span
-            >Beneficiária {{ pessoa.beneficiario.status === 'ATIVO' ? 'ativa' : 'desligada' }}</span
-          >
+          <span class="ui-badge ui-badge--info">Beneficiária {{ pessoa.beneficiario.status === 'ATIVO' ? 'ativa' : 'desligada' }}</span>
         }
       </div>
-      <button type="button" class="secondary" (click)="clear()">Trocar pessoa</button>
+      <button type="button" class="secondary btn--sm" (click)="clear()">Trocar pessoa</button>
     </div>
   } @else {
-    <label
-      >Buscar pessoa por nome ou documento<input
-        type="search"
-        [formControl]="search"
-        placeholder="Digite ao menos 2 caracteres"
-        autocomplete="off"
-    /></label>
+    <label class="ui-field">
+      <span class="ui-field__label">Buscar pessoa por nome ou documento</span>
+      <span class="ui-input-icon">
+        <app-icon name="search" />
+        <input type="search" [formControl]="search" placeholder="Digite ao menos 2 caracteres" autocomplete="off" />
+      </span>
+    </label>
     @if (loading()) {
-      <p role="status">Buscando…</p>
+      <p class="text-sm text-muted" role="status">Buscando…</p>
     }
     @if (error()) {
-      <p class="picker-error" role="alert">{{ error() }}</p>
+      <p class="ui-message ui-message--error" role="alert">{{ error() }}</p>
     }
     @if (results().length) {
       <ul class="results">
         @for (p of results(); track p.id) {
           <li>
-            <button
-              type="button"
-              (click)="select(p)"
-              [disabled]="blockExistingBeneficiary() && !!p.beneficiario"
-            >
-              <strong>{{ p.nomeCompleto }}</strong
-              ><small>
-                @for (d of p.documentos; track d.tipo) {
-                  <span>{{ d.tipo }} {{ d.numeroMascarado }}</span>
-                }
-              </small>
-              @if (p.dataNascimento) {
-                <small>Nascimento: {{ p.dataNascimento }}</small>
-              }
+            <button type="button" (click)="select(p)" [disabled]="blockExistingBeneficiary() && !!p.beneficiario">
+              <span class="ui-avatar" aria-hidden="true">{{ p.nomeCompleto.charAt(0) }}</span>
+              <span class="result-info">
+                <strong>{{ p.nomeCompleto }}</strong>
+                <small>
+                  @for (d of p.documentos; track d.tipo) {
+                    <span>{{ d.tipo }} {{ d.numeroMascarado }}</span>
+                  }
+                  @if (p.dataNascimento) {
+                    <span>Nascimento: {{ p.dataNascimento | dataBr }}</span>
+                  }
+                </small>
+              </span>
               @if (p.beneficiario) {
-                <em
-                  >Beneficiária {{ p.beneficiario.status === 'ATIVO' ? 'ativa' : 'desligada' }}</em
-                >
+                <span class="ui-badge ui-badge--info">Beneficiária {{ p.beneficiario.status === 'ATIVO' ? 'ativa' : 'desligada' }}</span>
               }
             </button>
           </li>
         }
       </ul>
     } @else if (search.value.length >= 2 && !loading()) {
-      <p>Nenhuma pessoa encontrada.</p>
+      <p class="text-sm text-muted">Nenhuma pessoa encontrada.</p>
       @if (canCreate()) {
-        <button type="button" class="secondary" (click)="createMode.set(true)">
-          Cadastrar nova pessoa
-        </button>
+        <div>
+          <button type="button" class="secondary btn--sm" (click)="createMode.set(true)"><app-icon name="plus" /> Cadastrar nova pessoa</button>
+        </div>
       }
     }
   }
   @if (createMode()) {
     <section class="quick-create">
       <h3>Cadastrar nova pessoa</h3>
-      <form [formGroup]="form" (ngSubmit)="create()">
-        <label>Nome completo<input formControlName="nomeCompleto" /></label
-        ><label>Data de nascimento<input type="date" formControlName="dataNascimento" /></label
-        ><label>Telefone<input formControlName="telefone" /></label>
+      <form class="ui-stack" [formGroup]="form" (ngSubmit)="create()">
+        <label class="ui-field">
+          <span class="ui-field__label">Nome completo</span>
+          <input formControlName="nomeCompleto" />
+        </label>
         <div class="document-row">
-          <label
-            >Documento<select formControlName="tipo">
+          <label class="ui-field">
+            <span class="ui-field__label">Data de nascimento</span>
+            <input type="date" formControlName="dataNascimento" />
+          </label>
+          <label class="ui-field">
+            <span class="ui-field__label">Telefone</span>
+            <input formControlName="telefone" />
+          </label>
+        </div>
+        <div class="document-row">
+          <label class="ui-field">
+            <span class="ui-field__label">Documento</span>
+            <select formControlName="tipo">
               <option value="CPF">CPF</option>
               <option value="RG">RG</option>
-            </select></label
-          ><label>Número<input formControlName="numero" /></label>
+            </select>
+          </label>
+          <label class="ui-field">
+            <span class="ui-field__label">Número</span>
+            <input formControlName="numero" />
+          </label>
         </div>
-        <div class="picker-actions">
-          <button type="button" class="secondary" (click)="createMode.set(false)">Cancelar</button
-          ><button [disabled]="form.invalid || saving()">
+        <div class="ui-actions ui-actions--end">
+          <button type="button" class="secondary" (click)="createMode.set(false)">Cancelar</button>
+          <button [disabled]="form.invalid || saving()" [class.is-loading]="saving()">
             {{ saving() ? 'Cadastrando…' : 'Cadastrar e selecionar' }}
           </button>
         </div>

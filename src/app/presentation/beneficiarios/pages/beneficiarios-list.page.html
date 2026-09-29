@@ -1,116 +1,130 @@
-<app-page-header
-  eyebrow="Assistência"
-  title="Beneficiários"
-  description="Busque por nome ou documento. A consulta é realizada diretamente na API."
->
+<app-page-header eyebrow="Assistência" title="Beneficiários" description="Famílias cadastradas e sua situação atual.">
   @if (session.hasPermission('BENEFICIARIO_ADMITIR')) {
-    <button actions type="button" (click)="openAdmission()">Novo beneficiário</button>
+    <button actions type="button" (click)="openAdmission()"><app-icon name="plus" /> Novo beneficiário</button>
   }
 </app-page-header>
 @if (feedback()) {
-  <p class="notice" role="status">{{ feedback() }}</p>
+  <p class="ui-message ui-message--error" role="alert">{{ feedback() }}</p>
 }
-<section class="filters">
-  <label class="search-label search-hero"
-    ><span>Buscar por nome ou documento</span
-    ><input
-      type="search"
-      [formControl]="search"
-      placeholder="Digite o nome ou documento"
-  /></label>
-  <form [formGroup]="filters" (ngSubmit)="applyFilters()">
-    <label
-      >Status<select formControlName="status">
-        <option value="">Todos</option>
+<section class="ui-card">
+  <form class="ui-toolbar ui-toolbar--plain ui-card__header" [formGroup]="filters" (ngSubmit)="applyFilters()">
+    <label class="ui-field ui-toolbar__grow">
+      <span class="ui-field__label">Buscar por nome ou documento</span>
+      <span class="ui-input-icon">
+        <app-icon name="search" />
+        <input type="search" [formControl]="search" placeholder="Digite o nome ou documento" />
+      </span>
+    </label>
+    <label class="ui-field">
+      <span class="ui-field__label">Situação</span>
+      <select formControlName="status">
+        <option value="">Todas as situações</option>
         <option value="ATIVO">Ativo</option>
         <option value="DESLIGADO">Desligado</option>
-      </select></label
-    ><label
-      >Grupo<select formControlName="grupoId">
-        <option value="">Todos</option>
+      </select>
+    </label>
+    <label class="ui-field">
+      <span class="ui-field__label">Grupo</span>
+      <select formControlName="grupoId">
+        <option value="">Todos os grupos</option>
         @for (grupo of grupos(); track grupo.id) {
           <option [value]="grupo.id">{{ grupo.nome }}</option>
         }
-      </select></label
-    ><button class="secondary">Aplicar filtros</button>
+      </select>
+    </label>
+    <div class="ui-toolbar__end ui-actions">
+      <button class="secondary"><app-icon name="filter" /> Aplicar filtros</button>
+    </div>
   </form>
-</section>
-@if (loading()) {
-  <app-loading-state label="Buscando beneficiários…" />
-} @else if (error()) {
-  <app-error-state [message]="error()" (retry)="applyFilters()" />
-} @else if (!items().length) {
-  <app-empty-state
-    title="Nenhum beneficiário encontrado"
-    message="Altere os termos ou filtros da busca."
-  />
-} @else {
-  <div class="responsive-list" tabindex="0" role="region" aria-label="Lista de beneficiários">
-    <table>
-      <thead>
-        <tr>
-          <th scope="col">Beneficiário</th>
-          <th scope="col">Documento</th>
-          <th scope="col">Grupo</th>
-          <th scope="col">Status</th>
-          <th scope="col"><span class="sr-only">Ações</span></th>
-        </tr>
-      </thead>
-      <tbody>
-        @for (item of items(); track item.id; let i = $index) {
-          <tr class="fade-in-stagger" [style.--delay.ms]="i * 30">
-            <td>
-              <div class="person">
-                <app-beneficiario-avatar [pessoaId]="item.pessoaId" [nome]="item.nomeCompleto" />
-                <strong>{{ item.nomeCompleto }}</strong>
-              </div>
-            </td>
-            <td class="muted">{{ item.documentos[0]?.numeroMascarado || 'Não informado' }}</td>
-            <td class="muted">{{ item.grupo?.codigo || 'Sem grupo' }}</td>
-            <td><app-status-badge [status]="item.status" /></td>
-            <td><a class="button-link" [routerLink]="['/beneficiarios', item.id]">Ver</a></td>
+
+  @if (loading()) {
+    <div class="ui-card__body"><app-loading-state variant="table" [rows]="6" [columns]="5" label="Buscando beneficiários…" /></div>
+  } @else if (error()) {
+    <div class="ui-card__body"><app-error-state [message]="error()" (retry)="applyFilters()" /></div>
+  } @else if (!items().length) {
+    <div class="ui-card__body">
+      <app-empty-state icon="users" title="Nenhum beneficiário encontrado" message="Ajuste a busca ou os filtros para ver outros resultados." />
+    </div>
+  } @else {
+    <div class="ui-table-wrap" tabindex="0" role="region" aria-label="Lista de beneficiários">
+      <table class="ui-table ui-table--cards">
+        <thead>
+          <tr>
+            <th scope="col">Beneficiário</th>
+            <th scope="col">Documento</th>
+            <th scope="col">Grupo</th>
+            <th scope="col">Situação</th>
+            <th scope="col" class="ui-table__actions"><span class="sr-only">Ações</span></th>
           </tr>
-        }
-      </tbody>
-    </table>
-  </div>
-}
+        </thead>
+        <tbody>
+          @for (item of items(); track item.id; let i = $index) {
+            <tr class="fade-in-stagger" [style.--delay.ms]="i * 30">
+              <td data-label="Beneficiário">
+                <div class="ui-person">
+                  <app-beneficiario-avatar [pessoaId]="item.pessoaId" [nome]="item.nomeCompleto" />
+                  <strong>{{ item.nomeCompleto }}</strong>
+                </div>
+              </td>
+              <td data-label="Documento" class="text-muted mono">{{ item.documentos[0]?.numeroMascarado || 'Não informado' }}</td>
+              <td data-label="Grupo">{{ item.grupo ? 'Grupo ' + item.grupo.codigo : 'Sem grupo' }}</td>
+              <td data-label="Situação"><app-status-badge [status]="item.status" /></td>
+              <td class="ui-table__actions">
+                <a class="btn btn--ghost btn--sm" [routerLink]="['/beneficiarios', item.id]">Detalhes <app-icon name="chevron-right" /></a>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+    <div class="ui-card__footer text-sm text-muted">{{ items().length | number }} beneficiário(s) encontrado(s)</div>
+  }
+</section>
+
 @if (dialog()) {
-  <div class="dialog-backdrop">
-    <section class="dialog" role="dialog" aria-modal="true" aria-labelledby="admission-title">
-      <h2 id="admission-title">Novo beneficiário</h2>
-      <app-pessoa-search-field
-        [canCreate]="session.hasPermission('BENEFICIARIO_CADASTRAR')"
-        [blockExistingBeneficiary]="true"
-        (pessoaSelecionada)="pessoa.set($event)"
-      />
-      <form [formGroup]="admission" (ngSubmit)="submitAdmission()">
-        <label
-          >Grupo<select formControlName="grupoId">
-            <option value="">Selecione</option>
-            @for (grupo of grupos(); track grupo.id) {
-              <option [value]="grupo.id">{{ grupo.nome }}</option>
-            }
-          </select></label
-        >
-        @if (session.hasPermission('CAPACIDADE_ALTERAR')) {
-          <label class="check"
-            ><input type="checkbox" formControlName="autorizarAcimaCapacidade" />Autorizar acima da
-            capacidade</label
-          >
-        }
-        @if (admission.controls.autorizarAcimaCapacidade.value) {
-          <label
-            >Justificativa da exceção<textarea formControlName="justificativaExcecao"></textarea>
-          </label>
-        }
-        <div class="dialog-actions">
-          <button type="button" class="secondary" (click)="closeAdmission()">Cancelar</button
-          ><button [disabled]="admission.invalid || mutation() || !pessoa()">
-            {{ mutation() ? 'Admitindo…' : 'Admitir' }}
-          </button>
+  <div class="ui-dialog-backdrop">
+    <section class="ui-dialog ui-dialog--lg" role="dialog" aria-modal="true" aria-labelledby="admission-title">
+      <header class="ui-dialog__header">
+        <div>
+          <h2 id="admission-title">Novo beneficiário</h2>
+          <p>Localize a pessoa, escolha o grupo e confirme a admissão.</p>
         </div>
-      </form>
+        <button type="button" class="btn--ghost btn--icon btn--sm" aria-label="Fechar" (click)="closeAdmission()"><app-icon name="x" /></button>
+      </header>
+      <div class="ui-dialog__body ui-stack">
+        <app-pessoa-search-field
+          [canCreate]="session.hasPermission('BENEFICIARIO_CADASTRAR')"
+          [blockExistingBeneficiary]="true"
+          (pessoaSelecionada)="pessoa.set($event)"
+        />
+        <form id="admission-form" class="ui-stack" [formGroup]="admission" (ngSubmit)="submitAdmission()">
+          <label class="ui-field">
+            <span class="ui-field__label">Grupo</span>
+            <select formControlName="grupoId">
+              <option value="">Selecione</option>
+              @for (grupo of grupos(); track grupo.id) {
+                <option [value]="grupo.id">{{ grupo.nome }}</option>
+              }
+            </select>
+          </label>
+          @if (session.hasPermission('CAPACIDADE_ALTERAR')) {
+            <label class="ui-check"><input type="checkbox" formControlName="autorizarAcimaCapacidade" /> Autorizar acima da capacidade</label>
+          }
+          @if (admission.controls.autorizarAcimaCapacidade.value) {
+            <label class="ui-field">
+              <span class="ui-field__label">Justificativa da exceção</span>
+              <textarea formControlName="justificativaExcecao"></textarea>
+              <span class="ui-field__hint">Mínimo de 10 caracteres.</span>
+            </label>
+          }
+        </form>
+      </div>
+      <footer class="ui-dialog__footer">
+        <button type="button" class="secondary" (click)="closeAdmission()">Cancelar</button>
+        <button type="submit" form="admission-form" [disabled]="admission.invalid || mutation() || !pessoa()" [class.is-loading]="mutation()">
+          {{ mutation() ? 'Admitindo…' : 'Admitir' }}
+        </button>
+      </footer>
     </section>
   </div>
 }

@@ -21,6 +21,22 @@ input:not([type='checkbox']):not([type='radio']):focus-visible,
 select:focus-visible,
 textarea:focus-visible {
   border-color: var(--color-primary);
+  outline: none;
+  box-shadow: 0 0 0 3px color-mix(in oklch, var(--color-primary) 22%, transparent);
+}
+input:not([type='checkbox']):not([type='radio']):hover:not(:disabled):not(:focus),
+select:hover:not(:disabled):not(:focus),
+textarea:hover:not(:disabled):not(:focus) {
+  border-color: color-mix(in oklch, var(--color-input-border) 60%, var(--color-text-muted));
+}
+select:not([multiple]) {
+  appearance: none;
+  padding-right: 2.25rem;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23889a90' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  background-size: 1rem;
+  cursor: pointer;
 }
 textarea {
   min-height: 6rem;
@@ -87,11 +103,13 @@ button:active:not(:disabled),
   transform: scale(0.98);
   box-shadow: none;
 }
-button:disabled {
-  background: #e4e9e6;
+button:disabled,
+.btn[aria-disabled='true'] {
+  background: var(--color-disabled-surface);
   border-color: var(--color-border);
-  color: #637168;
+  color: var(--color-text-muted);
   cursor: not-allowed;
+  box-shadow: none;
 }
 @media (prefers-reduced-motion: reduce) {
   button,
@@ -104,25 +122,29 @@ button:disabled {
   }
 }
 .secondary,
-.btn-secondary {
+.btn-secondary,
+.btn--secondary {
   background: var(--color-surface);
   color: var(--color-primary);
   border-color: var(--color-input-border);
 }
 .secondary:hover:not(:disabled),
-.btn-secondary:hover:not(:disabled) {
+.btn-secondary:hover:not(:disabled),
+.btn--secondary:hover:not(:disabled) {
   background: var(--color-primary-soft);
   color: var(--color-primary-dark);
   border-color: var(--color-primary);
 }
 .danger,
-.btn-danger {
+.btn-danger,
+.btn--danger {
   background: var(--color-surface);
   color: var(--color-danger);
-  border-color: #dca4a7;
+  border-color: color-mix(in oklch, var(--color-danger) 40%, transparent);
 }
 .danger:hover:not(:disabled),
-.btn-danger:hover:not(:disabled) {
+.btn-danger:hover:not(:disabled),
+.btn--danger:hover:not(:disabled) {
   background: var(--color-danger-soft);
   color: var(--color-danger);
   border-color: var(--color-danger);

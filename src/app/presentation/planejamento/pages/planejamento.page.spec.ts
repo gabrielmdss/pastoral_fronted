@@ -18,6 +18,7 @@ import type {
 } from '../../../domain/planejamento/planejamento.model';
 import DetailPage from './planejamento-detail.page';
 import ListPage from './planejamentos-list.page';
+import { responderConfirmacao } from '../../../shared/ui/confirm-dialog.testing';
 
 const plan: PlanejamentoDetalhe = {
   id: '7',
@@ -218,9 +219,9 @@ describe('Planejamento: comportamento das páginas', () => {
     expect(api.aprovar).not.toHaveBeenCalled();
   });
   it('aprovação não depende da permission de gerenciar modelos', async () => {
-    const { page, api, modelos, approval, stock } = await setup('7', true, false);
-    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    const { page, api, modelos, approval, stock, fixture } = await setup('7', true, false);
     const pending = page.aprovar();
+    await responderConfirmacao(fixture);
     await page.aprovar();
     expect(api.aprovar).toHaveBeenCalledExactlyOnceWith('7');
     expect(page.detalhe()?.versoes[0]?.status).toBe('SIMULACAO');
@@ -246,15 +247,16 @@ describe('Planejamento: comportamento das páginas', () => {
     expect(page.feedback()).toContain('confirmada');
   });
   it('cancelar confirmação não envia aprovação', async () => {
-    const { page, api } = await setup('7');
-    vi.spyOn(window, 'confirm').mockReturnValue(false);
-    await page.aprovar();
+    const { page, api, fixture } = await setup('7');
+    const acao = page.aprovar();
+    await responderConfirmacao(fixture, false);
+    await acao;
     expect(api.aprovar).not.toHaveBeenCalled();
   });
   it('conflito informa concorrência, recarrega saldos e não assume reserva', async () => {
-    const { page, api, approval, stock } = await setup('7');
-    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    const { page, api, approval, stock, fixture } = await setup('7');
     const pending = page.aprovar();
+    await responderConfirmacao(fixture);
     approval.error(
       new HttpErrorResponse({
         status: 409,
@@ -269,5 +271,22 @@ describe('Planejamento: comportamento das páginas', () => {
     expect(page.detalhe()).toEqual(plan);
     expect(page.feedback()).toBe('');
     expect(page.saving()).toBe(false);
+  });
+  it('sem permissão de aprovar explica o modo somente simulação', async () => {
+    const { page, fixture } = await setup(null, false);
+    await fill(page);
+    await page.simular();
+    fixture.detectChanges();
+    const el: HTMLElement = fixture.nativeElement;
+    expect(el.querySelector('[data-hint="somente-simulacao"]')).toBeTruthy();
+    expect(el.querySelector('[data-hint="sem-permissao-salvar"]')).toBeTruthy();
+    expect(el.textContent).not.toContain('Criar planejamento');
+  });
+  it('versão aprovada leva à montagem com planejamento e versão', async () => {
+    const { page, fixture } = await setup('7');
+    page.detalhe.set({ ...plan, versoes: [{ ...plan.versoes[0]!, status: 'APROVADA' }] });
+    fixture.detectChanges();
+    const link: HTMLAnchorElement = fixture.nativeElement.querySelector('a[data-action="montagem"]');
+    expect(link.getAttribute('href')).toBe('/montagem?planejamento=7&versao=8');
   });
 });

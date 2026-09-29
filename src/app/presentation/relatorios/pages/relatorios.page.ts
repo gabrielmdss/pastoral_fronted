@@ -1,5 +1,5 @@
-import { ChangeDetectionStrategy, Component, DestroyRef, inject, signal } from '@angular/core';
-import { DatePipe } from '@angular/common';
+import { ChangeDetectionStrategy, Component, DestroyRef, computed, inject, signal } from '@angular/core';
+import { DecimalPipe, PercentPipe } from '@angular/common';
 import { FormBuilder, FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -15,10 +15,23 @@ import { ErrorStateComponent } from '../../../shared/ui/error-state.component';
 import { EmptyStateComponent } from '../../../shared/ui/empty-state.component';
 import { StatusBadgeComponent } from '../../../shared/ui/status-badge.component';
 import { PaginationComponent } from '../../../shared/ui/pagination.component';
+import { PageHeaderComponent } from '../../../shared/ui/page-header.component';
+import { SectionCardComponent } from '../../../shared/ui/section-card.component';
+import { MetricCardComponent } from '../../../shared/ui/metric-card.component';
+import { IconComponent } from '../../../shared/ui/icon.component';
+import { DataBrPipe } from '../../../shared/pipes/data-br.pipe';
+import { CompetenciaPipe } from '../../../shared/pipes/competencia.pipe';
 @Component({
   selector: 'app-relatorios',
   imports: [
-    DatePipe,
+    DecimalPipe,
+    PercentPipe,
+    PageHeaderComponent,
+    SectionCardComponent,
+    MetricCardComponent,
+    IconComponent,
+    DataBrPipe,
+    CompetenciaPipe,
     ReactiveFormsModule,
     RouterLink,
     LoadingStateComponent,
@@ -74,6 +87,22 @@ export default class RelatoriosPage {
   readonly loading = signal(false);
   readonly error = signal('');
   readonly resultado = signal<M.ResultadoRelatorio | null>(null);
+  /** Totais da página atual do relatório de distribuições (somente apresentação). */
+  readonly resumoDistribuicoes = computed(() => {
+    const r = this.resultado();
+    if (r?.tipo !== 'distribuicoes' || !r.pagina.data.length) return null;
+    const t = r.pagina.data.reduce(
+      (acc, i) => ({
+        previstos: acc.previstos + i.previstos,
+        presentes: acc.presentes + i.presentes,
+        retirados: acc.retirados + i.retirados,
+        ausentes: acc.ausentes + i.ausentes,
+        extras: acc.extras + i.extras,
+      }),
+      { previstos: 0, presentes: 0, retirados: 0, ausentes: 0, extras: 0 },
+    );
+    return { ...t, comparecimento: t.previstos ? t.presentes / t.previstos : 0 };
+  });
   readonly movimentos: readonly M.TipoMovimentoRelatorio[] = [
     'ENTRADA',
     'CONSUMO_MONTAGEM',

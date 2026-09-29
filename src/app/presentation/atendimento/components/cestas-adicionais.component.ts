@@ -9,7 +9,7 @@ import {
   signal,
   untracked,
 } from '@angular/core';
-import { DatePipe } from '@angular/common';
+import { DecimalPipe } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
@@ -28,10 +28,19 @@ import type { ModeloCesta } from '../../../domain/cestas/modelo-cesta.model';
 import type { CestaAdicional } from '../../../domain/atendimento/cesta-adicional.model';
 import { SessionFacade } from '../../../infrastructure/auth/session.facade';
 import { userErrorMessage } from '../../../shared/errors/user-error';
+import { DataBrPipe } from '../../../shared/pipes/data-br.pipe';
+import { IconComponent } from '../../../shared/ui/icon.component';
+import { rotuloStatus, StatusBadgeComponent } from '../../../shared/ui/status-badge.component';
+import { LoadingStateComponent } from '../../../shared/ui/loading-state.component';
+import { ErrorStateComponent } from '../../../shared/ui/error-state.component';
+import { EmptyStateComponent } from '../../../shared/ui/empty-state.component';
+import { ToastService } from '../../../shared/ui/toast.service';
+import { Confirmacao, ConfirmDialogComponent } from '../../../shared/ui/confirm-dialog.component';
+
 
 @Component({
   selector: 'app-cestas-adicionais',
-  imports: [DatePipe, ReactiveFormsModule],
+  imports: [ConfirmDialogComponent, DecimalPipe, ReactiveFormsModule, DataBrPipe, IconComponent, StatusBadgeComponent, LoadingStateComponent, ErrorStateComponent, EmptyStateComponent],
   templateUrl: './cestas-adicionais.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -46,17 +55,26 @@ export class CestasAdicionaisComponent {
   private readonly buscarBeneficiarios = inject(BuscarBeneficiariosUseCase);
   private readonly listarModelos = inject(ListarModelosUseCase);
   private readonly session = inject(SessionFacade);
+  private readonly toast = inject(ToastService);
   readonly podeAutorizar = this.session.hasPermission('CESTA_ADICIONAL_AUTORIZAR');
   readonly podeEntregar = this.session.hasPermission('RETIRADA_REGISTRAR');
-  readonly podeCatalogos =
-    this.session.hasPermission('BENEFICIARIO_VISUALIZAR') &&
-    this.session.hasPermission('CESTA_MODELO_GERENCIAR');
+  /*
+   * POST /distribuicoes/:id/cestas-adicionais exige CESTA_ADICIONAL_AUTORIZAR e um
+   * modeloCestaId obrigatório, mas o backend só lista modelos em GET /cestas/modelos
+   * (CESTA_MODELO_GERENCIAR); não há outra rota que exponha modelos ao autorizador.
+   * Sem a permissão, o formulário explica o bloqueio em vez de exibir um select vazio.
+   */
+  readonly podeConsultarBeneficiarios = this.session.hasPermission('BENEFICIARIO_VISUALIZAR');
+  readonly podeConsultarModelos = this.session.hasPermission('CESTA_MODELO_GERENCIAR');
+  readonly podeCatalogos = this.podeConsultarBeneficiarios && this.podeConsultarModelos;
   readonly atual = signal<Distribuicao | null>(null);
   readonly items = signal<CestaAdicional[]>([]);
   readonly beneficiarios = signal<BeneficiarioResumo[]>([]);
   readonly modelos = signal<ModeloCesta[]>([]);
   readonly loading = signal(false);
   readonly saving = signal(false);
+  /** Confirmação das operações irreversíveis (substitui window.confirm). */
+  readonly confirmacao = new Confirmacao();
   readonly catalogLoading = signal(false);
   readonly error = signal('');
   readonly catalogError = signal('');
@@ -170,12 +188,12 @@ export class CestasAdicionaisComponent {
     const b = this.beneficiarios().find((b) => b.id === input.beneficiarioId),
       m = this.modelos().find((m) => m.id === input.modeloCestaId);
     if (!b || !m) return;
-    if (
-      !window.confirm(
-        `Autorizar ${input.quantidade} cesta(s) do modelo ${m.nome} para ${b.nomeCompleto}, na distribuição de ${d.grupo.nome}?\nJustificativa: ${input.justificativa}`,
-      )
-    )
-      return;
+    const confirmado = await this.confirmacao.pedir({
+      title: 'Autorizar cesta adicional',
+      message: `Autorizar ${input.quantidade} cesta(s) do modelo ${m.nome} para ${b.nomeCompleto}, na distribuição de ${d.grupo.nome}?\nJustificativa: ${input.justificativa}`,
+      confirmLabel: 'Autorizar',
+    });
+    if (!confirmado || this.saving()) return;
     await this.mutar('autorizar', () => this.autorizarUC.execute(d.id, input));
   }
   async entregar(id: string) {
@@ -192,12 +210,12 @@ export class CestasAdicionaisComponent {
       this.error()
     )
       return;
-    if (
-      !window.confirm(
-        `Entregar ${item.quantidade} cesta(s) do modelo ${item.modeloCesta.nome} para ${item.beneficiario.nomeCompleto}? O estoque validará o modelo e a disponibilidade.`,
-      )
-    )
-      return;
+    const confirmado = await this.confirmacao.pedir({
+      title: 'Entregar cesta adicional',
+      message: `Entregar ${item.quantidade} cesta(s) do modelo ${item.modeloCesta.nome} para ${item.beneficiario.nomeCompleto}? O estoque validará o modelo e a disponibilidade.`,
+      confirmLabel: 'Entregar',
+    });
+    if (!confirmado || this.saving()) return;
     await this.mutar('entregar', () => this.entregarUC.execute(id));
   }
   private async mutar(
@@ -221,6 +239,7 @@ export class CestasAdicionaisComponent {
           ? 'Cesta adicional autorizada. A entrega ainda precisa ser registrada.'
           : 'Entrega de cesta adicional confirmada.',
       );
+      this.toast.success(this.feedback());
       await this.carregar();
     } catch (e) {
       if (!this.destroy.destroyed && id === this.contextId) {
@@ -235,5 +254,9 @@ export class CestasAdicionaisComponent {
     } finally {
       this.saving.set(false);
     }
+  }
+
+  statusLabel(status: CestaAdicional['status']): string {
+    return rotuloStatus(status);
   }
 }

@@ -22,11 +22,23 @@ import { userErrorMessage } from '../../../shared/errors/user-error';
 import { LoadingStateComponent } from '../../../shared/ui/loading-state.component';
 import { ErrorStateComponent } from '../../../shared/ui/error-state.component';
 import { MetricCardComponent } from '../../../shared/ui/metric-card.component';
+import { PageHeaderComponent } from '../../../shared/ui/page-header.component';
+import { SectionCardComponent } from '../../../shared/ui/section-card.component';
+import { StatusBadgeComponent } from '../../../shared/ui/status-badge.component';
+import { IconComponent } from '../../../shared/ui/icon.component';
+import { ToastService } from '../../../shared/ui/toast.service';
+import { DataBrPipe, formatarDataBr } from '../../../shared/pipes/data-br.pipe';
+import { CompetenciaPipe } from '../../../shared/pipes/competencia.pipe';
+import { HistoricoTimelineComponent } from '../../atendimento/components/historico-timeline.component';
+import { ObterHistoricoDistribuicaoUseCase } from '../../../application/atendimento/use-cases/obter-historico.use-cases';
+import type { HistoricoEvento } from '../../../domain/atendimento/historico.model';
+import { MeterComponent } from '../../../shared/ui/meter.component';
+import { Confirmacao, ConfirmDialogComponent } from '../../../shared/ui/confirm-dialog.component';
 
 @Component({
     selector: 'app-distribuicao-detail-page',
     standalone: true,
-    imports: [CommonModule, RouterLink, ReactiveFormsModule, CestasAdicionaisComponent, LoadingStateComponent, ErrorStateComponent, MetricCardComponent],
+    imports: [ConfirmDialogComponent, MeterComponent, CommonModule, RouterLink, ReactiveFormsModule, CestasAdicionaisComponent, LoadingStateComponent, ErrorStateComponent, MetricCardComponent, HistoricoTimelineComponent, PageHeaderComponent, SectionCardComponent, StatusBadgeComponent, IconComponent, DataBrPipe, CompetenciaPipe],
     templateUrl: './distribuicao-detail.page.html',
     styleUrl: './distribuicao-detail.page.scss',
     changeDetection: ChangeDetectionStrategy.OnPush,
@@ -35,13 +47,15 @@ export default class DistribuicaoDetailPage {
     private readonly remarcarDistribuicao = inject(RemarcarDistribuicaoUseCase);
     readonly podeRemarcar = inject(SessionFacade).hasPermission('DISTRIBUICAO_REMARCAR');
     readonly remarcando = signal(false);
+    /** Confirmação das operações irreversíveis (substitui window.confirm). */
+    readonly confirmacao = new Confirmacao();
     readonly remarcacaoError = signal('');
     readonly remarcacaoFeedback = signal('');
     readonly remarcacao = new FormGroup({
         novaData: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
         motivo: new FormControl('', { nonNullable: true, validators: [Validators.required, Validators.minLength(3), Validators.maxLength(1000)] }),
     });
-    remarcar(): void {
+    async remarcar(): Promise<void> {
         const item = this.distribuicao();
         if (!item || !this.podeRemarcar || this.remarcando() || this.remarcacao.invalid ||
             !['PLANEJADA', 'PREPARADA'].includes(item.status)) return;
@@ -51,7 +65,12 @@ export default class DistribuicaoDetailPage {
             this.remarcacaoError.set('Informe um motivo com pelo menos 3 caracteres.');
             return;
         }
-        if (!window.confirm(`Remarcar a distribuição para ${this.dataLabel(input.novaData)}?\nMotivo: ${input.motivo}`)) return;
+        const confirmado = await this.confirmacao.pedir({
+            title: `Remarcar a distribuição para ${formatarDataBr(input.novaData)}?`,
+            message: `Motivo: ${input.motivo}`,
+            confirmLabel: 'Remarcar',
+        });
+        if (!confirmado || this.remarcando()) return;
         this.remarcando.set(true);
         this.remarcacaoError.set('');
         this.remarcacaoFeedback.set('');
@@ -61,12 +80,14 @@ export default class DistribuicaoDetailPage {
         ).subscribe({
             next: () => {
                 this.remarcacaoFeedback.set('Distribuição remarcada com sucesso.');
+                this.toast.success('Distribuição remarcada com sucesso.');
                 this.remarcacao.reset();
                 this.carregar();
             },
             error: error => this.remarcacaoError.set(userErrorMessage(error, 'Não foi possível remarcar a distribuição.')),
         });
     }
+    private readonly toast = inject(ToastService);
     private readonly route = inject(ActivatedRoute);
     private readonly destroyRef = inject(DestroyRef);
     private readonly obterDistribuicao = inject(ObterDistribuicaoUseCase);
@@ -78,7 +99,12 @@ export default class DistribuicaoDetailPage {
 
     readonly podeAbrir = this.session.hasPermission('DISTRIBUICAO_ABRIR');
     readonly podeCestasAdicionais = this.session.hasPermission('CESTA_ADICIONAL_AUTORIZAR') || this.session.hasPermission('RETIRADA_REGISTRAR');
-    readonly podeConsultarLiberacoes = this.session.hasPermission('ESTOQUE_VISUALIZAR');
+    // Mirrors the /distribuicoes/:id/liberacoes route guards.
+    readonly podeConsultarLiberacoes = this.session.hasPermission('BENEFICIARIO_VISUALIZAR') && this.session.hasPermission('ESTOQUE_VISUALIZAR');
+    private readonly obterHistorico = inject(ObterHistoricoDistribuicaoUseCase);
+    readonly historico = signal<HistoricoEvento[]>([]);
+    readonly historicoLoading = signal(false);
+    readonly historicoError = signal<string | null>(null);
     readonly podeEncerrar = this.session.hasPermission('DISTRIBUICAO_ENCERRAR');
     readonly podeAtender = this.session.hasPermission('DISTRIBUICAO_TRIAGEM');
 
@@ -93,20 +119,20 @@ export default class DistribuicaoDetailPage {
         this.carregar();
     }
 
-    abrir(): void {
+    async abrir(): Promise<void> {
         const distribuicao = this.distribuicao();
 
         if (!distribuicao) {
             return;
         }
 
-        const confirmar = window.confirm(
-            `Deseja abrir a distribuição de ${distribuicao.grupo.nome} em ${this.dataLabel(
-                distribuicao.dataPrevista,
-            )}?`,
-        );
+        const confirmar = await this.confirmacao.pedir({
+            title: 'Abrir distribuição',
+            message: `Deseja abrir a distribuição de ${distribuicao.grupo.nome} em ${formatarDataBr(distribuicao.dataPrevista)}?`,
+            confirmLabel: 'Abrir distribuição',
+        });
 
-        if (!confirmar) {
+        if (!confirmar || this.abrindo()) {
             return;
         }
 
@@ -119,6 +145,7 @@ export default class DistribuicaoDetailPage {
             .subscribe({
                 next: () => {
                     this.abrindo.set(false);
+                    this.toast.success('Distribuição aberta para atendimento.');
                     this.carregar();
                 },
                 error: () => {
@@ -149,6 +176,7 @@ export default class DistribuicaoDetailPage {
                 next: (distribuicao) => {
                     this.distribuicao.set(distribuicao);
                     this.loading.set(false);
+                    this.carregarHistorico(distribuicao.id);
                 },
                 error: () => {
                     this.distribuicao.set(null);
@@ -158,7 +186,23 @@ export default class DistribuicaoDetailPage {
             });
     }
 
-    encerrar(): void {
+    carregarHistorico(id = this.distribuicao()?.id): void {
+        if (!id) return;
+        this.historicoLoading.set(true);
+        this.historicoError.set(null);
+        this.obterHistorico
+            .execute(id)
+            .pipe(takeUntilDestroyed(this.destroyRef), finalize(() => this.historicoLoading.set(false)))
+            .subscribe({
+                next: (h) => this.historico.set(h.eventos),
+                error: (error: unknown) => {
+                    this.historico.set([]);
+                    this.historicoError.set(userErrorMessage(error, 'Não foi possível carregar o histórico da distribuição.'));
+                },
+            });
+    }
+
+    async encerrar(): Promise<void> {
         const distribuicao = this.distribuicao();
 
         if (
@@ -170,12 +214,14 @@ export default class DistribuicaoDetailPage {
             return;
         }
 
-        const confirmar = window.confirm(
-            `Deseja encerrar a distribuição de ${distribuicao.grupo.nome}?\n\n` +
-            'Após o encerramento, novos check-ins e retiradas serão bloqueados.',
-        );
+        const confirmar = await this.confirmacao.pedir({
+            title: `Deseja encerrar a distribuição de ${distribuicao.grupo.nome}?`,
+            message: 'Após o encerramento, novos check-ins e retiradas serão bloqueados.',
+            confirmLabel: 'Encerrar distribuição',
+            danger: true,
+        });
 
-        if (!confirmar) {
+        if (!confirmar || this.encerrando()) {
             return;
         }
 
@@ -188,6 +234,7 @@ export default class DistribuicaoDetailPage {
             .subscribe({
                 next: () => {
                     this.encerrando.set(false);
+                    this.toast.success('Distribuição encerrada.');
                     this.carregar();
                 },
                 error: (error: unknown) => {
@@ -197,31 +244,5 @@ export default class DistribuicaoDetailPage {
                     );
                 },
             });
-    }
-
-    dataLabel(data: string): string {
-        const [ano, mes, dia] = data.split('-');
-
-        if (!ano || !mes || !dia) {
-            return data;
-        }
-
-        return `${dia}/${mes}/${ano}`;
-    }
-
-    competenciaLabel(distribuicao: Distribuicao): string {
-        const mes = String(distribuicao.competencia.mes).padStart(2, '0');
-        return `${mes}/${distribuicao.competencia.ano}`;
-    }
-
-    statusLabel(status: Distribuicao['status']): string {
-        const labels: Record<Distribuicao['status'], string> = {
-            PLANEJADA: 'Planejada',
-            PREPARADA: 'Preparada',
-            ABERTA: 'Aberta',
-            ENCERRADA: 'Encerrada',
-        };
-
-        return labels[status];
     }
 }

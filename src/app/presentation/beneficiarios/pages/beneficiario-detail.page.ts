@@ -1,6 +1,6 @@
-import { ChangeDetectionStrategy, Component, OnDestroy, OnInit, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnDestroy, OnInit, inject, signal } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import { ActivatedRoute, RouterLink } from '@angular/router';
+import { ActivatedRoute } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import {
   AlterarGrupoBeneficiarioUseCase,
@@ -28,29 +28,50 @@ import type {
   GrupoDistribuicao,
   MotivoDesligamento,
 } from '../../../application/beneficiarios/catalogos.models';
+import { ObterHistoricoBeneficiarioUseCase } from '../../../application/atendimento/use-cases/obter-historico.use-cases';
+import type { HistoricoEvento } from '../../../domain/atendimento/historico.model';
+import { DecimalPipe } from '@angular/common';
+import { IconComponent } from '../../../shared/ui/icon.component';
+import { SectionCardComponent } from '../../../shared/ui/section-card.component';
+import { EmptyStateComponent } from '../../../shared/ui/empty-state.component';
+import { ToastService } from '../../../shared/ui/toast.service';
+import { DataBrPipe } from '../../../shared/pipes/data-br.pipe';
+import { CompetenciaPipe } from '../../../shared/pipes/competencia.pipe';
+import { HistoricoTimelineComponent } from '../../atendimento/components/historico-timeline.component';
 @Component({
   selector: 'app-beneficiario-detail-page',
+  host: { class: 'ui-page' },
   imports: [
     ReactiveFormsModule,
-    RouterLink,
     ErrorStateComponent,
     ImageLightboxComponent,
     LoadingStateComponent,
     PageHeaderComponent,
     StatusBadgeComponent,
+    HistoricoTimelineComponent,
+    IconComponent,
+    SectionCardComponent,
+    EmptyStateComponent,
+    DataBrPipe,
+    CompetenciaPipe,
+    DecimalPipe,
   ],
   templateUrl: './beneficiario-detail.page.html',
-
+  styleUrl: './beneficiario-detail.page.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export default class BeneficiarioDetailPage implements OnInit, OnDestroy {
   readonly item = signal<BeneficiarioDetalhe | null>(null);
   readonly loading = signal(true);
   readonly error = signal('');
-  readonly tab = signal<'dados' | 'retiradas' | 'pendencias'>('dados');
+  readonly tab = signal<'dados' | 'retiradas' | 'pendencias' | 'historico'>('dados');
+  readonly historico = signal<HistoricoEvento[] | null>(null);
+  readonly historicoLoading = signal(false);
+  readonly historicoError = signal('');
   readonly mode = signal<'grupo' | 'desligar' | 'reativar' | null>(null);
   readonly mutation = signal(false);
   readonly feedback = signal('');
+  private readonly toast = inject(ToastService);
   private static readonly TIPOS_FOTO_ACEITOS = ['image/jpeg', 'image/png', 'image/webp'];
   private static readonly TAMANHO_MAXIMO_FOTO = 5 * 1024 * 1024;
   readonly fotoUrl = signal<string | null>(null);
@@ -89,6 +110,7 @@ export default class BeneficiarioDetailPage implements OnInit, OnDestroy {
     private readonly enviarFoto: EnviarFotoPessoaUseCase,
     grupos: ListarGruposUseCase,
     motivos: ListarMotivosUseCase,
+    private readonly obterHistorico: ObterHistoricoBeneficiarioUseCase,
     readonly session: SessionFacade,
   ) {
     this.id = route.snapshot.paramMap.get('id') ?? '';
@@ -112,6 +134,22 @@ export default class BeneficiarioDetailPage implements OnInit, OnDestroy {
       this.error.set(userErrorMessage(e, 'Não foi possível carregar o beneficiário.'));
     } finally {
       this.loading.set(false);
+    }
+  }
+  abrirHistorico() {
+    this.tab.set('historico');
+    if (this.historico() === null && !this.historicoLoading()) void this.loadHistorico();
+  }
+  async loadHistorico() {
+    this.historicoLoading.set(true);
+    this.historicoError.set('');
+    try {
+      const h = await firstValueFrom(this.obterHistorico.execute(this.id));
+      this.historico.set(h.eventos);
+    } catch (e) {
+      this.historicoError.set(userErrorMessage(e, 'Não foi possível carregar a linha do tempo.'));
+    } finally {
+      this.historicoLoading.set(false);
     }
   }
   private revokeFotoUrl() {
@@ -156,7 +194,7 @@ export default class BeneficiarioDetailPage implements OnInit, OnDestroy {
     try {
       await firstValueFrom(this.enviarFoto.execute(pessoaId, arquivo));
       await this.loadFoto(pessoaId);
-      this.feedback.set('Foto atualizada com sucesso.');
+      this.toast.success('Foto atualizada com sucesso.');
     } catch (e) {
       this.fotoErro.set(userErrorMessage(e, 'Não foi possível enviar a foto agora.'));
     } finally {
@@ -179,7 +217,7 @@ export default class BeneficiarioDetailPage implements OnInit, OnDestroy {
       if (mode === 'desligar')
         await firstValueFrom(this.desligar.execute(this.id, this.desligarForm.getRawValue()));
       if (mode === 'reativar') await firstValueFrom(this.reativar.execute(this.id));
-      this.feedback.set('Alteração concluída com sucesso.');
+      this.toast.success('Alteração concluída com sucesso.');
       this.mode.set(null);
       await this.load();
     } catch (e) {

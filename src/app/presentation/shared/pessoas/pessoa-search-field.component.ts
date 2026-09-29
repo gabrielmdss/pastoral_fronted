@@ -9,6 +9,8 @@ import {
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { IconComponent } from '../../../shared/ui/icon.component';
+import { DataBrPipe } from '../../../shared/pipes/data-br.pipe';
 import {
   catchError,
   debounceTime,
@@ -27,7 +29,7 @@ import type { Pessoa } from '../../../domain/pessoas/pessoa.model';
 import { userErrorMessage } from '../../../shared/errors/user-error';
 @Component({
   selector: 'app-pessoa-search-field',
-  imports: [ReactiveFormsModule],
+  imports: [ReactiveFormsModule, IconComponent, DataBrPipe],
   templateUrl: './pessoa-search-field.component.html',
   styleUrl: './pessoa-search-field.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

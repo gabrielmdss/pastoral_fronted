@@ -1,164 +1,199 @@
-<app-page-header
-  eyebrow="Assistência"
-  title="Lista de espera"
-  description="A ordem apresentada é exatamente a devolvida pela API."
->
+<app-page-header eyebrow="Assistência" title="Lista de espera" description="Famílias na fila de espera, na ordem devolvida pela API.">
   @if (session.hasPermission('CANDIDATURA_CADASTRAR')) {
-    <button actions (click)="open('nova')">Nova candidatura</button>
+    <button actions type="button" (click)="open('nova')"><app-icon name="plus" /> Nova candidatura</button>
   }
 </app-page-header>
 @if (feedback()) {
-  <p class="notice" role="status">{{ feedback() }}</p>
+  <p class="ui-message ui-message--error" role="alert">{{ feedback() }}</p>
 }
 @if (capacidade(); as cap) {
-  <p class="ui-message" role="status">
-    <strong>Vagas disponíveis:</strong> {{ cap.vagas }} vaga(s) livre(s) na capacidade atual.
-    A admissão só é possível enquanto houver vaga ou mediante autorização de exceção.
-  </p>
+  <div class="ui-message vagas-alert" role="status">
+    <app-icon name="info" />
+    <span>
+      <strong>Vagas disponíveis:</strong> {{ cap.vagas | number }} vaga(s) livre(s) na capacidade atual. A admissão só é possível
+      enquanto houver vaga ou mediante autorização de exceção.
+    </span>
+  </div>
 }
-<section class="filters">
-  <label class="search-label"
-    >Buscar por nome ou documento<input type="search" [formControl]="search" /></label
-  ><label
-    >Status<select [formControl]="status" (change)="refresh()">
-      <option value="">Todos</option>
-      <option value="AGUARDANDO">Aguardando</option>
-      <option value="CONVOCADO">Convocado</option>
-      <option value="ADMITIDO">Admitido</option>
-      <option value="NAO_LOCALIZADO">Não localizado</option>
-    </select></label
-  >
+<section class="ui-card">
+  <div class="ui-toolbar ui-toolbar--plain ui-card__header">
+    <label class="ui-field ui-toolbar__grow">
+      <span class="ui-field__label">Buscar por nome ou documento</span>
+      <span class="ui-input-icon">
+        <app-icon name="search" />
+        <input type="search" [formControl]="search" placeholder="Digite o nome ou documento" />
+      </span>
+    </label>
+    <label class="ui-field">
+      <span class="ui-field__label">Situação</span>
+      <select [formControl]="status" (change)="refresh()">
+        <option value="">Todas</option>
+        <option value="AGUARDANDO">Aguardando</option>
+        <option value="CONVOCADO">Convocado</option>
+        <option value="ADMITIDO">Admitido</option>
+        <option value="NAO_LOCALIZADO">Não localizado</option>
+      </select>
+    </label>
+  </div>
+
+  @if (loading()) {
+    <div class="ui-card__body"><app-loading-state variant="table" [rows]="6" [columns]="6" label="Carregando lista de espera…" /></div>
+  } @else if (error()) {
+    <div class="ui-card__body"><app-error-state [message]="error()" (retry)="refresh()" /></div>
+  } @else if (!items().length) {
+    <div class="ui-card__body">
+      <app-empty-state icon="clipboard-list" title="Lista de espera vazia" message="Nenhuma candidatura corresponde aos filtros." />
+    </div>
+  } @else {
+    <div class="ui-table-wrap" tabindex="0" role="region" aria-label="Lista de espera">
+      <table class="ui-table ui-table--cards">
+        <thead>
+          <tr>
+            <th scope="col" class="number">Ordem</th>
+            <th scope="col">Nome</th>
+            <th scope="col">Entrada</th>
+            <th scope="col">Contatos</th>
+            <th scope="col">Situação</th>
+            <th scope="col" class="ui-table__actions"><span class="sr-only">Ações</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (c of items(); track c.id; let i = $index) {
+            <tr class="fade-in-stagger" [style.--delay.ms]="i * 30" [class.row--attention]="c.prioridadeExcepcional">
+              <td data-label="Ordem" class="number text-muted">{{ i + 1 }}º</td>
+              <td data-label="Nome">
+                <div class="ui-person">
+                  <span class="ui-avatar" aria-hidden="true">{{ c.nome.charAt(0) }}</span>
+                  <div>
+                    <strong>{{ c.nome }}</strong>
+                    <div class="text-xs text-muted">
+                      {{ c.documentos[0]?.tipo }} {{ c.documentos[0]?.numeroMascarado || 'Documento não informado' }}
+                    </div>
+                  </div>
+                </div>
+              </td>
+              <td data-label="Entrada">{{ c.dataEntrada | dataBr }}</td>
+              <td data-label="Contatos">
+                {{ c.tentativasContato | number }} tentativa(s)
+                @if (c.ultimaTentativaContato) {
+                  <div class="text-xs text-muted">
+                    {{ c.ultimaTentativaContato.resultado || 'Sem resultado' }} ·
+                    {{ c.ultimaTentativaContato.ocorridoEm | dataBr: 'relativa' }}
+                  </div>
+                }
+              </td>
+              <td data-label="Situação">
+                <span class="ui-actions">
+                  <app-status-badge [status]="c.status" />
+                  @if (c.prioridadeExcepcional) {
+                    <span class="ui-badge ui-badge--warning" title="Prioridade excepcional">Prioridade</span>
+                  }
+                </span>
+              </td>
+              <td class="ui-table__actions">
+                @if (active(c)) {
+                  <div class="ui-actions ui-actions--end">
+                    @if (session.hasPermission('CANDIDATURA_PRIORIZAR')) {
+                      <button type="button" class="btn--ghost btn--sm" (click)="open('priorizar', c)">Priorizar</button>
+                    }
+                    @if (session.hasPermission('CANDIDATURA_CADASTRAR')) {
+                      <button type="button" class="btn--ghost btn--sm" (click)="open('contato', c)">Registrar contato</button>
+                      <button type="button" class="btn--ghost btn--sm" (click)="open('nao-localizado', c)">Não localizado</button>
+                    }
+                    @if (session.hasPermission('CANDIDATURA_ADMITIR')) {
+                      <button type="button" class="btn--sm" (click)="open('admitir', c)">Admitir</button>
+                    }
+                  </div>
+                }
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+    <div class="ui-card__footer text-sm text-muted">{{ items().length | number }} candidatura(s)</div>
+  }
 </section>
-@if (loading()) {
-  <app-loading-state label="Carregando lista de espera…" />
-} @else if (error()) {
-  <app-error-state [message]="error()" (retry)="refresh()" />
-} @else if (!items().length) {
-  <app-empty-state
-    title="Lista de espera vazia"
-    message="Nenhuma candidatura corresponde aos filtros."
-  />
-} @else {
-  <section class="candidate-list">
-    @for (c of items(); track c.id; let i = $index) {
-      <article
-        class="fade-in-stagger"
-        [style.--delay.ms]="i * 30"
-        [class.priority]="c.prioridadeExcepcional"
-      >
-        <div>
-          <div class="person">
-            <span class="avatar">{{ c.nome.charAt(0) }}</span>
-            <h2>{{ c.nome }}</h2>
-            @if (c.prioridadeExcepcional) {
-              <span class="priority-flag" title="Prioridade excepcional">⚠ Prioridade</span>
-            }
-          </div>
-          <p>
-            {{ c.documentos[0]?.tipo }}
-            {{ c.documentos[0]?.numeroMascarado || 'Documento não informado' }} · Entrada
-            {{ c.dataEntrada.slice(0, 10) }}
-          </p>
-        </div>
-        <div class="candidate-meta">
-          <app-status-badge [status]="c.status" /><span
-            >{{ c.tentativasContato }} tentativa(s) de contato</span
-          >
-          @if (c.ultimaTentativaContato) {
-            <small
-              >Último contato: {{ c.ultimaTentativaContato.resultado || 'Sem resultado' }} —
-              {{ c.ultimaTentativaContato.ocorridoEm.slice(0, 10) }}</small
-            >
-          }
-        </div>
-        @if (active(c)) {
-          <div class="actions">
-            @if (session.hasPermission('CANDIDATURA_PRIORIZAR')) {
-              <button class="secondary" (click)="open('priorizar', c)">Priorizar</button>
-            }
-            @if (session.hasPermission('CANDIDATURA_CADASTRAR')) {
-              <button class="secondary" (click)="open('contato', c)">Registrar contato</button
-              ><button class="secondary" (click)="open('nao-localizado', c)">Não localizado</button>
-            }
-            @if (session.hasPermission('CANDIDATURA_ADMITIR')) {
-              <button (click)="open('admitir', c)">Admitir</button>
-            }
-          </div>
-        }
-      </article>
-    }
-  </section>
-}
+
 @if (mode()) {
-  <div class="dialog-backdrop">
-    <section
-      class="dialog"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="candidate-action-title"
-    >
-      <h2 id="candidate-action-title">
-        {{
-          mode() === 'nova'
-            ? 'Nova candidatura'
-            : mode() === 'priorizar'
-              ? 'Priorizar candidatura'
-              : mode() === 'contato'
-                ? 'Registrar contato'
-                : mode() === 'admitir'
-                  ? 'Admitir pela fila'
-                  : 'Marcar como não localizado'
-        }}
-      </h2>
-      @if (mode() === 'nova') {
-        <app-pessoa-search-field
-          [canCreate]="session.hasPermission('BENEFICIARIO_CADASTRAR')"
-          (pessoaSelecionada)="pessoa.set($event)"
-        />
-      }
-      @if (mode() === 'priorizar') {
-        <label>Justificativa<textarea [formControl]="prioridade"></textarea></label>
-      }
-      @if (mode() === 'contato') {
-        <form [formGroup]="contato">
-          <label
-            >Resultado<input formControlName="resultado" /><small
-              >A API aceita texto livre de até 100 caracteres; não há enum público.</small
-            ></label
-          ><label>Observação<textarea formControlName="observacao"></textarea></label>
-        </form>
-      }
-      @if (mode() === 'admitir') {
-        <form [formGroup]="admissao">
-          <p><strong>Pessoa:</strong> {{ selected()?.nome }}</p>
-          <label
-            >Grupo<select formControlName="grupoId">
-              <option value="">Selecione</option>
-              @for (grupo of grupos(); track grupo.id) {
-                <option [value]="grupo.id">{{ grupo.nome }}</option>
-              }
-            </select></label
-          >
-          @if (session.hasPermission('CAPACIDADE_ALTERAR')) {
-            <label class="check"
-              ><input type="checkbox" formControlName="autorizarAcimaCapacidade" />Autorizar acima
-              da capacidade</label
-            >
+  <div class="ui-dialog-backdrop">
+    <section class="ui-dialog" [class.ui-dialog--lg]="mode() === 'nova'" role="dialog" aria-modal="true" aria-labelledby="candidate-action-title">
+      <header class="ui-dialog__header">
+        <div>
+          <h2 id="candidate-action-title">
+            {{
+              mode() === 'nova'
+                ? 'Nova candidatura'
+                : mode() === 'priorizar'
+                  ? 'Priorizar candidatura'
+                  : mode() === 'contato'
+                    ? 'Registrar contato'
+                    : mode() === 'admitir'
+                      ? 'Admitir pela fila'
+                      : 'Marcar como não localizado'
+            }}
+          </h2>
+          @if (selected(); as s) {
+            <p>{{ s.nome }}</p>
           }
-          @if (admissao.controls.autorizarAcimaCapacidade.value) {
-            <label>Justificativa<textarea formControlName="justificativaExcecao"></textarea></label>
-          }
-        </form>
-      }
-      @if (mode() === 'nao-localizado') {
-        <p>Confirma marcar esta candidatura como não localizada? Ela não será excluída.</p>
-      }
-      <div class="dialog-actions">
-        <button class="secondary" (click)="mode.set(null)">Cancelar</button
-        ><button (click)="submit()" [disabled]="mutation() || (mode() === 'nova' && !pessoa())">
+        </div>
+        <button type="button" class="btn--ghost btn--icon btn--sm" aria-label="Fechar" (click)="mode.set(null)"><app-icon name="x" /></button>
+      </header>
+      <div class="ui-dialog__body ui-stack">
+        @if (mode() === 'nova') {
+          <app-pessoa-search-field [canCreate]="session.hasPermission('BENEFICIARIO_CADASTRAR')" (pessoaSelecionada)="pessoa.set($event)" />
+        }
+        @if (mode() === 'priorizar') {
+          <label class="ui-field">
+            <span class="ui-field__label">Justificativa</span>
+            <textarea [formControl]="prioridade"></textarea>
+          </label>
+        }
+        @if (mode() === 'contato') {
+          <form [formGroup]="contato" class="ui-stack">
+            <label class="ui-field">
+              <span class="ui-field__label">Resultado</span>
+              <input formControlName="resultado" />
+              <span class="ui-field__hint">Texto livre de até 100 caracteres.</span>
+            </label>
+            <label class="ui-field">
+              <span class="ui-field__label">Observação</span>
+              <textarea formControlName="observacao"></textarea>
+            </label>
+          </form>
+        }
+        @if (mode() === 'admitir') {
+          <form [formGroup]="admissao" class="ui-stack">
+            <label class="ui-field">
+              <span class="ui-field__label">Grupo</span>
+              <select formControlName="grupoId">
+                <option value="">Selecione</option>
+                @for (grupo of grupos(); track grupo.id) {
+                  <option [value]="grupo.id">{{ grupo.nome }}</option>
+                }
+              </select>
+            </label>
+            @if (session.hasPermission('CAPACIDADE_ALTERAR')) {
+              <label class="ui-check"><input type="checkbox" formControlName="autorizarAcimaCapacidade" /> Autorizar acima da capacidade</label>
+            }
+            @if (admissao.controls.autorizarAcimaCapacidade.value) {
+              <label class="ui-field">
+                <span class="ui-field__label">Justificativa</span>
+                <textarea formControlName="justificativaExcecao"></textarea>
+              </label>
+            }
+          </form>
+        }
+        @if (mode() === 'nao-localizado') {
+          <p>Confirma marcar esta candidatura como não localizada? Ela não será excluída.</p>
+        }
+      </div>
+      <footer class="ui-dialog__footer">
+        <button type="button" class="secondary" (click)="mode.set(null)">Cancelar</button>
+        <button type="button" (click)="submit()" [disabled]="mutation() || (mode() === 'nova' && !pessoa())" [class.is-loading]="mutation()">
           {{ mutation() ? 'Processando…' : 'Confirmar' }}
         </button>
-      </div>
+      </footer>
     </section>
   </div>
 }
